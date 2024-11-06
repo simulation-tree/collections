@@ -118,7 +118,7 @@ namespace Collections
 
         public readonly bool Contains<V>(V value) where V : unmanaged, IEquatable<V>
         {
-            return TryIndexOf(value, out _);
+            return UnsafeArray.Contains(this.value, value);
         }
 
         public readonly void CopyTo(USpan<T> span)

@@ -97,6 +97,13 @@ namespace Collections.Unsafe
             return span.TryIndexOf(value, out index);
         }
 
+        public static bool Contains<T>(UnsafeArray* array, T value) where T : unmanaged, IEquatable<T>
+        {
+            ThrowIfDisposed(array);
+            USpan<T> span = AsSpan<T>(array);
+            return span.Contains(value);
+        }
+
         /// <summary>
         /// Resizes the array and optionally initializes new elements.
         /// </summary>

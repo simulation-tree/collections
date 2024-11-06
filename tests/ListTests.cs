@@ -107,9 +107,9 @@ namespace Collections
             Assert.That(list[1], Is.EqualTo(2u));
             Assert.That(list[2], Is.EqualTo(3u));
             Assert.That(list[3], Is.EqualTo(4u));
-            var result = list.AsSpan().ToArray();
+            uint[] result = list.AsSpan().ToArray();
             list.AddRange(new[] { 5u, 6u, 7u, 8u });
-            var result2 = list.AsSpan().ToArray();
+            uint[] result2 = list.AsSpan().ToArray();
             Assert.That(list.Count, Is.EqualTo(8));
             Assert.That(list[4], Is.EqualTo(5u));
             Assert.That(list[5], Is.EqualTo(6u));
