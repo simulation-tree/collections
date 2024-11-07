@@ -16,7 +16,7 @@ namespace Collections.Unsafe
         [Conditional("DEBUG")]
         private static void ThrowIfKeySizeMismatches<K>(UnsafeDictionary* dictionary) where K : unmanaged
         {
-            if (dictionary->keyType.Size != USpan<K>.ElementSize)
+            if (dictionary->keyType.Size != TypeInfo<K>.size)
             {
                 throw new ArgumentException("Key size doesn't match the expected size.");
             }
@@ -25,7 +25,7 @@ namespace Collections.Unsafe
         [Conditional("DEBUG")]
         private static void ThrowIfValueSizeMismatches<V>(UnsafeDictionary* dictionary) where V : unmanaged
         {
-            if (dictionary->valueType.Size != USpan<V>.ElementSize)
+            if (dictionary->valueType.Size != TypeInfo<V>.size)
             {
                 throw new ArgumentException("Value size doesn't match the expected size.");
             }
@@ -51,7 +51,7 @@ namespace Collections.Unsafe
 
         public static bool IsDisposed(UnsafeDictionary* dictionary)
         {
-            return Allocations.IsNull(dictionary);
+            return dictionary is null;
         }
 
         public static uint GetCount(UnsafeDictionary* dictionary)
@@ -68,6 +68,7 @@ namespace Collections.Unsafe
         public static UnsafeDictionary* Allocate(RuntimeType keyType, RuntimeType valueType, uint initialCapacity = 1)
         {
             ThrowIfCapacityIsZero(initialCapacity);
+
             UnsafeDictionary* dictionary = (UnsafeDictionary*)Allocation.Create<UnsafeDictionary>();
             dictionary->keyType = keyType;
             dictionary->valueType = valueType;
@@ -118,7 +119,7 @@ namespace Collections.Unsafe
             Allocations.ThrowIfNull(dictionary);
             ThrowIfKeySizeMismatches<K>(dictionary);
             ThrowIfOutOfRange(dictionary, index);
-            return ref dictionary->keys.Read<K>(index * USpan<K>.ElementSize);
+            return ref dictionary->keys.Read<K>(index * TypeInfo<K>.size);
         }
 
         public static bool ContainsKey<K>(UnsafeDictionary* dictionary, K key) where K : unmanaged, IEquatable<K>
@@ -138,8 +139,8 @@ namespace Collections.Unsafe
                 throw new ArgumentException($"The key '{key}' already exists in the dictionary.");
             }
 
-            uint keySize = USpan<K>.ElementSize;
-            uint valueSize = USpan<V>.ElementSize;
+            uint keySize = TypeInfo<K>.size;
+            uint valueSize = TypeInfo<V>.size;
             dictionary->keys.Write(dictionary->count * keySize, key);
             dictionary->values.Write(dictionary->count * valueSize, value);
             dictionary->count++;
@@ -165,7 +166,7 @@ namespace Collections.Unsafe
             //move last element into slot
             ref uint count = ref dictionary->count;
             count--;
-            uint keySize = USpan<K>.ElementSize;
+            uint keySize = TypeInfo<K>.size;
             uint valueSize = dictionary->valueType.Size;
             K lastKey = dictionary->keys.Read<K>(count * keySize);
             dictionary->keys.Write(index * keySize, lastKey);

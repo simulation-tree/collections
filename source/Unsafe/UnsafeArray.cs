@@ -6,7 +6,7 @@ namespace Collections.Unsafe
 {
     public unsafe struct UnsafeArray
     {
-        private RuntimeType type;
+        private uint stride;
         private uint length;
         private Allocation items;
 
@@ -31,6 +31,7 @@ namespace Collections.Unsafe
         public static void Free(ref UnsafeArray* array)
         {
             ThrowIfDisposed(array);
+
             array->items.Dispose();
             Allocations.Free(ref array);
             array = null;
@@ -38,18 +39,20 @@ namespace Collections.Unsafe
 
         public static bool IsDisposed(UnsafeArray* array)
         {
-            return Allocations.IsNull(array);
+            return array is null;
         }
 
         public static uint GetLength(UnsafeArray* array)
         {
             ThrowIfDisposed(array);
+
             return array->length;
         }
 
         public static nint GetStartAddress(UnsafeArray* array)
         {
             ThrowIfDisposed(array);
+
             return array->items.Address;
         }
 
@@ -60,12 +63,12 @@ namespace Collections.Unsafe
 
         public static UnsafeArray* Allocate(RuntimeType type, uint length)
         {
-            uint size = type.Size;
+            uint stride = type.Size;
             UnsafeArray* array = Allocations.Allocate<UnsafeArray>();
-            array->type = type;
+            array->stride = stride;
             array->length = length;
-            array->items = new(size * length);
-            array->items.Clear(size * length);
+            array->items = new(stride * length);
+            array->items.Clear(stride * length);
             return array;
         }
 
@@ -87,12 +90,14 @@ namespace Collections.Unsafe
         public static USpan<T> AsSpan<T>(UnsafeArray* array) where T : unmanaged
         {
             ThrowIfDisposed(array);
+
             return array->items.AsSpan<T>(0, array->length);
         }
 
         public static bool TryIndexOf<T>(UnsafeArray* array, T value, out uint index) where T : unmanaged, IEquatable<T>
         {
             ThrowIfDisposed(array);
+
             USpan<T> span = AsSpan<T>(array);
             return span.TryIndexOf(value, out index);
         }
@@ -100,6 +105,7 @@ namespace Collections.Unsafe
         public static bool Contains<T>(UnsafeArray* array, T value) where T : unmanaged, IEquatable<T>
         {
             ThrowIfDisposed(array);
+
             USpan<T> span = AsSpan<T>(array);
             return span.Contains(value);
         }
@@ -110,16 +116,17 @@ namespace Collections.Unsafe
         public static void Resize(UnsafeArray* array, uint newLength, bool initialize = false)
         {
             ThrowIfDisposed(array);
+
             if (array->length != newLength)
             {
-                uint size = array->type.Size;
+                uint stride = array->stride;
                 uint oldLength = array->length;
-                Allocation.Resize(ref array->items, size * newLength);
+                Allocation.Resize(ref array->items, stride * newLength);
                 array->length = newLength;
 
                 if (initialize && newLength > oldLength)
                 {
-                    array->items.Clear(size * oldLength, size * (newLength - oldLength));
+                    array->items.Clear(stride * oldLength, stride * (newLength - oldLength));
                 }
             }
         }
@@ -130,7 +137,8 @@ namespace Collections.Unsafe
         public static void Clear(UnsafeArray* array)
         {
             ThrowIfDisposed(array);
-            array->items.Clear(array->length * array->type.Size);
+
+            array->items.Clear(array->length * array->stride);
         }
 
         /// <summary>
@@ -139,8 +147,8 @@ namespace Collections.Unsafe
         public static void Clear(UnsafeArray* array, uint start, uint length)
         {
             ThrowIfDisposed(array);
-            uint size = array->type.Size;
-            array->items.Clear(start * size, length * size);
+
+            array->items.Clear(start * array->stride, length * array->stride);
         }
     }
 }
