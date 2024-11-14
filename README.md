@@ -1,5 +1,40 @@
 # Collections
-Unmanaged C# library that implements these types of collections:
-- `List<T>`
-- `Array<T>`
-- `Dictionary<K, V>`
+Native C# library implementing collections.
+
+### Arrays
+```cs
+using Array<int> array = new(4);
+array[0] = 1;
+array[1] = 3;
+array[2] = 3;
+array[3] = 7;
+foreach (int item in array)
+{
+    Console.WriteLine(item);
+}
+```
+
+### Lists
+```cs
+using List<int> list = new();
+list.Add(1);
+list.Add(3);
+list.Add(3);
+list.Add(7);
+foreach (int item in list)
+{
+    Console.WriteLine(item);
+}
+```
+
+### Dictionaries
+```cs
+using Dictionary<byte, int> dictionary = new();
+dictionary.Add(1, 1337);
+dictionary.Add(2, 8008135);
+dictionary.Add(3, 42);
+foreach (byte key in dictionary.Keys)
+{
+    Console.WriteLine(dictionary[key]);
+}
+```

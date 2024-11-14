@@ -6,57 +6,82 @@ using Unmanaged;
 
 namespace Collections
 {
+    /// <summary>
+    /// Native list that can be used in unmanaged code.
+    /// </summary>
     public unsafe struct List<T> : IDisposable, IReadOnlyList<T>, IList<T>, IEquatable<List<T>> where T : unmanaged
     {
         private UnsafeList* value;
 
-        public readonly bool IsDisposed => UnsafeList.IsDisposed(value);
+        /// <summary>
+        /// Checks if the list has been disposed.
+        /// </summary>
+        public readonly bool IsDisposed => value is null;
 
         /// <summary>
         /// Amount of elements in the list.
         /// </summary>
         public readonly uint Count => UnsafeList.GetCountRef(value);
 
+        /// <summary>
+        /// Capacity of the list.
+        /// </summary>
         public readonly uint Capacity
         {
             get => UnsafeList.GetCapacity(value);
             set => UnsafeList.SetCapacity(this.value, value);
         }
 
+        /// <summary>
+        /// Native address where the memory for elements begin.
+        /// </summary>
         public readonly nint StartAddress => UnsafeList.GetStartAddress(value);
+
+        /// <summary>
+        /// Accesses the element at the specified index.
+        /// </summary>
         public readonly ref T this[uint index] => ref UnsafeList.GetRef<T>(value, index);
 
-        readonly T IReadOnlyList<T>.this[int index] => UnsafeList.Get<T>(value, (uint)index);
+        readonly T IReadOnlyList<T>.this[int index] => UnsafeList.GetRef<T>(value, (uint)index);
         readonly int IReadOnlyCollection<T>.Count => (int)Count;
         readonly int ICollection<T>.Count => (int)Count;
         readonly bool ICollection<T>.IsReadOnly => false;
         readonly T IList<T>.this[int index]
         {
-            get => UnsafeList.Get<T>(value, (uint)index);
-            set => UnsafeList.Set(this.value, (uint)index, value);
-        }
-
-        public List(UnsafeList* list)
-        {
-            value = list;
+            get => UnsafeList.GetRef<T>(value, (uint)index);
+            set => UnsafeList.GetRef<T>(this.value, (uint)index) = value;
         }
 
         /// <summary>
-        /// Creates a new list with the given initial capacity.
+        /// Initializes an existing list from the given <paramref name="pointer"/>.
         /// </summary>
-        public List(uint initialCapacity = 1)
+        public List(UnsafeList* pointer)
+        {
+            value = pointer;
+        }
+
+        /// <summary>
+        /// Creates a new list with the given <paramref name="initialCapacity"/>.
+        /// </summary>
+        public List(uint initialCapacity = 4)
         {
             value = UnsafeList.Allocate<T>(initialCapacity);
         }
 
+        /// <summary>
+        /// Creates a new list containing the given <paramref name="span"/>.
+        /// </summary>
         public List(USpan<T> span)
         {
             value = UnsafeList.Allocate(span);
         }
 
+        /// <summary>
+        /// Creates a new list containing elements from the given <paramref name="list"/>.
+        /// </summary>
         public List(IEnumerable<T> list)
         {
-            value = UnsafeList.Allocate<T>();
+            value = UnsafeList.Allocate<T>(4);
             foreach (T item in list)
             {
                 Add(item);
@@ -69,10 +94,16 @@ namespace Collections
         /// </summary>
         public List()
         {
-            this = Create();
+            value = UnsafeList.Allocate<T>(4);
         }
 #endif
 
+        /// <summary>
+        /// Disposes the list and frees its memory.
+        /// <para>Elements need to be disposed manually prior to
+        /// calling this if they are allocations/disposable themselves.
+        /// </para>
+        /// </summary>
         public void Dispose()
         {
             UnsafeList.Free(ref value);
@@ -95,27 +126,36 @@ namespace Collections
         }
 
         /// <summary>
-        /// Returns the remaining span starting from the given index.
+        /// Returns the remaining span starting from <paramref name="start"/>.
         /// </summary>
         public readonly USpan<T> AsSpan(uint start)
         {
             return UnsafeList.AsSpan<T>(value, start);
         }
 
+        /// <summary>
+        /// Returns a span of specified <paramref name="length"/> starting from <paramref name="start"/>.
+        /// </summary>
         public readonly USpan<T> AsSpan(uint start, uint length)
         {
             return UnsafeList.AsSpan<T>(value, start, length);
         }
 
         /// <summary>
-        /// Inserts the given item at the specified index by shifting 
-        /// succeeding elements over.
+        /// Inserts the given <paramref name="item"/> at the specified <paramref name="index"/>.
+        /// <para>
+        /// May throw <see cref="IndexOutOfRangeException"/> if the index is greater than the count.
+        /// </para>
         /// </summary>
+        /// <exception cref="IndexOutOfRangeException"/>
         public readonly void Insert(uint index, T item)
         {
             UnsafeList.Insert(value, index, item);
         }
 
+        /// <summary>
+        /// Adds the given <paramref name="item"/> to the list.
+        /// </summary>
         public readonly void Add(T item)
         {
             UnsafeList.Add(value, item);
@@ -146,41 +186,51 @@ namespace Collections
         }
 
         /// <summary>
-        /// Adds a range of the specified default value to the list.
+        /// Adds a range of the specified <paramref name="item"/> to the list.
         /// </summary>
-        public readonly void AddRepeat(T defaultValue, uint count)
+        public readonly void AddRepeat(T item, uint count)
         {
             uint start = Count;
             AddDefault(count);
             USpan<T> span = AsSpan(start);
             for (uint i = 0; i < count; i++)
             {
-                span[i] = defaultValue;
+                span[i] = item;
             }
         }
 
+        /// <summary>
+        /// Adds the memory from <paramref name="pointer"/> to the list.
+        /// </summary>
         public readonly void AddRange(void* pointer, uint count)
         {
             UnsafeList.AddRange(value, pointer, count);
         }
 
-        public readonly void InsertRange(uint index, USpan<T> items)
+        /// <summary>
+        /// Inserts the given <paramref name="span"/> at the specified <paramref name="index"/>.
+        /// <para>
+        /// May throw <see cref="IndexOutOfRangeException"/> if the index is greater than the count.
+        /// </para>
+        /// </summary>
+        /// <exception cref="IndexOutOfRangeException"></exception>
+        public readonly void InsertRange(uint index, USpan<T> span)
         {
             uint count = Count;
             if (index > count)
             {
-                throw new IndexOutOfRangeException();
+                throw new IndexOutOfRangeException($"Index {index} is greater than the count {count}");
             }
 
-            uint length = items.Length;
+            uint length = span.Length;
             if (index == count)
             {
-                AddRange(items);
+                AddRange(span);
             }
             else
             {
                 Capacity = count + length;
-                foreach (T item in items)
+                foreach (T item in span)
                 {
                     Insert(index++, item);
                 }
@@ -190,20 +240,23 @@ namespace Collections
         /// <summary>
         /// Adds the given span to the list.
         /// </summary>
-        public readonly void AddRange(USpan<T> items)
+        public readonly void AddRange(USpan<T> span)
         {
-            UnsafeList.AddRange(value, items);
+            UnsafeList.AddRange(value, span);
         }
 
         /// <summary>
-        /// Adds the given span of <typeparamref name="V"/> into
+        /// Adds the given <paramref name="span"/> of <typeparamref name="V"/> into
         /// the list, assuming its size equals to <typeparamref name="T"/>.
         /// </summary>
-        public readonly void AddRange<V>(USpan<V> items) where V : unmanaged
+        public readonly void AddRange<V>(USpan<V> span) where V : unmanaged
         {
-            UnsafeList.AddRange(value, items);
+            UnsafeList.AddRange(value, span);
         }
 
+        /// <summary>
+        /// Adds the given <paramref name="list"/> to the list.
+        /// </summary>
         public readonly void AddRange(List<T> list)
         {
             nint address = UnsafeList.GetStartAddress(list.value);
@@ -211,21 +264,28 @@ namespace Collections
         }
 
         /// <summary>
-        /// Returns the index of the given item in the list, otherwise
-        /// throws an <see cref="Exception"/> if none found.
+        /// Returns the index of the given <paramref name="item"/> in the list.
+        /// <para>
+        /// May throw <see cref="NullReferenceException"/> if the item is not found.
+        /// </para>
         /// </summary>
+        /// <exception cref="NullReferenceException"></exception>
         public readonly uint IndexOf<V>(V item) where V : unmanaged, IEquatable<V>
         {
             return UnsafeList.IndexOf(value, item);
         }
 
+        /// <summary>
+        /// Attempts to find the index of the given <paramref name="item"/>.
+        /// </summary>
+        /// <returns><c>true</c> if found.</returns>
         public readonly bool TryIndexOf<V>(V item, out uint index) where V : unmanaged, IEquatable<V>
         {
             return UnsafeList.TryIndexOf(value, item, out index);
         }
 
         /// <summary>
-        /// Checks whether the list contains the given item.
+        /// Checks whether the list contains the given <paramref name="item"/>.
         /// </summary>
         public readonly bool Contains<V>(V item) where V : unmanaged, IEquatable<V>
         {
@@ -233,9 +293,11 @@ namespace Collections
         }
 
         /// <summary>
-        /// Removes the given item from the list by swapping it with the removed element.
+        /// Attempts to remove the given <paramref name="item"/> from the list
+        /// by swapping it with the removed element.
         /// </summary>
-        public readonly bool TryRemove<V>(V item) where V : unmanaged, IEquatable<V>
+        /// <returns><c>true</c> if the item was removed.</returns>
+        public readonly bool TryRemoveBySwapping<V>(V item) where V : unmanaged, IEquatable<V>
         {
             if (TryIndexOf(item, out uint index))
             {
@@ -250,8 +312,12 @@ namespace Collections
 
         /// <summary>
         /// Removes the element at the given index.
+        /// <para>
+        /// May throw <see cref="IndexOutOfRangeException"/> if the index is outside the bounds.
+        /// </para>
         /// </summary>
         /// <returns>The removed element.</returns>
+        /// <exception cref="IndexOutOfRangeException"></exception>"
         public readonly T RemoveAt(uint index)
         {
             T removed = this[index];
@@ -259,16 +325,39 @@ namespace Collections
             return removed;
         }
 
+        /// <summary>
+        /// Removes the element at the given index by swapping it with the last element.
+        /// <para>
+        /// May throw <see cref="IndexOutOfRangeException"/> if the index is outside the bounds.
+        /// </para>
+        /// </summary>
+        /// <exception cref="IndexOutOfRangeException"></exception>"
         public readonly void RemoveAtBySwapping(uint index)
         {
             UnsafeList.RemoveAtBySwapping(value, index);
         }
 
+        /// <summary>
+        /// Removes the element at the given index.
+        /// <para>
+        /// May throw <see cref="IndexOutOfRangeException"/> if the index is outside the bounds.
+        /// </para>
+        /// </summary>
+        /// <returns>The removed element.</returns>
+        /// <exception cref="IndexOutOfRangeException"></exception>"
         public readonly V RemoveAt<V>(uint index) where V : unmanaged, IEquatable<V>
         {
             return UnsafeList.RemoveAt<V>(value, index);
         }
 
+        /// <summary>
+        /// Removes the element at the given index by swapping it with the last element.
+        /// <para>
+        /// May throw <see cref="IndexOutOfRangeException"/> if the index is outside the bounds.
+        /// </para>
+        /// </summary>
+        /// <returns>The removed element.</returns>
+        /// <exception cref="IndexOutOfRangeException"></exception>"
         public readonly V RemoveAtBySwapping<V>(uint index) where V : unmanaged, IEquatable<V>
         {
             return UnsafeList.RemoveAtBySwapping<V>(value, index);
@@ -283,8 +372,8 @@ namespace Collections
         }
 
         /// <summary>
-        /// Clears the list all elements and ensures that the capacity at least
-        /// the given amount.
+        /// Ensures that the list has the given <paramref name="minimumCapacity"/>
+        /// and clears it.
         /// </summary>
         public readonly void Clear(uint minimumCapacity)
         {
@@ -297,17 +386,22 @@ namespace Collections
             UnsafeList.Clear(value);
         }
 
+        /// <inheritdoc/>
         public readonly override int GetHashCode()
         {
-            nint ptr = (nint)value;
-            return HashCode.Combine(ptr, 7);
+            return ((nint)value).GetHashCode();
         }
 
-        public readonly void CopyTo(USpan<T> destination)
+        /// <summary>
+        /// Copies the elements of the list to the given <paramref name="destination"/>.
+        /// </summary>
+        /// <returns>Amount of elements copied.</returns>
+        public readonly uint CopyTo(USpan<T> destination)
         {
-            AsSpan().CopyTo(destination);
+            return AsSpan().CopyTo(destination);
         }
 
+        /// <inheritdoc/>
         public readonly Enumerator GetEnumerator()
         {
             return new(value);
@@ -323,6 +417,7 @@ namespace Collections
             return GetEnumerator();
         }
 
+        /// <inheritdoc/>
         public readonly bool Equals(List<T> other)
         {
             if (IsDisposed && other.IsDisposed)
@@ -333,6 +428,7 @@ namespace Collections
             return value == other.value;
         }
 
+        /// <inheritdoc/>
         public readonly override bool Equals(object? obj)
         {
             return obj is List<T> list && Equals(list);
@@ -386,31 +482,31 @@ namespace Collections
             }
         }
 
-        public static List<T> Create(uint initialCapacity = 1)
-        {
-            return new(initialCapacity);
-        }
-
+        /// <summary/>
         public struct Enumerator : IEnumerator<T>
         {
             private readonly UnsafeList* list;
             private int index;
 
-            public readonly T Current => UnsafeList.Get<T>(list, (uint)index);
+            /// <inheritdoc/>
+            public readonly T Current => UnsafeList.GetRef<T>(list, (uint)index);
             readonly object IEnumerator.Current => Current;
 
+            /// <inheritdoc/>
             public Enumerator(UnsafeList* list)
             {
                 this.list = list;
                 index = -1;
             }
 
+            /// <inheritdoc/>
             public bool MoveNext()
             {
                 index++;
                 return index < UnsafeList.GetCountRef(list);
             }
 
+            /// <inheritdoc/>
             public void Reset()
             {
                 index = -1;
@@ -421,11 +517,13 @@ namespace Collections
             }
         }
 
+        /// <inheritdoc/>
         public static bool operator ==(List<T> left, List<T> right)
         {
             return left.Equals(right);
         }
 
+        /// <inheritdoc/>
         public static bool operator !=(List<T> left, List<T> right)
         {
             return !left.Equals(right);

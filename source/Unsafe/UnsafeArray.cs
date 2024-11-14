@@ -4,6 +4,9 @@ using Unmanaged;
 
 namespace Collections.Unsafe
 {
+    /// <summary>
+    /// Opaque pointer implementation of an array.
+    /// </summary>
     public unsafe struct UnsafeArray
     {
         private uint stride;
@@ -11,7 +14,7 @@ namespace Collections.Unsafe
         private Allocation items;
 
         [Conditional("DEBUG")]
-        public static void ThrowIfOutOfRange(UnsafeArray* array, uint index)
+        private static void ThrowIfOutOfRange(UnsafeArray* array, uint index)
         {
             if (index >= array->length)
             {
@@ -19,92 +22,91 @@ namespace Collections.Unsafe
             }
         }
 
-        [Conditional("DEBUG")]
-        public static void ThrowIfDisposed(UnsafeArray* array)
-        {
-            if (IsDisposed(array))
-            {
-                throw new ObjectDisposedException(nameof(UnsafeArray));
-            }
-        }
-
+        /// <inheritdoc/>
         public static void Free(ref UnsafeArray* array)
         {
-            ThrowIfDisposed(array);
+            Allocations.ThrowIfNull(array);
 
             array->items.Dispose();
             Allocations.Free(ref array);
             array = null;
         }
 
-        public static bool IsDisposed(UnsafeArray* array)
-        {
-            return array is null;
-        }
-
+        /// <inheritdoc/>
         public static uint GetLength(UnsafeArray* array)
         {
-            ThrowIfDisposed(array);
+            Allocations.ThrowIfNull(array);
 
             return array->length;
         }
 
+        /// <inheritdoc/>
         public static nint GetStartAddress(UnsafeArray* array)
         {
-            ThrowIfDisposed(array);
+            Allocations.ThrowIfNull(array);
 
             return array->items.Address;
         }
 
+        /// <inheritdoc/>
         public static UnsafeArray* Allocate<T>(uint length) where T : unmanaged
         {
-            return Allocate(RuntimeType.Get<T>(), length);
+            return Allocate(length, TypeInfo<T>.size);
         }
 
-        public static UnsafeArray* Allocate(RuntimeType type, uint length)
+        /// <inheritdoc/>
+        public static UnsafeArray* Allocate(uint length, uint stride)
         {
-            uint stride = type.Size;
             UnsafeArray* array = Allocations.Allocate<UnsafeArray>();
             array->stride = stride;
             array->length = length;
-            array->items = new(stride * length);
-            array->items.Clear(stride * length);
+            array->items = new(stride * length, true);
             return array;
         }
 
+        /// <inheritdoc/>
         public static UnsafeArray* Allocate<T>(USpan<T> span) where T : unmanaged
         {
-            UnsafeArray* array = Allocate<T>(span.Length);
-            span.CopyTo(array->items.AsSpan<T>(0, array->length));
+            UnsafeArray* array = Allocations.Allocate<UnsafeArray>();
+            array->stride = TypeInfo<T>.size;
+            array->length = span.Length;
+            array->items = Allocation.Create(span);
             return array;
         }
 
+        /// <inheritdoc/>
         public static ref T GetRef<T>(UnsafeArray* array, uint index) where T : unmanaged
         {
-            ThrowIfDisposed(array);
+            Allocations.ThrowIfNull(array);
             ThrowIfOutOfRange(array, index);
+
             T* ptr = (T*)GetStartAddress(array);
             return ref ptr[index];
         }
 
+        /// <inheritdoc/>
         public static USpan<T> AsSpan<T>(UnsafeArray* array) where T : unmanaged
         {
-            ThrowIfDisposed(array);
+            Allocations.ThrowIfNull(array);
 
             return array->items.AsSpan<T>(0, array->length);
         }
 
+        /// <inheritdoc/>
         public static bool TryIndexOf<T>(UnsafeArray* array, T value, out uint index) where T : unmanaged, IEquatable<T>
         {
-            ThrowIfDisposed(array);
+            Allocations.ThrowIfNull(array);
 
             USpan<T> span = AsSpan<T>(array);
             return span.TryIndexOf(value, out index);
         }
 
+        /// <summary>
+        /// Checks if the array contains the given <paramref name="value"/>.
+        /// </summary>
         public static bool Contains<T>(UnsafeArray* array, T value) where T : unmanaged, IEquatable<T>
         {
-            ThrowIfDisposed(array);
+            Allocations.ThrowIfNull(array);
 
             USpan<T> span = AsSpan<T>(array);
             return span.Contains(value);
@@ -115,7 +117,7 @@ namespace Collections.Unsafe
         /// </summary>
         public static void Resize(UnsafeArray* array, uint newLength, bool initialize = false)
         {
-            ThrowIfDisposed(array);
+            Allocations.ThrowIfNull(array);
 
             if (array->length != newLength)
             {
@@ -136,7 +138,7 @@ namespace Collections.Unsafe
         /// </summary>
         public static void Clear(UnsafeArray* array)
         {
-            ThrowIfDisposed(array);
+            Allocations.ThrowIfNull(array);
 
             array->items.Clear(array->length * array->stride);
         }
@@ -146,7 +148,7 @@ namespace Collections.Unsafe
         /// </summary>
         public static void Clear(UnsafeArray* array, uint start, uint length)
         {
-            ThrowIfDisposed(array);
+            Allocations.ThrowIfNull(array);
 
             array->items.Clear(start * array->stride, length * array->stride);
         }

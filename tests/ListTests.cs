@@ -1,8 +1,9 @@
 ﻿using Collections.Unsafe;
 using System;
 using Unmanaged;
+using Unmanaged.Tests;
 
-namespace Collections
+namespace Collections.Tests
 {
     public class ListTests : UnmanagedTests
     {
@@ -207,7 +208,7 @@ namespace Collections
         [Test]
         public unsafe void ReadBytesFromList()
         {
-            UnsafeList* data = UnsafeList.Allocate<int>();
+            UnsafeList* data = UnsafeList.Allocate<int>(4);
             UnsafeList.Add(data, 1);
             UnsafeList.Add(data, 2);
             UnsafeList.Add(data, 3);
@@ -224,7 +225,7 @@ namespace Collections
             Assert.That(value3, Is.EqualTo(3));
             Assert.That(value4, Is.EqualTo(4));
             UnsafeList.Free(ref data);
-            Assert.That(UnsafeList.IsDisposed(data), Is.True);
+            Assert.That(data is null, Is.True);
         }
 
         [Test]
@@ -268,8 +269,8 @@ namespace Collections
         [Test]
         public unsafe void AddAnotherUnsafeList()
         {
-            UnsafeList* a = UnsafeList.Allocate<int>();
-            UnsafeList* b = UnsafeList.Allocate<int>();
+            UnsafeList* a = UnsafeList.Allocate<int>(4);
+            UnsafeList* b = UnsafeList.Allocate<int>(4);
             UnsafeList.AddRange(a, [1, 3]);
             UnsafeList.AddRange(b, [3, 7, 7]);
             Assert.That(UnsafeList.AsSpan<int>(a).ToArray(), Is.EqualTo(new[] { 1, 3 }));
@@ -278,6 +279,28 @@ namespace Collections
             Assert.That(UnsafeList.AsSpan<int>(a).ToArray(), Is.EqualTo(new[] { 1, 3, 3, 7, 7 }));
             UnsafeList.Free(ref a);
             UnsafeList.Free(ref b);
+        }
+
+        [Test]
+        public void CreateListFromEmptySpan()
+        {
+            USpan<int> empty = default;
+            List<int> list = new(empty);
+            Assert.That(list.Count, Is.EqualTo(0));
+            list.Add(32);
+            Assert.That(list.Count, Is.EqualTo(1));
+            list.Dispose();
+        }
+
+        [Test]
+        public void CreateEmptyList()
+        {
+            List<int> list = new(0);
+            Assert.That(list.Count, Is.EqualTo(0));
+            Assert.That(list.Capacity, Is.EqualTo(0));
+            list.AddRepeat(5, 32);
+            Assert.That(list.Count, Is.EqualTo(32));
+            list.Dispose();
         }
     }
 }

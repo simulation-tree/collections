@@ -1,7 +1,8 @@
 ﻿using System;
 using Unmanaged;
+using Unmanaged.Tests;
 
-namespace Collections
+namespace Collections.Tests
 {
     public class DictionaryTests : UnmanagedTests
     {
