@@ -1,0 +1,16 @@
+{
+    "name": "Collections",
+    "rootNamespace": "Collections",
+    "references": [
+        "GUID:e442c6948205ebc42a3de523d6b5290d"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": true,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": true
+}
