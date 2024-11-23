@@ -26,11 +26,12 @@
 	<ItemGroup>
 		<ProjectReference Include="..\..\unmanaged\source\Unmanaged.csproj" />
 		<ProjectReference Include="..\..\unmanaged\tests\Unmanaged.Tests.csproj" />
-		<ProjectReference Include="..\source\Collections.csproj" />
 	</ItemGroup>
 
 	<ItemGroup>
 		<Using Include="NUnit.Framework" />
 	</ItemGroup>
+	
+	<Import Project="..\source\Collections.projitems" Label="Shared" />
 
 </Project>

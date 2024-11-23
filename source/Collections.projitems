@@ -1,0 +1,19 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <MSBuildAllProjects Condition="'$(MSBuildVersion)' == '' Or '$(MSBuildVersion)' &lt; '16.0'">$(MSBuildAllProjects);$(MSBuildThisFileFullPath)</MSBuildAllProjects>
+    <HasSharedItems>true</HasSharedItems>
+    <SharedGUID>a595a9e0-ebf6-4f77-ad42-e972defe699e</SharedGUID>
+  </PropertyGroup>
+  <PropertyGroup Label="Configuration">
+    <Import_RootNamespace>Collections</Import_RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="$(MSBuildThisFileDirectory)Array.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Dictionary.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)List.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Unsafe\UnsafeArray.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Unsafe\UnsafeDictionary.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Unsafe\UnsafeList.cs" />
+  </ItemGroup>
+</Project>
