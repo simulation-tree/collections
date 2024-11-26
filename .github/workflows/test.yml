@@ -9,11 +9,6 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-
-    defaults:
-      run:
-        working-directory: collections/tests
-
     permissions:
       statuses: write
       checks: write
@@ -40,7 +35,7 @@ jobs:
           path: unmanaged
 
       - name: Test project
-        run: dotnet test -c Debug --logger "trx;LogFileName=test-results.trx"
+        run: dotnet test "tests" -c Debug --logger "trx;LogFileName=test-results.trx"
 
       - name: Publish Report
         uses: dorny/test-reporter@v1
