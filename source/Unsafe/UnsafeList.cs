@@ -122,7 +122,11 @@ namespace Collections.Unsafe
                 uint newCapacity = Allocations.GetNextPowerOf2(list->count + 1);
                 Allocation newItems = new(stride * newCapacity);
                 list->capacity = newCapacity;
-                list->items.CopyTo(newItems, 0, 0, list->count * stride);
+                if (list->count > 0)
+                {
+                    list->items.CopyTo(newItems, 0, 0, list->count * stride);
+                }
+
                 list->items.Dispose();
                 list->items = newItems;
             }
@@ -154,7 +158,11 @@ namespace Collections.Unsafe
                 uint newCapacity = Allocations.GetNextPowerOf2(list->count + 1);
                 Allocation newItems = new(stride * newCapacity);
                 list->capacity = newCapacity;
-                list->items.CopyTo(newItems, 0, 0, list->count * stride);
+                if (list->count > 0)
+                {
+                    list->items.CopyTo(newItems, 0, 0, list->count * stride);
+                }
+
                 list->items.Dispose();
                 list->items = newItems;
             }
@@ -175,7 +183,11 @@ namespace Collections.Unsafe
                 uint newCapacity = Allocations.GetNextPowerOf2(newCount);
                 Allocation newItems = new(stride * newCapacity);
                 list->capacity = newCapacity;
-                list->items.CopyTo(newItems, 0, 0, stride * list->count);
+                if (list->count > 0)
+                {
+                    list->items.CopyTo(newItems, 0, 0, stride * list->count);
+                }
+
                 list->items.Dispose();
                 list->items = newItems;
             }
@@ -198,7 +210,11 @@ namespace Collections.Unsafe
                 uint newCapacity = Allocations.GetNextPowerOf2(newCount);
                 Allocation newItems = new(stride * newCapacity);
                 list->capacity = newCapacity;
-                list->items.CopyTo(newItems, 0, 0, stride * list->count);
+                if (list->count > 0)
+                {
+                    list->items.CopyTo(newItems, 0, 0, stride * list->count);
+                }
+
                 list->items.Dispose();
                 list->items = newItems;
             }
@@ -220,7 +236,11 @@ namespace Collections.Unsafe
                 uint newCapacity = Allocations.GetNextPowerOf2(newCount);
                 Allocation newItems = new(stride * newCapacity);
                 list->capacity = newCapacity;
-                list->items.CopyTo(newItems, 0, 0, stride * list->count);
+                if (list->count > 0)
+                {
+                    list->items.CopyTo(newItems, 0, 0, stride * list->count);
+                }
+
                 list->items.Dispose();
                 list->items = newItems;
             }

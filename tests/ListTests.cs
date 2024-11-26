@@ -88,7 +88,7 @@ namespace Collections.Tests
         public void InsertIntoList()
         {
             using List<int> list = new();
-            list.Add(1);
+            list.Insert(0, 1);
             list.Add(2);
             list.Add(4);
             list.Insert(2, 3);
@@ -96,6 +96,9 @@ namespace Collections.Tests
             Assert.That(list[1], Is.EqualTo(2));
             Assert.That(list[2], Is.EqualTo(3));
             Assert.That(list[3], Is.EqualTo(4));
+
+            list.Insert(4, 2323);
+            Assert.That(list[4], Is.EqualTo(2323));
         }
 
         [Test]

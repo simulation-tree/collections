@@ -1,6 +1,10 @@
 name: Test
 
-on: [push]
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
 
 jobs:
   build:
@@ -10,11 +14,23 @@ jobs:
       run:
         working-directory: collections/tests
 
+    permissions:
+      statuses: write
+      checks: write
+      contents: write
+      pull-requests: write
+      actions: write
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4.1.2
         with:
           path: collections
+      
+      - name: Setup dotnet
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.0.x'
 
       - name: Pull dependencies
         uses: actions/checkout@v4.1.2
@@ -22,14 +38,14 @@ jobs:
           repository: game-simulations/unmanaged
           token: ${{ secrets.PAT }}
           path: unmanaged
-      
-      - name: Setup dotnet
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: '9.0.x'
-
-      - name: Install tools
-        run: dotnet tool install -g dotnet-reportgenerator-globaltool
 
       - name: Test project
-        run: dotnet test -c Debug --collect:"XPlat Code Coverage" --results-directory:"TestResults"
+        run: dotnet test "tests" -c Debug --logger "trx;LogFileName=test-results.trx"
+
+      - name: Publish Report
+        uses: dorny/test-reporter@v1
+        if: always()
+        with:
+          name: Report
+          path: 'tests/TestResults/*.trx'
+          reporter: dotnet-trx
