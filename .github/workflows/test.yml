@@ -9,12 +9,17 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    
     permissions:
       statuses: write
       checks: write
       contents: write
       pull-requests: write
       actions: write
+
+    defaults:
+      run:
+        working-directory:  ${{ github.event.repository.name }}
 
     steps:
       - name: Checkout
@@ -35,12 +40,12 @@ jobs:
           path: unmanaged
 
       - name: Test project
-        run: dotnet test "${{ github.event.repository.name }}/tests" -c Debug --logger "trx;LogFileName=test-results.trx"
+        run: dotnet test "tests" -c Debug --logger "trx;LogFileName=test-results.trx"
 
       - name: Publish Report
         uses: dorny/test-reporter@v1
         if: always()
         with:
           name: Report
-          path: '${{ github.event.repository.name }}/tests/TestResults/*.trx'
+          path: 'tests/TestResults/*.trx'
           reporter: dotnet-trx
