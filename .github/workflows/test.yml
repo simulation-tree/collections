@@ -34,13 +34,16 @@ jobs:
           token: ${{ secrets.PAT }}
           path: unmanaged
 
+      - name: Navigate
+        run: cd "${{ github.event.repository.name }}/tests"
+
       - name: Test project
-        run: dotnet test "${{ github.event.repository.name }}/tests" -c Debug --logger "trx;LogFileName=test-results.trx"
+        run: dotnet test -c Debug --logger "trx;LogFileName=test-results.trx"
 
       - name: Publish Report
         uses: dorny/test-reporter@v1
         if: always()
         with:
           name: Report
-          path: 'tests/TestResults/*.trx'
+          path: 'TestResults/*.trx'
           reporter: dotnet-trx
