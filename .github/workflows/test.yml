@@ -33,6 +33,12 @@ jobs:
           repository: game-simulations/unmanaged
           token: ${{ secrets.PAT }}
 
+      - name: Debug
+        run: |
+          ls -la
+          ls -la repo
+          ls -la repo/collections
+
       - name: Test project
         run: dotnet test "repo/${{ github.event.repository.name }}/tests" -c Debug --logger "trx;LogFileName=test-results.trx"
 
