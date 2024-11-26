@@ -20,7 +20,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4.1.2
         with:
-          path: collections
+          path: repo
       
       - name: Setup dotnet
         uses: actions/setup-dotnet@v4
@@ -32,10 +32,9 @@ jobs:
         with:
           repository: game-simulations/unmanaged
           token: ${{ secrets.PAT }}
-          path: unmanaged
 
       - name: Test project
-        run: dotnet test "tests" -c Debug --logger "trx;LogFileName=test-results.trx"
+        run: dotnet test "repo/tests" -c Debug --logger "trx;LogFileName=test-results.trx"
 
       - name: Publish Report
         uses: dorny/test-reporter@v1
