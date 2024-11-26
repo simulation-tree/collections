@@ -20,7 +20,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4.1.2
         with:
-          path: collections
+          path: ${{ github.event.repository.name }}
       
       - name: Setup dotnet
         uses: actions/setup-dotnet@v4
@@ -37,13 +37,10 @@ jobs:
       - name: Test project
         run: dotnet test "${{ github.event.repository.name }}/tests" -c Debug --logger "trx;LogFileName=test-results.trx"
 
-      - name: Navigate to ${{ github.event.repository.name }}
-        run: cd "${{ github.event.repository.name }}"
-
       - name: Publish Report
         uses: dorny/test-reporter@v1
         if: always()
         with:
           name: Report
-          path: 'tests/TestResults/*.trx'
+          path: '${{ github.event.repository.name }}/tests/TestResults/*.trx'
           reporter: dotnet-trx
