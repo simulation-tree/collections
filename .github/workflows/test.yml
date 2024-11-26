@@ -34,14 +34,8 @@ jobs:
           token: ${{ secrets.PAT }}
           path: unmanaged
 
-      - name: Debug
-        run: |
-          ls -la
-          ls -la collections
-          ls -la unmanaged
-
       - name: Test project
-        run: dotnet test "repo/${{ github.event.repository.name }}/tests" -c Debug --logger "trx;LogFileName=test-results.trx"
+        run: dotnet test "${{ github.event.repository.name }}/tests" -c Debug --logger "trx;LogFileName=test-results.trx"
 
       - name: Publish Report
         uses: dorny/test-reporter@v1
