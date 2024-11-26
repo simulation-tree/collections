@@ -20,7 +20,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4.1.2
         with:
-          path: repo
+          path: collections
       
       - name: Setup dotnet
         uses: actions/setup-dotnet@v4
@@ -32,12 +32,13 @@ jobs:
         with:
           repository: game-simulations/unmanaged
           token: ${{ secrets.PAT }}
+          path: unmanaged
 
       - name: Debug
         run: |
           ls -la
-          ls -la repo
-          ls -la repo/collections
+          ls -la collections
+          ls -la unmanaged
 
       - name: Test project
         run: dotnet test "repo/${{ github.event.repository.name }}/tests" -c Debug --logger "trx;LogFileName=test-results.trx"
