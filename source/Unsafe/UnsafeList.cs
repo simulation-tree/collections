@@ -128,10 +128,15 @@ namespace Collections.Unsafe
                 list->items = newItems;
             }
 
-            USpan<byte> destination = list->items.AsSpan<byte>((index + 1) * stride, (list->count - index) * stride);
-            USpan<byte> source = list->items.AsSpan<byte>(index * stride, (list->count - index) * stride);
-            source.CopyTo(destination);
-            elementBytes.CopyTo(list->items.AsSpan<byte>(index * stride, stride));
+            //copy all elements after index to the right
+            void* destination = (void*)(list->items.Address + (index + 1) * stride);
+            void* source = (void*)(list->items.Address + index * stride);
+            uint count = list->count - index;
+            System.Runtime.CompilerServices.Unsafe.CopyBlockUnaligned(destination, source, count * stride);
+            //copy the new element to the index
+            destination = (void*)(list->items.Address + index * stride);
+            source = (void*)elementBytes.Address;
+            System.Runtime.CompilerServices.Unsafe.CopyBlockUnaligned(destination, source, stride);
             list->count++;
         }
 
@@ -161,7 +166,9 @@ namespace Collections.Unsafe
                 list->items = newItems;
             }
 
-            elementBytes.CopyTo(list->items.AsSpan<byte>(list->count * stride, stride));
+            void* destination = (void*)(list->items.Address + list->count * stride);
+            void* source = (void*)elementBytes.Address;
+            System.Runtime.CompilerServices.Unsafe.CopyBlockUnaligned(destination, source, elementBytes.Length);
             list->count++;
         }
 
@@ -190,8 +197,8 @@ namespace Collections.Unsafe
                 list->items = newItems;
             }
 
-            USpan<byte> bytes = list->items.AsSpan<byte>(list->count * stride, count * stride);
-            bytes.Clear();
+            void* destination = (void*)(list->items.Address + list->count * stride);
+            System.Runtime.CompilerServices.Unsafe.InitBlockUnaligned(destination, 0, count * stride);
             list->count = newCount;
         }
 
@@ -314,9 +321,9 @@ namespace Collections.Unsafe
             uint count = list->count;
             uint lastIndex = count - 1;
             uint stride = list->stride;
-            USpan<byte> lastElement = list->items.AsSpan<byte>(lastIndex * stride, stride);
-            USpan<byte> indexElement = list->items.AsSpan<byte>(index * stride, stride);
-            lastElement.CopyTo(indexElement);
+            void* lastElement = (void*)(list->items.Address + lastIndex * stride);
+            void* indexElement = (void*)(list->items.Address + index * stride);
+            System.Runtime.CompilerServices.Unsafe.CopyBlockUnaligned(indexElement, lastElement, stride);
             list->count = lastIndex;
         }
 

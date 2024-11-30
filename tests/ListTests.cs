@@ -89,6 +89,7 @@ namespace Collections.Tests
         {
             using List<int> list = new();
             list.Insert(0, 1);
+            Assert.That(list[0], Is.EqualTo(1));
             list.Add(2);
             list.Add(4);
             list.Insert(2, 3);
