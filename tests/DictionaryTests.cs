@@ -144,5 +144,64 @@ namespace Collections.Tests
 
             Assert.That(map.TryGetValue(0, out uint value5), Is.False);
         }
+
+        [Test]
+        public void IterateAllKeys()
+        {
+            using Dictionary<byte, uint> map = new();
+            map.TryAdd(0, 23);
+            map.TryAdd(1, 42);
+            map.TryAdd(23, 69);
+
+            using List<byte> keys = new();
+            foreach (byte key in map.Keys)
+            {
+                keys.Add(key);
+            }
+
+            Assert.That(keys.Count, Is.EqualTo(3));
+            Assert.That(keys[0], Is.EqualTo(0));
+            Assert.That(keys[1], Is.EqualTo(1));
+            Assert.That(keys[2], Is.EqualTo(23));
+        }
+
+        [Test]
+        public void RemoveKeysThenIterate()
+        {
+            using Dictionary<byte, uint> map = new();
+            map.TryAdd(0, 23);
+            map.TryAdd(1, 42);
+            map.TryAdd(23, 69);
+            map.Remove(23);
+            map.Remove(1);
+            Assert.That(map.Count, Is.EqualTo(1));
+            map.TryAdd(2, 1337);
+            Assert.That(map.Count, Is.EqualTo(2));
+            map.TryAdd(23, 2007);
+            Assert.That(map.Count, Is.EqualTo(3));
+
+            using List<byte> keys = new();
+            foreach (byte key in map.Keys)
+            {
+                keys.Add(key);
+                Assert.That(map.ContainsKey(key), Is.True);
+                Assert.That(map.TryGetValue(key, out uint value), Is.True);
+                if (key == 0)
+                {
+                    Assert.That(value, Is.EqualTo(23));
+                }
+                else if (key == 2)
+                {
+                    Assert.That(value, Is.EqualTo(1337));
+                }
+                else if (key == 23)
+                {
+                    Assert.That(value, Is.EqualTo(2007));
+                }
+            }
+
+            Assert.That(keys.Count, Is.EqualTo(3));
+            Assert.That(keys[0], Is.EqualTo(0));
+        }
     }
 }

@@ -43,45 +43,46 @@ namespace Collections.Unsafe
             return map->capacity;
         }
 
-        public static uint GetHash<K>(K key) where K : unmanaged, IEquatable<K>
-        {
-            unchecked
-            {
-                return (uint)key.GetHashCode();
-            }
-        }
-
-        public static Entry<K, V> GetEntry<K, V>(UnsafeDictionary* map, uint index) where K : unmanaged, IEquatable<K> where V : unmanaged
+        public static ref Entry<K, V> GetEntry<K, V>(UnsafeDictionary* map, uint index) where K : unmanaged, IEquatable<K> where V : unmanaged
         {
             Allocations.ThrowIfNull(map);
             
-            return map->entries.Read<Entry<K, V>>(index * map->entryStride);
+            return ref map->entries.Read<Entry<K, V>>(index * map->entryStride);
         }
 
-        private static uint FindSlotIndex<K, V>(UnsafeDictionary* map, K key) where K : unmanaged, IEquatable<K> where V : unmanaged
+        private static uint GetHash<K>(UnsafeDictionary* map, K key) where K : unmanaged, IEquatable<K>
+        {
+            unchecked
+            {
+                return ((uint)key.GetHashCode()) % map->capacity;
+            }
+        }
+
+        private static uint Probe(UnsafeDictionary* map, uint hash, uint index)
+        {
+            return (hash + index) % map->capacity;
+        }
+
+        private static uint FindIndex<K, V>(UnsafeDictionary* map, K key) where K : unmanaged, IEquatable<K> where V : unmanaged
         {
             Allocations.ThrowIfNull(map);
 
-            uint hash = GetHash(key);
-            uint startIndex = hash % map->capacity;
-            uint index = startIndex;
+            uint hash = GetHash(map, key);
             EqualityComparer<K> comparer = EqualityComparer<K>.Default;
-            do
+            for (uint a = 0; a < map->capacity; a++)
             {
-                Entry<K, V> entry = map->entries.Read<Entry<K, V>>(index * map->entryStride);
+                uint index = Probe(map, hash, a);
+                ref Entry<K, V> entry = ref GetEntry<K, V>(map, index);
                 if (entry.state == EntryState.Empty)
                 {
-                    return index;
+                    return uint.MaxValue;
                 }
-
-                if (entry.state == EntryState.Occupied && comparer.Equals(entry.key, key))
+                else if (entry.state == EntryState.Occupied && comparer.Equals(entry.key, key))
                 {
                     return index;
                 }
-
-                index = (index + 1) % map->capacity;
             }
-            while (index != startIndex);
+
             return uint.MaxValue;
         }
 
@@ -89,153 +90,119 @@ namespace Collections.Unsafe
         {
             Allocations.ThrowIfNull(map);
 
-            if (ContainsKey<K, V>(map, key))
-            {
-                return false;
-            }
-
             if (map->count == map->capacity)
             {
-                Resize(map);
+                Resize<K, V>(map);
             }
 
-            uint index = FindSlotIndex<K, V>(map, key);
-            if (index == uint.MaxValue)
+            uint hash = GetHash(map, key);
+            for (uint a = 0; a < map->capacity; a++)
             {
-                return false;
+                uint index = Probe(map, hash, a);
+                ref Entry<K, V> entry = ref GetEntry<K, V>(map, index);
+                if (entry.state != EntryState.Occupied)
+                {
+                    entry.state = EntryState.Occupied;
+                    entry.key = key;
+                    entry.value = value;
+                    map->count++;
+                    return true;
+                }
+
+                if (entry.state == EntryState.Occupied && entry.key.Equals(key))
+                {
+                    return false;
+                }
             }
 
-            ref Entry<K, V> entry = ref map->entries.Read<Entry<K, V>>(index * map->entryStride);
-            if (entry.state == EntryState.Occupied)
-            {
-                throw new InvalidOperationException($"Key `{key}` already exists");
-            }
-
-            map->count++;
-            entry.state = EntryState.Occupied;
-            entry.key = key;
-            entry.value = value;
-            return true;
+            return false;
         }
 
         public static void Clear(UnsafeDictionary* map)
         {
             Allocations.ThrowIfNull(map);
 
-            for (uint i = 0; i < map->capacity; i++)
-            {
-                nint entry = (nint)(map->entries.Address + (i * map->entryStride));
-                EntryState* entryState = (EntryState*)entry;
-                *entryState = EntryState.Empty;
-                System.Runtime.CompilerServices.Unsafe.InitBlockUnaligned((void*)(entry + sizeof(byte)), 0, map->entryStride - sizeof(byte));
-            }
-
+            map->entries.Clear(map->capacity * map->entryStride);
             map->count = 0;
         }
 
         public static bool ContainsKey<K, V>(UnsafeDictionary* map, K key) where K : unmanaged, IEquatable<K> where V : unmanaged
         {
             Allocations.ThrowIfNull(map);
-            uint hash = GetHash(key);
-            uint index = hash % map->capacity;
-            uint startIndex = index;
-            EqualityComparer<K> comparer = EqualityComparer<K>.Default;
-            do
-            {
-                Entry<K, V> entry = map->entries.Read<Entry<K, V>>(index * map->entryStride);
-                if (entry.state == EntryState.Empty)
-                {
-                    return false;
-                }
 
-                if (entry.state == EntryState.Occupied && comparer.Equals(entry.key, key))
-                {
-                    return true;
-                }
-
-                index = (index + 1) % map->capacity;
-            }
-            while (index != startIndex);
-            return false;
+            return FindIndex<K, V>(map, key) != uint.MaxValue;
         }
 
-        private static void Resize(UnsafeDictionary* map)
+        private static void Resize<K, V>(UnsafeDictionary* map) where K : unmanaged, IEquatable<K> where V : unmanaged
         {
             Allocations.ThrowIfNull(map);
 
-            uint newCapacity = map->capacity * 2;
-            Allocation newEntries = new(newCapacity * map->entryStride, true);
-            map->capacity = newCapacity;
-            map->entries.CopyTo(newEntries, 0, 0, map->count * map->entryStride);
-            map->entries.Dispose();
-            map->entries = newEntries;
+            Allocation oldEntries = map->entries;
+            uint oldCapacity = map->capacity;
+            map->capacity *= 2;
+            map->count = 0;
+            map->entries = new(map->capacity * map->entryStride, true);
+
+            for (uint i = 0; i < oldCapacity; i++)
+            {
+                ref Entry<K, V> oldEntry = ref oldEntries.Read<Entry<K, V>>(i * map->entryStride);
+                if (oldEntry.state == EntryState.Occupied)
+                {
+                    uint hash = GetHash(map, oldEntry.key);
+                    for (uint a = 0; a < map->capacity; a++)
+                    {
+                        uint index = Probe(map, hash, a);
+                        ref Entry<K, V> newEntry = ref GetEntry<K, V>(map, index);
+                        if (newEntry.state != EntryState.Occupied)
+                        {
+                            newEntry.state = EntryState.Occupied;
+                            newEntry.key = oldEntry.key;
+                            newEntry.value = oldEntry.value;
+                            map->count++;
+                            break;
+                        }
+                    }
+                }
+            }
+
+            oldEntries.Dispose();
         }
 
         public static ref V TryGetValue<K, V>(UnsafeDictionary* map, K key, out bool contains) where K : unmanaged, IEquatable<K> where V : unmanaged
         {
             Allocations.ThrowIfNull(map);
 
-            uint hash = GetHash(key);
-            uint index = hash % map->capacity;
-            uint startIndex = index;
-            EqualityComparer<K> comparer = EqualityComparer<K>.Default;
-            do
+            uint index = FindIndex<K, V>(map, key);
+            if (index == uint.MaxValue)
             {
-                ref Entry<K, V> entry = ref map->entries.Read<Entry<K, V>>(index * map->entryStride);
-                if (entry.state == EntryState.Empty)
-                {
-                    contains = false;
-                    return ref *(V*)default(nint);
-                }
-
-                if (entry.state == EntryState.Occupied && comparer.Equals(entry.key, key))
-                {
-                    contains = true;
-                    return ref entry.value;
-                }
-
-                index = (index + 1) % map->capacity;
+                contains = false;
+                nint nullValue = 0;
+                return ref *(V*)nullValue;
             }
-            while (index != startIndex);
 
-            contains = false;
-            return ref *(V*)default(nint);
+            contains = true;
+            ref Entry<K, V> entry = ref GetEntry<K, V>(map, index);
+            return ref entry.value;
         }
 
         public static bool TryRemove<K, V>(UnsafeDictionary* map, K key, out V value) where K : unmanaged, IEquatable<K> where V : unmanaged
         {
             Allocations.ThrowIfNull(map);
 
-            uint hash = GetHash(key);
-            uint startIndex = hash % map->capacity;
-            uint index = startIndex;
-            uint originalIndex = index;
-            EqualityComparer<K> comparer = EqualityComparer<K>.Default;
-            do
+            uint index = FindIndex<K, V>(map, key);
+            if (index == uint.MaxValue)
             {
-                ref Entry<K, V> entry = ref map->entries.Read<Entry<K, V>>(index * map->entryStride);
-                if (entry.state == EntryState.Occupied && comparer.Equals(entry.key, key))
-                {
-                    entry.state = EntryState.Deleted;
-                    value = entry.value;
-                    entry.key = default;
-                    entry.value = default;
-                    map->count--;
-                    return true;
-                }
-
-                if (entry.state == EntryState.Empty)
-                {
-                    value = default;
-                    return false;
-                }
-
-                index = (index + 1) % map->capacity;
+                value = default;
+                return false;
             }
-            while (index != startIndex);
 
-            value = default;
-            return false;
+            ref Entry<K, V> entry = ref GetEntry<K, V>(map, index);
+            entry.state = EntryState.Deleted;
+            value = entry.value;
+            entry.value = default;
+            entry.key = default;
+            map->count--;
+            return true;
         }
 
         public enum EntryState : byte
