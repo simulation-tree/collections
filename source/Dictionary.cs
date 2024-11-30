@@ -1,6 +1,6 @@
 ﻿using Collections.Unsafe;
 using System;
-using Unmanaged;
+using System.Collections.Generic;
 
 namespace Collections
 {
@@ -9,17 +9,22 @@ namespace Collections
     /// </summary>
     public unsafe struct Dictionary<K, V> : IDisposable, IEquatable<Dictionary<K, V>> where K : unmanaged, IEquatable<K> where V : unmanaged
     {
-        private UnsafeDictionary* value;
+        private UnsafeDictionary* dictionary;
 
         /// <summary>
         /// Number of key-value pairs in the dictionary.
         /// </summary>
-        public readonly uint Count => UnsafeDictionary.GetCount(value);
+        public readonly uint Count => UnsafeDictionary.GetCount(dictionary);
+
+        /// <summary>
+        /// Capacity of the dictionary.
+        /// </summary>
+        public readonly uint Capacity => UnsafeDictionary.GetCapacity(dictionary);
 
         /// <summary>
         /// Checks if the dictionary has been disposed.
         /// </summary>
-        public readonly bool IsDisposed => value is null;
+        public readonly bool IsDisposed => dictionary is null;
 
         /// <summary>
         /// Accesses the value associated with the specified key.
@@ -32,28 +37,46 @@ namespace Collections
         {
             get
             {
-                if (ContainsKey(key))
-                {
-                    return ref UnsafeDictionary.GetValueRef<K, V>(value, key);
-                }
-                else
+                ref V value = ref UnsafeDictionary.TryGetValue<K, V>(dictionary, key, out bool contains);
+                if (!contains)
                 {
                     throw new NullReferenceException($"The key `{key}` was not found in the dictionary");
                 }
+
+                return ref value;
             }
         }
 
         /// <summary>
         /// All keys in the dictionary.
         /// </summary>
-        public readonly USpan<K> Keys => UnsafeDictionary.GetKeys<K>(value);
+        public unsafe readonly IEnumerable<K> Keys
+        {
+            get
+            {
+                uint count = Capacity;
+                for (uint i = 0; i < count; i++)
+                {
+                    UnsafeDictionary.Entry<K, V> entry;
+                    unsafe
+                    {
+                        entry = UnsafeDictionary.GetEntry<K, V>(dictionary, i);
+                    }
+
+                    if (entry.state == UnsafeDictionary.EntryState.Occupied)
+                    {
+                        yield return entry.key;
+                    }
+                }
+            }
+        }
 
         /// <summary>
         /// Initializes an existing dictionary from the given <paramref name="pointer"/>.
         /// </summary>
         public Dictionary(UnsafeDictionary* pointer)
         {
-            value = pointer;
+            dictionary = pointer;
         }
 
         /// <summary>
@@ -61,7 +84,7 @@ namespace Collections
         /// </summary>
         public Dictionary(uint initialCapacity = 4)
         {
-            value = UnsafeDictionary.Allocate<K, V>(initialCapacity);
+            dictionary = UnsafeDictionary.Allocate<K, V>(initialCapacity);
         }
 
 #if NET
@@ -70,7 +93,7 @@ namespace Collections
         /// </summary>
         public Dictionary()
         {
-            value = UnsafeDictionary.Allocate<K, V>(4);
+            dictionary = UnsafeDictionary.Allocate<K, V>(4);
         }
 #endif
 
@@ -82,7 +105,7 @@ namespace Collections
         /// </summary>
         public void Dispose()
         {
-            UnsafeDictionary.Free(ref value);
+            UnsafeDictionary.Free(ref dictionary);
         }
 
         /// <summary>
@@ -90,7 +113,7 @@ namespace Collections
         /// </summary>
         public readonly bool ContainsKey(K key)
         {
-            return UnsafeDictionary.ContainsKey(value, key);
+            return UnsafeDictionary.ContainsKey<K, V>(dictionary, key);
         }
 
         /// <summary>
@@ -99,46 +122,47 @@ namespace Collections
         /// <returns><c>true</c> if found.</returns>
         public readonly bool TryGetValue(K key, out V value)
         {
-            if (ContainsKey(key))
-            {
-                value = UnsafeDictionary.GetValueRef<K, V>(this.value, key);
-                return true;
-            }
-            else
-            {
-                value = default;
-                return false;
-            }
+            ref V found = ref UnsafeDictionary.TryGetValue<K, V>(dictionary, key, out bool contains);
+            value = contains ? found : default;
+            return contains;
         }
 
         /// <summary>
         /// Attempts to get the value associated with the specified <paramref name="key"/>.
         /// </summary>
-        /// <returns>Reference to the value if <paramref name="found"/> is true.</returns>
-        public readonly ref V TryGetValueRef(K key, out bool found)
+        /// <returns>Reference to the value if <paramref name="contains"/> is true.</returns>
+        public readonly ref V TryGetValue(K key, out bool contains)
         {
-            if (ContainsKey(key))
-            {
-                found = true;
-                return ref UnsafeDictionary.GetValueRef<K, V>(value, key);
-            }
-            else
-            {
-                found = false;
-                void* nullPointer = null;
-                return ref *(V*)nullPointer;
-            }
+            return ref UnsafeDictionary.TryGetValue<K, V>(dictionary, key, out contains);
         }
 
         /// <summary>
-        /// Adds the specified <paramref name="key"/> and <paramref name="value"/> pair to the dictionary.
+        /// Attempts to add the specified <paramref name="key"/> and <paramref name="value"/> pair to the dictionary.
+        /// </summary>
+        /// <returns><c>true</c> if successful.</returns>
+        public readonly bool TryAdd(K key, V value)
+        {
+            return UnsafeDictionary.TryAdd(dictionary, key, value);
+        }
+
+        /// <summary>
+        /// Assigns the specified <paramref name="value"/> to the <paramref name="key"/>.
         /// <para>
-        /// May throw <see cref="ArgumentException"/> if the key already exists.
+        /// May throw <see cref="NullReferenceException"/> if the key is not found.
         /// </para>
         /// </summary>
-        public readonly void Add(K key, V value)
+        /// <exception cref="NullReferenceException"></exception>
+        public readonly void Set(K key, V value)
         {
-            UnsafeDictionary.Add(this.value, key, value);
+            ref V existingValue = ref UnsafeDictionary.TryGetValue<K, V>(dictionary, key, out bool contains);
+            if (contains)
+            {
+                existingValue = value;
+            }
+            else
+            {
+                throw new NullReferenceException($"The key `{key}` was not found in the dictionary");
+            }
         }
 
         /// <summary>
@@ -148,15 +172,15 @@ namespace Collections
         /// <returns><c>true</c> if the key was added, <c>false</c> if set.</returns>
         public readonly bool AddOrSet(K key, V value)
         {
-            if (ContainsKey(key))
+            ref V existingValue = ref UnsafeDictionary.TryGetValue<K, V>(dictionary, key, out bool contains);
+            if (contains)
             {
-                ref V existingValue = ref UnsafeDictionary.GetValueRef<K, V>(this.value, key);
                 existingValue = value;
                 return false;
             }
             else
             {
-                Add(key, value);
+                UnsafeDictionary.TryAdd(dictionary, key, value);
                 return true;
             }
         }
@@ -167,24 +191,13 @@ namespace Collections
         /// <returns>Reference to the added value.</returns>
         public readonly ref V AddRef(K key)
         {
-            UnsafeDictionary.Add<K, V>(value, key, default);
-            return ref UnsafeDictionary.GetValueRef<K, V>(value, key);
-        }
-
-        /// <summary>
-        /// Attempts to add the specified <paramref name="key"/> and <paramref name="value"/> pair to the dictionary.
-        /// </summary>
-        /// <returns><c>true</c> if successful.</returns>
-        public readonly bool TryAdd(K key, V value)
-        {
-            if (ContainsKey(key))
+            if (UnsafeDictionary.TryAdd<K, V>(dictionary, key, default))
             {
-                return false;
+                return ref UnsafeDictionary.TryGetValue<K, V>(dictionary, key, out _);
             }
             else
             {
-                Add(key, value);
-                return true;
+                throw new InvalidOperationException($"The key `{key}` already exists in the dictionary");
             }
         }
 
@@ -197,9 +210,14 @@ namespace Collections
         /// <returns>The removed value.</returns>
         public readonly V Remove(K key)
         {
-            V existingValue = UnsafeDictionary.GetValueRef<K, V>(value, key);
-            UnsafeDictionary.Remove(value, key);
-            return existingValue;
+            if (UnsafeDictionary.TryRemove(dictionary, key, out V value))
+            {
+                return value;
+            }
+            else
+            {
+                throw new NullReferenceException($"The key `{key}` was not found in the dictionary");
+            }
         }
 
         /// <summary>
@@ -208,16 +226,16 @@ namespace Collections
         /// <returns><c>true</c> if found and removed.</returns>
         public readonly bool TryRemove(K key, out V removed)
         {
-            if (ContainsKey(key))
-            {
-                removed = Remove(key);
-                return true;
-            }
-            else
-            {
-                removed = default;
-                return false;
-            }
+            return UnsafeDictionary.TryRemove(dictionary, key, out removed);
+        }
+
+        /// <summary>
+        /// Attempts to remove the value associated with the specified <paramref name="key"/>.
+        /// </summary>
+        /// <returns><c>true</c> if found and removed.</returns>
+        public readonly bool TryRemove(K key)
+        {
+            return UnsafeDictionary.TryRemove<K, V>(dictionary, key, out _);
         }
 
         /// <summary>
@@ -225,7 +243,7 @@ namespace Collections
         /// </summary>
         public readonly void Clear()
         {
-            UnsafeDictionary.Clear(value);
+            UnsafeDictionary.Clear(dictionary);
         }
 
         /// <inheritdoc/>
@@ -242,13 +260,13 @@ namespace Collections
                 return true;
             }
 
-            return value == other.value;
+            return dictionary == other.dictionary;
         }
 
         /// <inheritdoc/>
         public readonly override int GetHashCode()
         {
-            return ((nint)value).GetHashCode();
+            return ((nint)dictionary).GetHashCode();
         }
 
         /// <inheritdoc/>

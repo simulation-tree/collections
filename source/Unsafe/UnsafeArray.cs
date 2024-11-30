@@ -22,17 +22,14 @@ namespace Collections.Unsafe
             }
         }
 
-        /// <inheritdoc/>
         public static void Free(ref UnsafeArray* array)
         {
             Allocations.ThrowIfNull(array);
 
             array->items.Dispose();
             Allocations.Free(ref array);
-            array = null;
         }
 
-        /// <inheritdoc/>
         public static uint GetLength(UnsafeArray* array)
         {
             Allocations.ThrowIfNull(array);
@@ -40,7 +37,6 @@ namespace Collections.Unsafe
             return array->length;
         }
 
-        /// <inheritdoc/>
         public static nint GetStartAddress(UnsafeArray* array)
         {
             Allocations.ThrowIfNull(array);
@@ -48,13 +44,11 @@ namespace Collections.Unsafe
             return array->items.Address;
         }
 
-        /// <inheritdoc/>
         public static UnsafeArray* Allocate<T>(uint length) where T : unmanaged
         {
             return Allocate(length, TypeInfo<T>.size);
         }
 
-        /// <inheritdoc/>
         public static UnsafeArray* Allocate(uint length, uint stride)
         {
             UnsafeArray* array = Allocations.Allocate<UnsafeArray>();
@@ -64,7 +58,6 @@ namespace Collections.Unsafe
             return array;
         }
 
-        /// <inheritdoc/>
         public static UnsafeArray* Allocate<T>(USpan<T> span) where T : unmanaged
         {
             UnsafeArray* array = Allocations.Allocate<UnsafeArray>();
@@ -74,7 +67,6 @@ namespace Collections.Unsafe
             return array;
         }
 
-        /// <inheritdoc/>
         public static ref T GetRef<T>(UnsafeArray* array, uint index) where T : unmanaged
         {
             Allocations.ThrowIfNull(array);
@@ -84,7 +76,6 @@ namespace Collections.Unsafe
             return ref ptr[index];
         }
 
-        /// <inheritdoc/>
         public static USpan<T> AsSpan<T>(UnsafeArray* array) where T : unmanaged
         {
             Allocations.ThrowIfNull(array);
@@ -92,7 +83,6 @@ namespace Collections.Unsafe
             return array->items.AsSpan<T>(0, array->length);
         }
 
-        /// <inheritdoc/>
         public static bool TryIndexOf<T>(UnsafeArray* array, T value, out uint index) where T : unmanaged, IEquatable<T>
         {
             Allocations.ThrowIfNull(array);

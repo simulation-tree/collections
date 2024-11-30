@@ -1,202 +1,255 @@
 ﻿using System;
-using System.Diagnostics;
+using System.Collections.Generic;
 using Unmanaged;
 
 namespace Collections.Unsafe
 {
-    /// <summary>
-    /// Opaque pointer implementation of a dictionary.
-    /// </summary>
     public unsafe struct UnsafeDictionary
     {
-        private uint keyStride;
-        private uint valueStride;
+        private uint entryStride;
         private uint count;
         private uint capacity;
-        private Allocation keys;
-        private Allocation values;
+        private Allocation entries;
 
-        [Conditional("DEBUG")]
-        private static void ThrowIfKeySizeMismatches<K>(UnsafeDictionary* dictionary) where K : unmanaged
+        public static UnsafeDictionary* Allocate<K, V>(uint initialCapacity) where K : unmanaged where V : unmanaged
         {
-            if (dictionary->keyStride != TypeInfo<K>.size)
+            UnsafeDictionary* map = Allocations.Allocate<UnsafeDictionary>();
+            map->entryStride = TypeInfo<Entry<K, V>>.size;
+            map->capacity = Allocations.GetNextPowerOf2(Math.Max(1, initialCapacity));
+            map->count = 0;
+            map->entries = new(map->capacity * map->entryStride, true);
+            return map;
+        }
+
+        public static void Free(ref UnsafeDictionary* map)
+        {
+            Allocations.ThrowIfNull(map);
+
+            map->entries.Dispose();
+            Allocations.Free(ref map);
+        }
+
+        public static uint GetCount(UnsafeDictionary* map)
+        {
+            Allocations.ThrowIfNull(map);
+
+            return map->count;
+        }
+
+        public static uint GetCapacity(UnsafeDictionary* map)
+        {
+            Allocations.ThrowIfNull(map);
+
+            return map->capacity;
+        }
+
+        public static uint GetHash<K>(K key) where K : unmanaged, IEquatable<K>
+        {
+            unchecked
             {
-                throw new ArgumentException($"Key size {TypeInfo<K>.size} doesn't match the expected size {dictionary->keyStride}");
+                return (uint)key.GetHashCode();
             }
         }
 
-        [Conditional("DEBUG")]
-        private static void ThrowIfValueSizeMismatches<V>(UnsafeDictionary* dictionary) where V : unmanaged
+        public static Entry<K, V> GetEntry<K, V>(UnsafeDictionary* map, uint index) where K : unmanaged, IEquatable<K> where V : unmanaged
         {
-            if (dictionary->valueStride != TypeInfo<V>.size)
+            Allocations.ThrowIfNull(map);
+            
+            return map->entries.Read<Entry<K, V>>(index * map->entryStride);
+        }
+
+        private static uint FindSlotIndex<K, V>(UnsafeDictionary* map, K key) where K : unmanaged, IEquatable<K> where V : unmanaged
+        {
+            Allocations.ThrowIfNull(map);
+
+            uint hash = GetHash(key);
+            uint startIndex = hash % map->capacity;
+            uint index = startIndex;
+            EqualityComparer<K> comparer = EqualityComparer<K>.Default;
+            do
             {
-                throw new ArgumentException($"Value size {TypeInfo<V>.size} doesn't match the expected size {dictionary->valueStride}");
+                Entry<K, V> entry = map->entries.Read<Entry<K, V>>(index * map->entryStride);
+                if (entry.state == EntryState.Empty)
+                {
+                    return index;
+                }
+
+                if (entry.state == EntryState.Occupied && comparer.Equals(entry.key, key))
+                {
+                    return index;
+                }
+
+                index = (index + 1) % map->capacity;
             }
+            while (index != startIndex);
+            return uint.MaxValue;
         }
 
-        [Conditional("DEBUG")]
-        private static void ThrowIfOutOfRange(UnsafeDictionary* dictionary, uint index)
+        public static bool TryAdd<K, V>(UnsafeDictionary* map, K key, V value) where K : unmanaged, IEquatable<K> where V : unmanaged
         {
-            if (index > dictionary->count)
+            Allocations.ThrowIfNull(map);
+
+            if (ContainsKey<K, V>(map, key))
             {
-                throw new ArgumentException($"Index {index} is out of range for dictionary of length {dictionary->count}");
-            }
-        }
-
-        [Conditional("DEBUG")]
-        private static void ThrowIfCapacityIsZero(uint capacity)
-        {
-            if (capacity == 0)
-            {
-                throw new InvalidOperationException("Dictionary capacity cannot be zero");
-            }
-        }
-
-        /// <summary/>
-        public static uint GetCount(UnsafeDictionary* dictionary)
-        {
-            Allocations.ThrowIfNull(dictionary);
-
-            return dictionary->count;
-        }
-
-        /// <summary/>
-        public static UnsafeDictionary* Allocate<K, V>(uint initialCapacity) where K : unmanaged, IEquatable<K> where V : unmanaged
-        {
-            return Allocate(TypeInfo<K>.size, TypeInfo<V>.size, initialCapacity);
-        }
-
-        /// <summary/>
-        public static UnsafeDictionary* Allocate(uint keyStride, uint valueStride, uint initialCapacity)
-        {
-            ThrowIfCapacityIsZero(initialCapacity);
-
-            UnsafeDictionary* dictionary = (UnsafeDictionary*)Allocation.Create<UnsafeDictionary>();
-            dictionary->keyStride = keyStride;
-            dictionary->valueStride = valueStride;
-            dictionary->count = 0;
-            dictionary->capacity = initialCapacity;
-            dictionary->keys = new Allocation(initialCapacity * keyStride);
-            dictionary->values = new Allocation(initialCapacity * valueStride);
-            return dictionary;
-        }
-
-        /// <summary/>
-        public static void Free(ref UnsafeDictionary* dictionary)
-        {
-            Allocations.ThrowIfNull(dictionary);
-
-            dictionary->keys.Dispose();
-            dictionary->values.Dispose();
-            Allocations.Free(ref dictionary);
-        }
-
-        private static bool TryIndexOf<K>(UnsafeDictionary* dictionary, K key, out uint index) where K : unmanaged, IEquatable<K>
-        {
-            Allocations.ThrowIfNull(dictionary);
-            ThrowIfKeySizeMismatches<K>(dictionary);
-
-            USpan<K> keys = GetKeys<K>(dictionary);
-            return keys.TryIndexOf(key, out index);
-        }
-
-        /// <summary/>
-        public static USpan<K> GetKeys<K>(UnsafeDictionary* dictionary) where K : unmanaged
-        {
-            Allocations.ThrowIfNull(dictionary);
-            ThrowIfKeySizeMismatches<K>(dictionary);
-
-            return dictionary->keys.AsSpan<K>(0, dictionary->count);
-        }
-
-        /// <summary/>
-        public static ref V GetValueRef<K, V>(UnsafeDictionary* dictionary, K key) where K : unmanaged, IEquatable<K> where V : unmanaged
-        {
-            Allocations.ThrowIfNull(dictionary);
-            ThrowIfKeySizeMismatches<K>(dictionary);
-
-            if (!TryIndexOf(dictionary, key, out uint index))
-            {
-                throw new NullReferenceException($"The key `{key}` was not found in the dictionary to retrieve");
+                return false;
             }
 
-            return ref dictionary->values.Read<V>(index * dictionary->valueStride);
-        }
-
-        /// <summary/>
-        public static ref K GetKeyRef<K>(UnsafeDictionary* dictionary, uint index) where K : unmanaged, IEquatable<K>
-        {
-            Allocations.ThrowIfNull(dictionary);
-            ThrowIfKeySizeMismatches<K>(dictionary);
-            ThrowIfOutOfRange(dictionary, index);
-
-            return ref dictionary->keys.Read<K>(index * TypeInfo<K>.size);
-        }
-
-        /// <summary/>
-        public static bool ContainsKey<K>(UnsafeDictionary* dictionary, K key) where K : unmanaged, IEquatable<K>
-        {
-            Allocations.ThrowIfNull(dictionary);
-            ThrowIfKeySizeMismatches<K>(dictionary);
-
-            return TryIndexOf(dictionary, key, out _);
-        }
-
-        /// <summary/>
-        public static void Add<K, V>(UnsafeDictionary* dictionary, K key, V value) where K : unmanaged, IEquatable<K> where V : unmanaged
-        {
-            Allocations.ThrowIfNull(dictionary);
-            ThrowIfKeySizeMismatches<K>(dictionary);
-            ThrowIfValueSizeMismatches<V>(dictionary);
-
-            if (ContainsKey(dictionary, key))
+            if (map->count == map->capacity)
             {
-                throw new ArgumentException($"The key `{key}` already exists in the dictionary");
+                Resize(map);
             }
 
-            uint keySize = TypeInfo<K>.size;
-            uint valueSize = TypeInfo<V>.size;
-            dictionary->keys.Write(dictionary->count * keySize, key);
-            dictionary->values.Write(dictionary->count * valueSize, value);
-            dictionary->count++;
-
-            ref uint capacity = ref dictionary->capacity;
-            if (dictionary->count == capacity)
+            uint index = FindSlotIndex<K, V>(map, key);
+            if (index == uint.MaxValue)
             {
-                capacity *= 2;
-                Allocation.Resize(ref dictionary->keys, capacity * keySize);
-                Allocation.Resize(ref dictionary->values, capacity * valueSize);
-            }
-        }
-
-        /// <summary/>
-        public static void Remove<K>(UnsafeDictionary* dictionary, K key) where K : unmanaged, IEquatable<K>
-        {
-            Allocations.ThrowIfNull(dictionary);
-            ThrowIfKeySizeMismatches<K>(dictionary);
-
-            if (!TryIndexOf(dictionary, key, out uint index))
-            {
-                throw new NullReferenceException($"The key `{key}` was not found in the dictionary to remove");
+                return false;
             }
 
-            //move last element into slot
-            ref uint count = ref dictionary->count;
-            count--;
-            uint keySize = TypeInfo<K>.size;
-            uint valueSize = dictionary->valueStride;
-            K lastKey = dictionary->keys.Read<K>(count * keySize);
-            dictionary->keys.Write(index * keySize, lastKey);
-            USpan<byte> lastValue = dictionary->values.AsSpan(count * valueSize, valueSize);
-            dictionary->values.Write(index * valueSize, lastValue);
+            ref Entry<K, V> entry = ref map->entries.Read<Entry<K, V>>(index * map->entryStride);
+            if (entry.state == EntryState.Occupied)
+            {
+                throw new InvalidOperationException($"Key `{key}` already exists");
+            }
+
+            map->count++;
+            entry.state = EntryState.Occupied;
+            entry.key = key;
+            entry.value = value;
+            return true;
         }
 
-        /// <summary/>
-        public static void Clear(UnsafeDictionary* dictionary)
+        public static void Clear(UnsafeDictionary* map)
         {
-            Allocations.ThrowIfNull(dictionary);
+            Allocations.ThrowIfNull(map);
 
-            dictionary->count = 0;
+            for (uint i = 0; i < map->capacity; i++)
+            {
+                nint entry = (nint)(map->entries.Address + (i * map->entryStride));
+                EntryState* entryState = (EntryState*)entry;
+                *entryState = EntryState.Empty;
+                System.Runtime.CompilerServices.Unsafe.InitBlockUnaligned((void*)(entry + sizeof(byte)), 0, map->entryStride - sizeof(byte));
+            }
+
+            map->count = 0;
+        }
+
+        public static bool ContainsKey<K, V>(UnsafeDictionary* map, K key) where K : unmanaged, IEquatable<K> where V : unmanaged
+        {
+            Allocations.ThrowIfNull(map);
+            uint hash = GetHash(key);
+            uint index = hash % map->capacity;
+            uint startIndex = index;
+            EqualityComparer<K> comparer = EqualityComparer<K>.Default;
+            do
+            {
+                Entry<K, V> entry = map->entries.Read<Entry<K, V>>(index * map->entryStride);
+                if (entry.state == EntryState.Empty)
+                {
+                    return false;
+                }
+
+                if (entry.state == EntryState.Occupied && comparer.Equals(entry.key, key))
+                {
+                    return true;
+                }
+
+                index = (index + 1) % map->capacity;
+            }
+            while (index != startIndex);
+            return false;
+        }
+
+        private static void Resize(UnsafeDictionary* map)
+        {
+            Allocations.ThrowIfNull(map);
+
+            uint newCapacity = map->capacity * 2;
+            Allocation newEntries = new(newCapacity * map->entryStride, true);
+            map->capacity = newCapacity;
+            map->entries.CopyTo(newEntries, 0, 0, map->count * map->entryStride);
+            map->entries.Dispose();
+            map->entries = newEntries;
+        }
+
+        public static ref V TryGetValue<K, V>(UnsafeDictionary* map, K key, out bool contains) where K : unmanaged, IEquatable<K> where V : unmanaged
+        {
+            Allocations.ThrowIfNull(map);
+
+            uint hash = GetHash(key);
+            uint index = hash % map->capacity;
+            uint startIndex = index;
+            EqualityComparer<K> comparer = EqualityComparer<K>.Default;
+            do
+            {
+                ref Entry<K, V> entry = ref map->entries.Read<Entry<K, V>>(index * map->entryStride);
+                if (entry.state == EntryState.Empty)
+                {
+                    contains = false;
+                    return ref *(V*)default(nint);
+                }
+
+                if (entry.state == EntryState.Occupied && comparer.Equals(entry.key, key))
+                {
+                    contains = true;
+                    return ref entry.value;
+                }
+
+                index = (index + 1) % map->capacity;
+            }
+            while (index != startIndex);
+
+            contains = false;
+            return ref *(V*)default(nint);
+        }
+
+        public static bool TryRemove<K, V>(UnsafeDictionary* map, K key, out V value) where K : unmanaged, IEquatable<K> where V : unmanaged
+        {
+            Allocations.ThrowIfNull(map);
+
+            uint hash = GetHash(key);
+            uint startIndex = hash % map->capacity;
+            uint index = startIndex;
+            uint originalIndex = index;
+            EqualityComparer<K> comparer = EqualityComparer<K>.Default;
+            do
+            {
+                ref Entry<K, V> entry = ref map->entries.Read<Entry<K, V>>(index * map->entryStride);
+                if (entry.state == EntryState.Occupied && comparer.Equals(entry.key, key))
+                {
+                    entry.state = EntryState.Deleted;
+                    value = entry.value;
+                    entry.key = default;
+                    entry.value = default;
+                    map->count--;
+                    return true;
+                }
+
+                if (entry.state == EntryState.Empty)
+                {
+                    value = default;
+                    return false;
+                }
+
+                index = (index + 1) % map->capacity;
+            }
+            while (index != startIndex);
+
+            value = default;
+            return false;
+        }
+
+        public enum EntryState : byte
+        {
+            Empty,
+            Occupied,
+            Deleted
+        }
+
+        public struct Entry<K, V>
+        {
+            public EntryState state;
+            public K key;
+            public V value;
         }
     }
 }

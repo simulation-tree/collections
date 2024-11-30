@@ -300,7 +300,7 @@ namespace Collections.Tests
         {
             List<int> list = new(0);
             Assert.That(list.Count, Is.EqualTo(0));
-            Assert.That(list.Capacity, Is.EqualTo(0));
+            Assert.That(list.Capacity, Is.EqualTo(1));
             list.AddRepeat(5, 32);
             Assert.That(list.Count, Is.EqualTo(32));
             list.Dispose();

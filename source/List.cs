@@ -26,11 +26,7 @@ namespace Collections
         /// <summary>
         /// Capacity of the list.
         /// </summary>
-        public readonly uint Capacity
-        {
-            get => UnsafeList.GetCapacity(value);
-            set => UnsafeList.SetCapacity(this.value, value);
-        }
+        public readonly uint Capacity => UnsafeList.GetCapacity(value);
 
         /// <summary>
         /// Native address where the memory for elements begin.
@@ -229,7 +225,6 @@ namespace Collections
             }
             else
             {
-                Capacity = count + length;
                 foreach (T item in span)
                 {
                     Insert(index++, item);
