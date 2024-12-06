@@ -146,6 +146,22 @@ namespace Collections
         }
 
         /// <summary>
+        /// Adds the given <paramref name="key"/> and <paramref name="value"/> pairs to the dictionary.
+        /// <para>
+        /// Throws <see cref="InvalidOperationException"/> if the key already exists.
+        /// </para>
+        /// </summary>
+        public readonly void Add(K key, V value)
+        {
+            if (UnsafeDictionary.ContainsKey<K, V>(dictionary, key))
+            {
+                throw new InvalidOperationException($"The key `{key}` already exists in the dictionary");
+            }
+
+            UnsafeDictionary.TryAdd(dictionary, key, value);
+        }
+
+        /// <summary>
         /// Assigns the specified <paramref name="value"/> to the <paramref name="key"/>.
         /// <para>
         /// May throw <see cref="NullReferenceException"/> if the key is not found.
