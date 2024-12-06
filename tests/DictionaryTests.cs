@@ -1,4 +1,4 @@
-﻿using System;
+﻿using System.Collections.Generic;
 using Unmanaged;
 using Unmanaged.Tests;
 
@@ -10,7 +10,7 @@ namespace Collections.Tests
         public void AddOneEntry()
         {
             using Dictionary<byte, int> map = new();
-            map.TryAdd(1, 1337);
+            map.Add(1, 1337);
             Assert.That(map.ContainsKey(1), Is.True);
             Assert.That(map.Count, Is.EqualTo(1));
             Assert.That(map.TryGetValue(1, out int value), Is.True);
@@ -21,7 +21,7 @@ namespace Collections.Tests
         public void Clearing()
         {
             using Dictionary<byte, int> map = new();
-            map.TryAdd(1, 1337);
+            map.Add(1, 1337);
             map.Clear();
             Assert.That(map.Count, Is.EqualTo(0));
             Assert.That(map.ContainsKey(1), Is.False);
@@ -29,13 +29,35 @@ namespace Collections.Tests
         }
 
         [Test]
+        public void AddOrSet()
+        {
+            using Dictionary<byte, int> map = new();
+            map.Add(1, 1337);
+            map.Add(2, 2007);
+            map.Add(33, 8008135);
+            map.AddOrSet(1, 123);
+            map.AddOrSet(2, 123);
+            map.AddOrSet(5, 232323);
+
+            Assert.That(map.Count, Is.EqualTo(4));
+            Assert.That(map.ContainsKey(1), Is.True);
+            Assert.That(map.ContainsKey(2), Is.True);
+            Assert.That(map.ContainsKey(33), Is.True);
+            Assert.That(map.ContainsKey(5), Is.True);
+            Assert.That(map[1], Is.EqualTo(123));
+            Assert.That(map[2], Is.EqualTo(123));
+            Assert.That(map[33], Is.EqualTo(8008135));
+            Assert.That(map[5], Is.EqualTo(232323));
+        }
+
+        [Test]
         public void AddManyValues()
         {
             using Dictionary<byte, int> map = new();
-            map.TryAdd(1, 1337);
-            map.TryAdd(2, 2007);
-            map.TryAdd(33, 8008135);
-            map.TryAdd(100, 42);
+            map.Add(1, 1337);
+            map.Add(2, 2007);
+            map.Add(33, 8008135);
+            map.Add(100, 42);
             Assert.That(map.Count, Is.EqualTo(4));
             Assert.That(map.ContainsKey(1), Is.True);
             Assert.That(map.ContainsKey(2), Is.True);
@@ -55,10 +77,10 @@ namespace Collections.Tests
         public void ManuallyClearing()
         {
             using Dictionary<byte, int> map = new();
-            map.TryAdd(1, 1337);
-            map.TryAdd(2, 2007);
-            map.TryAdd(33, 8008135);
-            map.TryAdd(100, 42);
+            map.Add(1, 1337);
+            map.Add(2, 2007);
+            map.Add(33, 8008135);
+            map.Add(100, 42);
             Assert.That(map.Count, Is.EqualTo(4));
             map.TryRemove(100, out int value1);
             map.TryRemove(33, out int value2);
@@ -75,19 +97,29 @@ namespace Collections.Tests
         public void ModifyExistingKeys()
         {
             using Dictionary<byte, int> map = new();
-            map.TryAdd(1, 1337);
+            map.Add(1, 1337);
             map.Set(1, 123);
             Assert.That(map.Count, Is.EqualTo(1));
             Assert.That(map.TryGetValue(1, out int value), Is.True);
             Assert.That(value, Is.EqualTo(123));
         }
 
+#if DEBUG
         [Test]
         public void ThrowIfModifyingNonExistentKeys()
         {
             using Dictionary<byte, int> map = new();
-            Assert.Throws<NullReferenceException>(() => map.Set(1, 123));
+            Assert.Throws<KeyNotFoundException>(() => map.Set(1, 123));
         }
+
+        [Test]
+        public void ThrowWhenRemovingNonExistentKey()
+        {
+            using Dictionary<byte, uint> map = new();
+            map.Add(0, 23);
+            Assert.Throws<KeyNotFoundException>(() => map.Remove(1));
+        }
+#endif
 
         [Test]
         public void CantRemoveNonExistentEntries()
@@ -101,9 +133,9 @@ namespace Collections.Tests
         public void CreatingAndDisposingDictionary()
         {
             Dictionary<byte, uint> map = new();
-            map.TryAdd(0, 23);
-            map.TryAdd(1, 42);
-            map.TryAdd(2, 69);
+            map.Add(0, 23);
+            map.Add(1, 42);
+            map.Add(2, 69);
             Assert.That(map.ContainsKey(0), Is.True);
             Assert.That(map.ContainsKey(1), Is.True);
             Assert.That(map.ContainsKey(2), Is.True);
@@ -120,7 +152,7 @@ namespace Collections.Tests
         public void CantAddDuplicateKeys()
         {
             using Dictionary<byte, uint> map = new();
-            map.TryAdd(0, 23);
+            map.Add(0, 23);
             Assert.That(map.TryAdd(0, 42), Is.False);
         }
 
@@ -128,9 +160,9 @@ namespace Collections.Tests
         public void TryGetValueFromDictionary()
         {
             using Dictionary<byte, uint> map = new();
-            map.TryAdd(0, 23);
-            map.TryAdd(1, 42);
-            map.TryAdd(2, 69);
+            map.Add(0, 23);
+            map.Add(1, 42);
+            map.Add(2, 69);
 
             Assert.That(map.TryGetValue(0, out uint value1), Is.True);
             Assert.That(map.TryGetValue(1, out uint value2), Is.True);
@@ -149,9 +181,9 @@ namespace Collections.Tests
         public void IterateAllKeys()
         {
             using Dictionary<byte, uint> map = new();
-            map.TryAdd(0, 23);
-            map.TryAdd(1, 42);
-            map.TryAdd(23, 69);
+            map.Add(0, 23);
+            map.Add(1, 42);
+            map.Add(23, 69);
 
             using List<byte> keys = new();
             foreach (byte key in map.Keys)
@@ -169,15 +201,15 @@ namespace Collections.Tests
         public void RemoveKeysThenIterate()
         {
             using Dictionary<byte, uint> map = new();
-            map.TryAdd(0, 23);
-            map.TryAdd(1, 42);
-            map.TryAdd(23, 69);
+            map.Add(0, 23);
+            map.Add(1, 42);
+            map.Add(23, 69);
             map.Remove(23);
             map.Remove(1);
             Assert.That(map.Count, Is.EqualTo(1));
-            map.TryAdd(2, 1337);
+            map.Add(2, 1337);
             Assert.That(map.Count, Is.EqualTo(2));
-            map.TryAdd(23, 2007);
+            map.Add(23, 2007);
             Assert.That(map.Count, Is.EqualTo(3));
 
             using List<byte> keys = new();
@@ -202,6 +234,44 @@ namespace Collections.Tests
 
             Assert.That(keys.Count, Is.EqualTo(3));
             Assert.That(keys[0], Is.EqualTo(0));
+        }
+
+        [Test]
+        public void EnumerateAllPairs()
+        {
+            using Dictionary<byte, uint> map = new();
+            map.Add(0, 23);
+
+            using List<KeyValuePair<byte, uint>> pairs = new();
+            foreach (KeyValuePair<byte, uint> pair in map)
+            {
+                pairs.Add(pair);
+            }
+
+            Assert.That(pairs.Count, Is.EqualTo(1));
+            Assert.That(pairs[0].Key, Is.EqualTo(0));
+            Assert.That(pairs[0].Value, Is.EqualTo(23));
+
+            map.Add(1, 42);
+            map.Add(50, 1337);
+            map.Add(3, 8008135);
+            map.Remove(0);
+
+            pairs.Clear();
+            foreach (KeyValuePair<byte, uint> pair in map)
+            {
+                pairs.Add(pair);
+            }
+
+            Assert.That(pairs.Count, Is.EqualTo(3));
+            Assert.That(pairs[0].Key, Is.EqualTo(1));
+            Assert.That(pairs[0].Value, Is.EqualTo(42));
+
+            Assert.That(pairs[1].Key, Is.EqualTo(50));
+            Assert.That(pairs[1].Value, Is.EqualTo(1337));
+
+            Assert.That(pairs[2].Key, Is.EqualTo(3));
+            Assert.That(pairs[2].Value, Is.EqualTo(8008135));
         }
     }
 }

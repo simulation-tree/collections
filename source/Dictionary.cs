@@ -1,13 +1,15 @@
 ﻿using Collections.Unsafe;
 using System;
+using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics;
 
 namespace Collections
 {
     /// <summary>
     /// Native dictionary that can be used in unmanaged code.
     /// </summary>
-    public unsafe struct Dictionary<K, V> : IDisposable, IEquatable<Dictionary<K, V>> where K : unmanaged, IEquatable<K> where V : unmanaged
+    public unsafe struct Dictionary<K, V> : IDisposable, IReadOnlyDictionary<K, V>, IDictionary<K, V>, IEquatable<Dictionary<K, V>> where K : unmanaged, IEquatable<K> where V : unmanaged
     {
         private UnsafeDictionary* dictionary;
 
@@ -33,24 +35,57 @@ namespace Collections
         /// </para>
         /// </summary>
         /// <exception cref="NullReferenceException"></exception>
-        public readonly ref V this[K key]
+        public readonly ref V this[K key] => ref UnsafeDictionary.GetValue<K, V>(dictionary, key);
+
+        /// <summary>
+        /// All keys in this dictionary.
+        /// </summary>
+        public readonly IEnumerable<K> Keys
         {
             get
             {
-                ref V value = ref UnsafeDictionary.TryGetValue<K, V>(dictionary, key, out bool contains);
-                if (!contains)
+                uint capacity = Capacity;
+                for (uint i = 0; i < capacity; i++)
                 {
-                    throw new NullReferenceException($"The key `{key}` was not found in the dictionary");
-                }
+                    UnsafeDictionary.Entry<K, V> entry;
+                    unsafe
+                    {
+                        entry = UnsafeDictionary.GetEntry<K, V>(dictionary, i);
+                    }
 
-                return ref value;
+                    if (entry.state == UnsafeDictionary.EntryState.Occupied)
+                    {
+                        yield return entry.key;
+                    }
+                }
             }
         }
 
         /// <summary>
-        /// All keys in the dictionary.
+        /// All values in this dictionary.
         /// </summary>
-        public unsafe readonly IEnumerable<K> Keys
+        public readonly IEnumerable<V> Values
+        {
+            get
+            {
+                uint capacity = Capacity;
+                for (uint i = 0; i < capacity; i++)
+                {
+                    UnsafeDictionary.Entry<K, V> entry;
+                    unsafe
+                    {
+                        entry = UnsafeDictionary.GetEntry<K, V>(dictionary, i);
+                    }
+
+                    if (entry.state == UnsafeDictionary.EntryState.Occupied)
+                    {
+                        yield return entry.value;
+                    }
+                }
+            }
+        }
+
+        public readonly IEnumerable<KeyValuePair<K, V>> Pairs
         {
             get
             {
@@ -65,10 +100,51 @@ namespace Collections
 
                     if (entry.state == UnsafeDictionary.EntryState.Occupied)
                     {
-                        yield return entry.key;
+                        yield return new KeyValuePair<K, V>(entry.key, entry.value);
                     }
                 }
             }
+        }
+
+        readonly ICollection<K> IDictionary<K, V>.Keys
+        {
+            get
+            {
+                K[] keys = new K[Count];
+                uint index = 0;
+                foreach (K key in Keys)
+                {
+                    keys[index++] = key;
+                }
+
+                return keys;
+            }
+        }
+
+        readonly ICollection<V> IDictionary<K, V>.Values
+        {
+            get
+            {
+                V[] values = new V[Count];
+                uint index = 0;
+                foreach (V value in Values)
+                {
+                    values[index++] = value;
+                }
+
+                return values;
+            }
+        }
+
+        readonly int ICollection<KeyValuePair<K, V>>.Count => (int)Count;
+        readonly bool ICollection<KeyValuePair<K, V>>.IsReadOnly => false;
+        readonly int IReadOnlyCollection<KeyValuePair<K, V>>.Count => (int)Count;
+
+        readonly V IReadOnlyDictionary<K, V>.this[K key] => UnsafeDictionary.GetValue<K, V>(dictionary, key);
+        readonly V IDictionary<K, V>.this[K key]
+        {
+            get => UnsafeDictionary.GetValue<K, V>(dictionary, key);
+            set => UnsafeDictionary.GetValue<K, V>(dictionary, key) = value;
         }
 
         /// <summary>
@@ -151,34 +227,24 @@ namespace Collections
         /// Throws <see cref="InvalidOperationException"/> if the key already exists.
         /// </para>
         /// </summary>
-        public readonly void Add(K key, V value)
+        public readonly ref V Add(K key, V value)
         {
-            if (UnsafeDictionary.ContainsKey<K, V>(dictionary, key))
-            {
-                throw new InvalidOperationException($"The key `{key}` already exists in the dictionary");
-            }
-
-            UnsafeDictionary.TryAdd(dictionary, key, value);
+            ref V existingValue = ref UnsafeDictionary.Add<K, V>(dictionary, key);
+            existingValue = value;
+            return ref existingValue;
         }
 
         /// <summary>
         /// Assigns the specified <paramref name="value"/> to the <paramref name="key"/>.
         /// <para>
-        /// May throw <see cref="NullReferenceException"/> if the key is not found.
+        /// May throw <see cref="KeyNotFoundException"/> if the key is not found.
         /// </para>
         /// </summary>
-        /// <exception cref="NullReferenceException"></exception>
+        /// <exception cref="KeyNotFoundException"></exception>
         public readonly void Set(K key, V value)
         {
-            ref V existingValue = ref UnsafeDictionary.TryGetValue<K, V>(dictionary, key, out bool contains);
-            if (contains)
-            {
-                existingValue = value;
-            }
-            else
-            {
-                throw new NullReferenceException($"The key `{key}` was not found in the dictionary");
-            }
+            ref V existingValue = ref UnsafeDictionary.GetValue<K, V>(dictionary, key);
+            existingValue = value;
         }
 
         /// <summary>
@@ -189,32 +255,22 @@ namespace Collections
         public readonly bool AddOrSet(K key, V value)
         {
             ref V existingValue = ref UnsafeDictionary.TryGetValue<K, V>(dictionary, key, out bool contains);
-            if (contains)
+            if (!contains)
             {
-                existingValue = value;
-                return false;
+                existingValue = ref UnsafeDictionary.Add<K, V>(dictionary, key);
             }
-            else
-            {
-                UnsafeDictionary.TryAdd(dictionary, key, value);
-                return true;
-            }
+
+            existingValue = value;
+            return !contains;
         }
 
         /// <summary>
         /// Adds an empty value associated with the specified <paramref name="key"/>.
         /// </summary>
         /// <returns>Reference to the added value.</returns>
-        public readonly ref V AddRef(K key)
+        public readonly ref V Add(K key)
         {
-            if (UnsafeDictionary.TryAdd<K, V>(dictionary, key, default))
-            {
-                return ref UnsafeDictionary.TryGetValue<K, V>(dictionary, key, out _);
-            }
-            else
-            {
-                throw new InvalidOperationException($"The key `{key}` already exists in the dictionary");
-            }
+            return ref UnsafeDictionary.Add<K, V>(dictionary, key);
         }
 
         /// <summary>
@@ -226,14 +282,7 @@ namespace Collections
         /// <returns>The removed value.</returns>
         public readonly V Remove(K key)
         {
-            if (UnsafeDictionary.TryRemove(dictionary, key, out V value))
-            {
-                return value;
-            }
-            else
-            {
-                throw new NullReferenceException($"The key `{key}` was not found in the dictionary");
-            }
+            return UnsafeDictionary.Remove<K, V>(dictionary, key);
         }
 
         /// <summary>
@@ -262,6 +311,69 @@ namespace Collections
             UnsafeDictionary.Clear(dictionary);
         }
 
+        readonly void IDictionary<K, V>.Add(K key, V value)
+        {
+            Add(key, value);
+        }
+
+        readonly bool IDictionary<K, V>.Remove(K key)
+        {
+            return TryRemove(key);
+        }
+
+        readonly void ICollection<KeyValuePair<K, V>>.Add(KeyValuePair<K, V> item)
+        {
+            Add(item.Key, item.Value);
+        }
+
+        readonly bool ICollection<KeyValuePair<K, V>>.Contains(KeyValuePair<K, V> item)
+        {
+            return TryGetValue(item.Key, out V value) && EqualityComparer<V>.Default.Equals(value, item.Value);
+        }
+
+        readonly void ICollection<KeyValuePair<K, V>>.CopyTo(KeyValuePair<K, V>[] array, int arrayIndex)
+        {
+            if (array is null)
+            {
+                throw new ArgumentNullException(nameof(array));
+            }
+
+            if ((uint)arrayIndex >= (uint)array.Length)
+            {
+                throw new ArgumentOutOfRangeException(nameof(arrayIndex));
+            }
+
+            if (array.Length - arrayIndex < Count)
+            {
+                throw new ArgumentException("The number of elements in the dictionary is greater than the available space from the index to the end of the destination array.");
+            }
+
+            foreach (KeyValuePair<K, V> pair in Pairs)
+            {
+                array[arrayIndex++] = pair;
+            }
+        }
+
+        readonly bool ICollection<KeyValuePair<K, V>>.Remove(KeyValuePair<K, V> item)
+        {
+            return TryRemove(item.Key);
+        }
+
+        readonly IEnumerator<KeyValuePair<K, V>> IEnumerable<KeyValuePair<K, V>>.GetEnumerator()
+        {
+            return GetEnumerator();
+        }
+
+        IEnumerator IEnumerable.GetEnumerator()
+        {
+            return GetEnumerator();
+        }
+
+        public readonly Enumerator GetEnumerator()
+        {
+            return new(dictionary);
+        }
+
         /// <inheritdoc/>
         public readonly override bool Equals(object? obj)
         {
@@ -285,16 +397,62 @@ namespace Collections
             return ((nint)dictionary).GetHashCode();
         }
 
-        /// <inheritdoc/>
         public static bool operator ==(Dictionary<K, V> left, Dictionary<K, V> right)
         {
             return left.Equals(right);
         }
 
-        /// <inheritdoc/>
         public static bool operator !=(Dictionary<K, V> left, Dictionary<K, V> right)
         {
             return !(left == right);
+        }
+
+        public struct Enumerator : IEnumerator<KeyValuePair<K, V>>
+        {
+            private readonly UnsafeDictionary* map;
+            private readonly uint capacity;
+            private int index;
+
+            public readonly KeyValuePair<K, V> Current
+            {
+                get
+                {
+                    ref UnsafeDictionary.Entry<K, V> entry = ref UnsafeDictionary.GetEntry<K, V>(map, (uint)index);
+                    return new(entry.key, entry.value);
+                }
+            }
+
+            readonly object IEnumerator.Current => Current;
+
+            internal Enumerator(UnsafeDictionary* map)
+            {
+                this.map = map;
+                index = -1;
+                capacity = UnsafeDictionary.GetCapacity(map);
+            }
+
+            public bool MoveNext()
+            {
+                while (++index < capacity)
+                {
+                    ref UnsafeDictionary.Entry<K, V> entry = ref UnsafeDictionary.GetEntry<K, V>(map, (uint)index);
+                    if (entry.state == UnsafeDictionary.EntryState.Occupied)
+                    {
+                        return true;
+                    }
+                }
+
+                return false;
+            }
+
+            public void Reset()
+            {
+                index = -1;
+            }
+
+            readonly void IDisposable.Dispose()
+            {
+            }
         }
     }
 }

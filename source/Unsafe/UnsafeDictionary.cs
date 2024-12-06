@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using Unmanaged;
 
 namespace Collections.Unsafe
@@ -46,7 +47,7 @@ namespace Collections.Unsafe
         public static ref Entry<K, V> GetEntry<K, V>(UnsafeDictionary* map, uint index) where K : unmanaged, IEquatable<K> where V : unmanaged
         {
             Allocations.ThrowIfNull(map);
-            
+
             return ref map->entries.Read<Entry<K, V>>(index * map->entryStride);
         }
 
@@ -118,6 +119,37 @@ namespace Collections.Unsafe
             return false;
         }
 
+        public static ref V Add<K, V>(UnsafeDictionary* map, K key) where K : unmanaged, IEquatable<K> where V : unmanaged
+        {
+            Allocations.ThrowIfNull(map);
+            if (map->count == map->capacity)
+            {
+                Resize<K, V>(map);
+            }
+
+            uint hash = GetHash(map, key);
+            for (uint a = 0; a < map->capacity; a++)
+            {
+                uint index = Probe(map, hash, a);
+                ref Entry<K, V> entry = ref GetEntry<K, V>(map, index);
+                if (entry.state != EntryState.Occupied)
+                {
+                    entry.state = EntryState.Occupied;
+                    entry.key = key;
+                    entry.value = default;
+                    map->count++;
+                    return ref entry.value;
+                }
+
+                if (entry.state == EntryState.Occupied && entry.key.Equals(key))
+                {
+                    return ref entry.value;
+                }
+            }
+
+            return ref *(V*)default(nint);
+        }
+
         public static void Clear(UnsafeDictionary* map)
         {
             Allocations.ThrowIfNull(map);
@@ -185,6 +217,25 @@ namespace Collections.Unsafe
             return ref entry.value;
         }
 
+        public static ref V GetValue<K, V>(UnsafeDictionary* map, K key) where K : unmanaged, IEquatable<K> where V : unmanaged
+        {
+            Allocations.ThrowIfNull(map);
+
+            uint index = FindIndex<K, V>(map, key);
+            ThrowIfNotFound(key, index);
+
+            return ref GetEntry<K, V>(map, index).value;
+        }
+
+        [Conditional("DEBUG")]
+        private static void ThrowIfNotFound<K>(K key, uint index) where K : unmanaged
+        {
+            if (index == uint.MaxValue)
+            {
+                throw new KeyNotFoundException($"Key `{key}` not found in dictionary");
+            }
+        }
+
         public static bool TryRemove<K, V>(UnsafeDictionary* map, K key, out V value) where K : unmanaged, IEquatable<K> where V : unmanaged
         {
             Allocations.ThrowIfNull(map);
@@ -203,6 +254,22 @@ namespace Collections.Unsafe
             entry.key = default;
             map->count--;
             return true;
+        }
+
+        public static V Remove<K, V>(UnsafeDictionary* map, K key) where K : unmanaged, IEquatable<K> where V : unmanaged
+        {
+            Allocations.ThrowIfNull(map);
+
+            uint index = FindIndex<K, V>(map, key);
+            ThrowIfNotFound(key, index);
+
+            ref Entry<K, V> entry = ref GetEntry<K, V>(map, index);
+            entry.state = EntryState.Deleted;
+            V value = entry.value;
+            entry.value = default;
+            entry.key = default;
+            map->count--;
+            return value;
         }
 
         public enum EntryState : byte

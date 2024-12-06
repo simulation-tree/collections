@@ -477,31 +477,26 @@ namespace Collections
             }
         }
 
-        /// <summary/>
         public struct Enumerator : IEnumerator<T>
         {
             private readonly UnsafeList* list;
             private int index;
 
-            /// <inheritdoc/>
             public readonly T Current => UnsafeList.GetRef<T>(list, (uint)index);
             readonly object IEnumerator.Current => Current;
 
-            /// <inheritdoc/>
             public Enumerator(UnsafeList* list)
             {
                 this.list = list;
                 index = -1;
             }
 
-            /// <inheritdoc/>
             public bool MoveNext()
             {
                 index++;
                 return index < UnsafeList.GetCountRef(list);
             }
 
-            /// <inheritdoc/>
             public void Reset()
             {
                 index = -1;
