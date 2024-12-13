@@ -55,7 +55,9 @@ namespace Collections.Unsafe
         {
             unchecked
             {
-                return ((uint)key.GetHashCode()) % map->capacity;
+                EqualityComparer<K> comparer = EqualityComparer<K>.Default;
+                int hash = comparer.GetHashCode(key);
+                return ((uint)hash) % map->capacity;
             }
         }
 
