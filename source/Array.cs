@@ -237,26 +237,22 @@ namespace Collections
             private readonly UnsafeArray* array;
             private int index;
 
-            /// <inheritdoc/>
             public readonly T Current => UnsafeArray.GetRef<T>(array, (uint)index);
 
             readonly object IEnumerator.Current => Current;
 
-            /// <inheritdoc/>
             public Enumerator(UnsafeArray* array)
             {
                 this.array = array;
                 index = -1;
             }
 
-            /// <inheritdoc/>
             public bool MoveNext()
             {
                 index++;
                 return index < UnsafeArray.GetLength(array);
             }
 
-            /// <inheritdoc/>
             public void Reset()
             {
                 index = -1;
@@ -267,13 +263,11 @@ namespace Collections
             }
         }
 
-        /// <inheritdoc/>
         public static bool operator ==(Array<T> left, Array<T> right)
         {
             return left.Equals(right);
         }
 
-        /// <inheritdoc/>
         public static bool operator !=(Array<T> left, Array<T> right)
         {
             return !(left == right);
