@@ -1,4 +1,5 @@
-﻿using Unmanaged.Tests;
+﻿using Unmanaged;
+using Unmanaged.Tests;
 
 namespace Collections.Tests
 {
@@ -55,6 +56,19 @@ namespace Collections.Tests
             }
 
             Assert.That(list.AsSpan().ToString(), Is.EqualTo(text.ToString()));
+        }
+
+        [Test]
+        public void ReplaceAll()
+        {
+            using Text text = "Hello there";
+            USpan<char> destination = stackalloc char[256];
+            uint newLength = Text.Replace(text.AsSpan(), "e", "x", destination);
+            Assert.That(destination.Slice(0, newLength).ToString(), Is.EqualTo("Hxllo thxrx"));
+
+            text.CopyFrom("This is another is");
+            newLength = Text.Replace(text.AsSpan(), "is", "was", destination);
+            Assert.That(destination.Slice(0, newLength).ToString(), Is.EqualTo("Thwas was another was"));
         }
     }
 }

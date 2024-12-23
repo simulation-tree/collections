@@ -47,6 +47,16 @@ namespace Collections
             return value->buffer.AsSpan<char>(0, Length);
         }
 
+        public readonly void Clear()
+        {
+            value->length = 0;
+        }
+
+        public readonly void CopyTo(USpan<char> text)
+        {
+            value->buffer.AsSpan<char>(0, Length).CopyTo(text);
+        }
+
         public readonly void CopyFrom(USpan<char> text)
         {
             if (value->length != text.Length)
@@ -129,19 +139,54 @@ namespace Collections
             return ((nint)value).GetHashCode();
         }
 
-        public readonly void Append(char character)
+        public static void Append(USpan<char> originalText, char character, USpan<char> destination)
         {
-            uint length = Length;
-            SetLength(length + 1, character);
+            originalText.CopyTo(destination.Slice(0, originalText.Length));
+            destination[originalText.Length] = character;
         }
 
-        public readonly void Append(USpan<char> text)
+        public static void Append(USpan<char> originalText, string newText, USpan<char> destination)
         {
-            uint length = Length;
-            uint textLength = text.Length;
-            uint newLength = length + textLength;
-            SetLength(newLength);
-            text.CopyTo(AsSpan().Slice(length));
+            Append(originalText, newText.AsUSpan(), destination);
+        }
+
+        public static void Append(USpan<char> originalText, USpan<char> newText, USpan<char> destination)
+        {
+            uint originalLength = originalText.Length;
+            uint newLength = newText.Length;
+            uint destinationLength = destination.Length;
+            uint copyLength = Math.Min(originalLength + newLength, destinationLength);
+            originalText.CopyTo(destination.Slice(0, originalLength));
+            newText.Slice(0, copyLength - originalLength).CopyTo(destination.Slice(originalLength));
+        }
+
+        public static uint Replace(USpan<char> originalText, string target, string replacement, USpan<char> destination)
+        {
+            return Replace(originalText, target.AsUSpan(), replacement.AsUSpan(), destination);
+        }
+
+        public static uint Replace(USpan<char> originalText, USpan<char> target, USpan<char> replacement, USpan<char> destination)
+        {
+            uint length = 0;
+            uint originalStart = 0;
+            uint destinationStart = 0;
+            while (true)
+            {
+                if (originalText.Slice(originalStart).TryIndexOf(target, out uint index))
+                {
+                    originalText.Slice(originalStart).CopyTo(destination.Slice(destinationStart));
+                    replacement.CopyTo(destination.Slice(destinationStart + index));
+                    originalStart += index + target.Length;
+                    destinationStart += index + replacement.Length;
+                    length += index + replacement.Length;
+                }
+                else
+                {
+                    originalText.Slice(originalStart).CopyTo(destination.Slice(destinationStart));
+                    length += originalText.Length - originalStart;
+                    return length;
+                }
+            }
         }
 
         public readonly void Append(IEnumerable<char> text)
@@ -193,12 +238,12 @@ namespace Collections
 
         public struct Enumerator : IEnumerator<char>
         {
-            private UnsafeText* text;
+            private readonly UnsafeText* text;
             private int index;
-            
+
             public readonly char Current => text->buffer.AsSpan<char>(0, text->length)[(uint)index];
             readonly object IEnumerator.Current => Current;
-            
+
             public Enumerator(UnsafeText* text)
             {
                 this.text = text;
