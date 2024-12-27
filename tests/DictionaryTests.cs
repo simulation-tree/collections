@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using Unmanaged;
 using Unmanaged.Tests;
 
@@ -105,6 +106,16 @@ namespace Collections.Tests
         }
 
 #if DEBUG
+        [Test]
+        public void AddSameKey()
+        {
+            using Dictionary<byte, int> map = new();
+            map.Add(1, 1337);
+            Assert.That(map.Count, Is.EqualTo(1));
+            Assert.That(map.ContainsKey(1), Is.True);
+            Assert.Throws<InvalidOperationException>(() => map.Add(1, 42));
+        }
+
         [Test]
         public void ThrowIfModifyingNonExistentKeys()
         {

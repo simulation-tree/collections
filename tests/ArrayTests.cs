@@ -16,6 +16,14 @@ namespace Collections.Tests
         }
 
         [Test]
+        public void ContainsInEmptyArray()
+        {
+            USpan<int> span = stackalloc int[32];
+            using Array<int> emptyArray = new(span.Slice(0, 0));
+            Assert.That(emptyArray.Contains(0), Is.False);
+        }
+
+        [Test]
         public void ArrayLength()
         {
             using Array<Guid> array = new(4);

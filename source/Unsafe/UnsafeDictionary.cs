@@ -124,6 +124,8 @@ namespace Collections.Unsafe
         public static ref V Add<K, V>(UnsafeDictionary* map, K key) where K : unmanaged, IEquatable<K> where V : unmanaged
         {
             Allocations.ThrowIfNull(map);
+            ThrowIfKeyAlreadyPresent<K, V>(map, key);
+
             if (map->count == map->capacity)
             {
                 Resize<K, V>(map);
@@ -140,11 +142,6 @@ namespace Collections.Unsafe
                     entry.key = key;
                     entry.value = default;
                     map->count++;
-                    return ref entry.value;
-                }
-
-                if (entry.state == EntryState.Occupied && entry.key.Equals(key))
-                {
                     return ref entry.value;
                 }
             }
@@ -235,6 +232,15 @@ namespace Collections.Unsafe
             if (index == uint.MaxValue)
             {
                 throw new KeyNotFoundException($"Key `{key}` not found in dictionary");
+            }
+        }
+
+        [Conditional("DEBUG")]
+        private static void ThrowIfKeyAlreadyPresent<K, V>(UnsafeDictionary* map, K key) where K : unmanaged, IEquatable<K> where V : unmanaged
+        {
+            if (ContainsKey<K, V>(map, key))
+            {
+                throw new InvalidOperationException($"Key `{key}` already exists in dictionary");
             }
         }
 
