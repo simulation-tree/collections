@@ -1,8 +1,7 @@
-﻿using Collections.Unsafe;
-using System;
+﻿using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Diagnostics;
+using Implementation = Collections.Implementations.Dictionary;
 
 namespace Collections
 {
@@ -11,17 +10,17 @@ namespace Collections
     /// </summary>
     public unsafe struct Dictionary<K, V> : IDisposable, IReadOnlyDictionary<K, V>, IDictionary<K, V>, IEquatable<Dictionary<K, V>> where K : unmanaged, IEquatable<K> where V : unmanaged
     {
-        private UnsafeDictionary* dictionary;
+        private Implementation* dictionary;
 
         /// <summary>
         /// Number of key-value pairs in the dictionary.
         /// </summary>
-        public readonly uint Count => UnsafeDictionary.GetCount(dictionary);
+        public readonly uint Count => Implementation.GetCount(dictionary);
 
         /// <summary>
         /// Capacity of the dictionary.
         /// </summary>
-        public readonly uint Capacity => UnsafeDictionary.GetCapacity(dictionary);
+        public readonly uint Capacity => Implementation.GetCapacity(dictionary);
 
         /// <summary>
         /// Checks if the dictionary has been disposed.
@@ -35,7 +34,7 @@ namespace Collections
         /// </para>
         /// </summary>
         /// <exception cref="NullReferenceException"></exception>
-        public readonly ref V this[K key] => ref UnsafeDictionary.GetValue<K, V>(dictionary, key);
+        public readonly ref V this[K key] => ref Implementation.GetValue<K, V>(dictionary, key);
 
         /// <summary>
         /// All keys in this dictionary.
@@ -47,13 +46,13 @@ namespace Collections
                 uint capacity = Capacity;
                 for (uint i = 0; i < capacity; i++)
                 {
-                    UnsafeDictionary.Entry<K, V> entry;
+                    Implementation.Entry<K, V> entry;
                     unsafe
                     {
-                        entry = UnsafeDictionary.GetEntry<K, V>(dictionary, i);
+                        entry = Implementation.GetEntry<K, V>(dictionary, i);
                     }
 
-                    if (entry.state == UnsafeDictionary.EntryState.Occupied)
+                    if (entry.state == Implementation.EntryState.Occupied)
                     {
                         yield return entry.key;
                     }
@@ -71,13 +70,13 @@ namespace Collections
                 uint capacity = Capacity;
                 for (uint i = 0; i < capacity; i++)
                 {
-                    UnsafeDictionary.Entry<K, V> entry;
+                    Implementation.Entry<K, V> entry;
                     unsafe
                     {
-                        entry = UnsafeDictionary.GetEntry<K, V>(dictionary, i);
+                        entry = Implementation.GetEntry<K, V>(dictionary, i);
                     }
 
-                    if (entry.state == UnsafeDictionary.EntryState.Occupied)
+                    if (entry.state == Implementation.EntryState.Occupied)
                     {
                         yield return entry.value;
                     }
@@ -92,13 +91,13 @@ namespace Collections
                 uint count = Capacity;
                 for (uint i = 0; i < count; i++)
                 {
-                    UnsafeDictionary.Entry<K, V> entry;
+                    Implementation.Entry<K, V> entry;
                     unsafe
                     {
-                        entry = UnsafeDictionary.GetEntry<K, V>(dictionary, i);
+                        entry = Implementation.GetEntry<K, V>(dictionary, i);
                     }
 
-                    if (entry.state == UnsafeDictionary.EntryState.Occupied)
+                    if (entry.state == Implementation.EntryState.Occupied)
                     {
                         yield return new KeyValuePair<K, V>(entry.key, entry.value);
                     }
@@ -140,17 +139,17 @@ namespace Collections
         readonly bool ICollection<KeyValuePair<K, V>>.IsReadOnly => false;
         readonly int IReadOnlyCollection<KeyValuePair<K, V>>.Count => (int)Count;
 
-        readonly V IReadOnlyDictionary<K, V>.this[K key] => UnsafeDictionary.GetValue<K, V>(dictionary, key);
+        readonly V IReadOnlyDictionary<K, V>.this[K key] => Implementation.GetValue<K, V>(dictionary, key);
         readonly V IDictionary<K, V>.this[K key]
         {
-            get => UnsafeDictionary.GetValue<K, V>(dictionary, key);
-            set => UnsafeDictionary.GetValue<K, V>(dictionary, key) = value;
+            get => Implementation.GetValue<K, V>(dictionary, key);
+            set => Implementation.GetValue<K, V>(dictionary, key) = value;
         }
 
         /// <summary>
         /// Initializes an existing dictionary from the given <paramref name="pointer"/>.
         /// </summary>
-        public Dictionary(UnsafeDictionary* pointer)
+        public Dictionary(Implementation* pointer)
         {
             dictionary = pointer;
         }
@@ -160,7 +159,7 @@ namespace Collections
         /// </summary>
         public Dictionary(uint initialCapacity = 4)
         {
-            dictionary = UnsafeDictionary.Allocate<K, V>(initialCapacity);
+            dictionary = Implementation.Allocate<K, V>(initialCapacity);
         }
 
 #if NET
@@ -169,7 +168,7 @@ namespace Collections
         /// </summary>
         public Dictionary()
         {
-            dictionary = UnsafeDictionary.Allocate<K, V>(4);
+            dictionary = Implementation.Allocate<K, V>(4);
         }
 #endif
 
@@ -181,7 +180,7 @@ namespace Collections
         /// </summary>
         public void Dispose()
         {
-            UnsafeDictionary.Free(ref dictionary);
+            Implementation.Free(ref dictionary);
         }
 
         /// <summary>
@@ -189,7 +188,7 @@ namespace Collections
         /// </summary>
         public readonly bool ContainsKey(K key)
         {
-            return UnsafeDictionary.ContainsKey<K, V>(dictionary, key);
+            return Implementation.ContainsKey<K, V>(dictionary, key);
         }
 
         /// <summary>
@@ -198,7 +197,7 @@ namespace Collections
         /// <returns><c>true</c> if found.</returns>
         public readonly bool TryGetValue(K key, out V value)
         {
-            ref V found = ref UnsafeDictionary.TryGetValue<K, V>(dictionary, key, out bool contains);
+            ref V found = ref Implementation.TryGetValue<K, V>(dictionary, key, out bool contains);
             value = contains ? found : default;
             return contains;
         }
@@ -209,7 +208,7 @@ namespace Collections
         /// <returns>Reference to the value if <paramref name="contains"/> is true.</returns>
         public readonly ref V TryGetValue(K key, out bool contains)
         {
-            return ref UnsafeDictionary.TryGetValue<K, V>(dictionary, key, out contains);
+            return ref Implementation.TryGetValue<K, V>(dictionary, key, out contains);
         }
 
         /// <summary>
@@ -218,7 +217,7 @@ namespace Collections
         /// <returns><c>true</c> if successful.</returns>
         public readonly bool TryAdd(K key, V value)
         {
-            return UnsafeDictionary.TryAdd(dictionary, key, value);
+            return Implementation.TryAdd(dictionary, key, value);
         }
 
         /// <summary>
@@ -229,7 +228,7 @@ namespace Collections
         /// </summary>
         public readonly ref V Add(K key, V value)
         {
-            ref V existingValue = ref UnsafeDictionary.Add<K, V>(dictionary, key);
+            ref V existingValue = ref Implementation.Add<K, V>(dictionary, key);
             existingValue = value;
             return ref existingValue;
         }
@@ -243,7 +242,7 @@ namespace Collections
         /// <exception cref="KeyNotFoundException"></exception>
         public readonly void Set(K key, V value)
         {
-            ref V existingValue = ref UnsafeDictionary.GetValue<K, V>(dictionary, key);
+            ref V existingValue = ref Implementation.GetValue<K, V>(dictionary, key);
             existingValue = value;
         }
 
@@ -254,10 +253,10 @@ namespace Collections
         /// <returns><c>true</c> if the key was added, <c>false</c> if set.</returns>
         public readonly bool AddOrSet(K key, V value)
         {
-            ref V existingValue = ref UnsafeDictionary.TryGetValue<K, V>(dictionary, key, out bool contains);
+            ref V existingValue = ref Implementation.TryGetValue<K, V>(dictionary, key, out bool contains);
             if (!contains)
             {
-                existingValue = ref UnsafeDictionary.Add<K, V>(dictionary, key);
+                existingValue = ref Implementation.Add<K, V>(dictionary, key);
             }
 
             existingValue = value;
@@ -270,7 +269,7 @@ namespace Collections
         /// <returns>Reference to the added value.</returns>
         public readonly ref V Add(K key)
         {
-            return ref UnsafeDictionary.Add<K, V>(dictionary, key);
+            return ref Implementation.Add<K, V>(dictionary, key);
         }
 
         /// <summary>
@@ -282,7 +281,7 @@ namespace Collections
         /// <returns>The removed value.</returns>
         public readonly V Remove(K key)
         {
-            return UnsafeDictionary.Remove<K, V>(dictionary, key);
+            return Implementation.Remove<K, V>(dictionary, key);
         }
 
         /// <summary>
@@ -291,7 +290,7 @@ namespace Collections
         /// <returns><c>true</c> if found and removed.</returns>
         public readonly bool TryRemove(K key, out V removed)
         {
-            return UnsafeDictionary.TryRemove(dictionary, key, out removed);
+            return Implementation.TryRemove(dictionary, key, out removed);
         }
 
         /// <summary>
@@ -300,7 +299,7 @@ namespace Collections
         /// <returns><c>true</c> if found and removed.</returns>
         public readonly bool TryRemove(K key)
         {
-            return UnsafeDictionary.TryRemove<K, V>(dictionary, key, out _);
+            return Implementation.TryRemove<K, V>(dictionary, key, out _);
         }
 
         /// <summary>
@@ -308,7 +307,7 @@ namespace Collections
         /// </summary>
         public readonly void Clear()
         {
-            UnsafeDictionary.Clear(dictionary);
+            Implementation.Clear(dictionary);
         }
 
         readonly void IDictionary<K, V>.Add(K key, V value)
@@ -345,7 +344,7 @@ namespace Collections
 
             if (array.Length - arrayIndex < Count)
             {
-                throw new ArgumentException("The number of elements in the dictionary is greater than the available space from the index to the end of the destination array.");
+                throw new ArgumentException("The number of elements in the dictionary is greater than the available space from the index to the end of the destination array");
             }
 
             foreach (KeyValuePair<K, V> pair in Pairs)
@@ -409,7 +408,7 @@ namespace Collections
 
         public struct Enumerator : IEnumerator<KeyValuePair<K, V>>
         {
-            private readonly UnsafeDictionary* map;
+            private readonly Implementation* map;
             private readonly uint capacity;
             private int index;
 
@@ -417,26 +416,26 @@ namespace Collections
             {
                 get
                 {
-                    ref UnsafeDictionary.Entry<K, V> entry = ref UnsafeDictionary.GetEntry<K, V>(map, (uint)index);
+                    ref Implementation.Entry<K, V> entry = ref Implementation.GetEntry<K, V>(map, (uint)index);
                     return new(entry.key, entry.value);
                 }
             }
 
             readonly object IEnumerator.Current => Current;
 
-            internal Enumerator(UnsafeDictionary* map)
+            internal Enumerator(Implementation* map)
             {
                 this.map = map;
                 index = -1;
-                capacity = UnsafeDictionary.GetCapacity(map);
+                capacity = Implementation.GetCapacity(map);
             }
 
             public bool MoveNext()
             {
                 while (++index < capacity)
                 {
-                    ref UnsafeDictionary.Entry<K, V> entry = ref UnsafeDictionary.GetEntry<K, V>(map, (uint)index);
-                    if (entry.state == UnsafeDictionary.EntryState.Occupied)
+                    ref Implementation.Entry<K, V> entry = ref Implementation.GetEntry<K, V>(map, (uint)index);
+                    if (entry.state == Implementation.EntryState.Occupied)
                     {
                         return true;
                     }

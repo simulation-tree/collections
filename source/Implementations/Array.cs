@@ -2,19 +2,19 @@
 using System.Diagnostics;
 using Unmanaged;
 
-namespace Collections.Unsafe
+namespace Collections.Implementations
 {
     /// <summary>
     /// Opaque pointer implementation of an array.
     /// </summary>
-    public unsafe struct UnsafeArray
+    public unsafe struct Array
     {
         private uint stride;
         private uint length;
         private Allocation items;
 
         [Conditional("DEBUG")]
-        private static void ThrowIfOutOfRange(UnsafeArray* array, uint index)
+        private static void ThrowIfOutOfRange(Array* array, uint index)
         {
             if (index >= array->length)
             {
@@ -22,7 +22,7 @@ namespace Collections.Unsafe
             }
         }
 
-        public static void Free(ref UnsafeArray* array)
+        public static void Free(ref Array* array)
         {
             Allocations.ThrowIfNull(array);
 
@@ -30,44 +30,44 @@ namespace Collections.Unsafe
             Allocations.Free(ref array);
         }
 
-        public static uint GetLength(UnsafeArray* array)
+        public static uint GetLength(Array* array)
         {
             Allocations.ThrowIfNull(array);
 
             return array->length;
         }
 
-        public static nint GetStartAddress(UnsafeArray* array)
+        public static nint GetStartAddress(Array* array)
         {
             Allocations.ThrowIfNull(array);
 
             return array->items.Address;
         }
 
-        public static UnsafeArray* Allocate<T>(uint length) where T : unmanaged
+        public static Array* Allocate<T>(uint length) where T : unmanaged
         {
             return Allocate(length, TypeInfo<T>.size);
         }
 
-        public static UnsafeArray* Allocate(uint length, uint stride)
+        public static Array* Allocate(uint length, uint stride)
         {
-            UnsafeArray* array = Allocations.Allocate<UnsafeArray>();
+            Array* array = Allocations.Allocate<Array>();
             array->stride = stride;
             array->length = length;
             array->items = new(stride * length, true);
             return array;
         }
 
-        public static UnsafeArray* Allocate<T>(USpan<T> span) where T : unmanaged
+        public static Array* Allocate<T>(USpan<T> span) where T : unmanaged
         {
-            UnsafeArray* array = Allocations.Allocate<UnsafeArray>();
+            Array* array = Allocations.Allocate<Array>();
             array->stride = TypeInfo<T>.size;
             array->length = span.Length;
             array->items = Allocation.Create(span);
             return array;
         }
 
-        public static ref T GetRef<T>(UnsafeArray* array, uint index) where T : unmanaged
+        public static ref T GetRef<T>(Array* array, uint index) where T : unmanaged
         {
             Allocations.ThrowIfNull(array);
             ThrowIfOutOfRange(array, index);
@@ -76,14 +76,14 @@ namespace Collections.Unsafe
             return ref ptr[index];
         }
 
-        public static USpan<T> AsSpan<T>(UnsafeArray* array) where T : unmanaged
+        public static USpan<T> AsSpan<T>(Array* array) where T : unmanaged
         {
             Allocations.ThrowIfNull(array);
 
             return array->items.AsSpan<T>(0, array->length);
         }
 
-        public static bool TryIndexOf<T>(UnsafeArray* array, T value, out uint index) where T : unmanaged, IEquatable<T>
+        public static bool TryIndexOf<T>(Array* array, T value, out uint index) where T : unmanaged, IEquatable<T>
         {
             Allocations.ThrowIfNull(array);
 
@@ -94,7 +94,7 @@ namespace Collections.Unsafe
         /// <summary>
         /// Checks if the array contains the given <paramref name="value"/>.
         /// </summary>
-        public static bool Contains<T>(UnsafeArray* array, T value) where T : unmanaged, IEquatable<T>
+        public static bool Contains<T>(Array* array, T value) where T : unmanaged, IEquatable<T>
         {
             Allocations.ThrowIfNull(array);
 
@@ -105,7 +105,7 @@ namespace Collections.Unsafe
         /// <summary>
         /// Resizes the array and optionally initializes new elements.
         /// </summary>
-        public static void Resize(UnsafeArray* array, uint newLength, bool initialize = false)
+        public static void Resize(Array* array, uint newLength, bool initialize = false)
         {
             Allocations.ThrowIfNull(array);
 
@@ -126,7 +126,7 @@ namespace Collections.Unsafe
         /// <summary>
         /// Clears the entire array to <c>default</c> state.
         /// </summary>
-        public static void Clear(UnsafeArray* array)
+        public static void Clear(Array* array)
         {
             Allocations.ThrowIfNull(array);
 
@@ -136,7 +136,7 @@ namespace Collections.Unsafe
         /// <summary>
         /// Clears a range of elements in the array to <c>default</c> state.
         /// </summary>
-        public static void Clear(UnsafeArray* array, uint start, uint length)
+        public static void Clear(Array* array, uint start, uint length)
         {
             Allocations.ThrowIfNull(array);
 

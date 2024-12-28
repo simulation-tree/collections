@@ -1,8 +1,8 @@
-﻿using Collections.Unsafe;
-using System;
+﻿using System;
 using System.Collections;
 using System.Collections.Generic;
 using Unmanaged;
+using Implementation = Collections.Implementations.List;
 
 namespace Collections
 {
@@ -11,7 +11,7 @@ namespace Collections
     /// </summary>
     public unsafe struct List<T> : IDisposable, IReadOnlyList<T>, IList<T>, IEquatable<List<T>> where T : unmanaged
     {
-        private UnsafeList* value;
+        private Implementation* value;
 
         /// <summary>
         /// Checks if the list has been disposed.
@@ -21,37 +21,37 @@ namespace Collections
         /// <summary>
         /// Amount of elements in the list.
         /// </summary>
-        public readonly uint Count => UnsafeList.GetCountRef(value);
+        public readonly uint Count => Implementation.GetCountRef(value);
 
         /// <summary>
         /// Capacity of the list.
         /// </summary>
-        public readonly uint Capacity => UnsafeList.GetCapacity(value);
+        public readonly uint Capacity => Implementation.GetCapacity(value);
 
         /// <summary>
         /// Native address where the memory for elements begin.
         /// </summary>
-        public readonly nint StartAddress => UnsafeList.GetStartAddress(value);
+        public readonly nint StartAddress => Implementation.GetStartAddress(value);
 
         /// <summary>
         /// Accesses the element at the specified index.
         /// </summary>
-        public readonly ref T this[uint index] => ref UnsafeList.GetRef<T>(value, index);
+        public readonly ref T this[uint index] => ref Implementation.GetRef<T>(value, index);
 
-        readonly T IReadOnlyList<T>.this[int index] => UnsafeList.GetRef<T>(value, (uint)index);
+        readonly T IReadOnlyList<T>.this[int index] => Implementation.GetRef<T>(value, (uint)index);
         readonly int IReadOnlyCollection<T>.Count => (int)Count;
         readonly int ICollection<T>.Count => (int)Count;
         readonly bool ICollection<T>.IsReadOnly => false;
         readonly T IList<T>.this[int index]
         {
-            get => UnsafeList.GetRef<T>(value, (uint)index);
-            set => UnsafeList.GetRef<T>(this.value, (uint)index) = value;
+            get => Implementation.GetRef<T>(value, (uint)index);
+            set => Implementation.GetRef<T>(this.value, (uint)index) = value;
         }
 
         /// <summary>
         /// Initializes an existing list from the given <paramref name="pointer"/>.
         /// </summary>
-        public List(UnsafeList* pointer)
+        public List(Implementation* pointer)
         {
             value = pointer;
         }
@@ -61,7 +61,7 @@ namespace Collections
         /// </summary>
         public List(uint initialCapacity = 4)
         {
-            value = UnsafeList.Allocate<T>(initialCapacity);
+            value = Implementation.Allocate<T>(initialCapacity);
         }
 
         /// <summary>
@@ -69,7 +69,7 @@ namespace Collections
         /// </summary>
         public List(USpan<T> span)
         {
-            value = UnsafeList.Allocate(span);
+            value = Implementation.Allocate(span);
         }
 
         /// <summary>
@@ -77,7 +77,7 @@ namespace Collections
         /// </summary>
         public List(IEnumerable<T> list)
         {
-            value = UnsafeList.Allocate<T>(4);
+            value = Implementation.Allocate<T>(4);
             foreach (T item in list)
             {
                 Add(item);
@@ -90,7 +90,7 @@ namespace Collections
         /// </summary>
         public List()
         {
-            value = UnsafeList.Allocate<T>(4);
+            value = Implementation.Allocate<T>(4);
         }
 #endif
 
@@ -102,7 +102,7 @@ namespace Collections
         /// </summary>
         public void Dispose()
         {
-            UnsafeList.Free(ref value);
+            Implementation.Free(ref value);
         }
 
         /// <summary>
@@ -110,7 +110,7 @@ namespace Collections
         /// </summary>
         public readonly USpan<T> AsSpan()
         {
-            return UnsafeList.AsSpan<T>(value);
+            return Implementation.AsSpan<T>(value);
         }
 
         /// <summary>
@@ -118,7 +118,7 @@ namespace Collections
         /// </summary>
         public readonly USpan<V> AsSpan<V>() where V : unmanaged
         {
-            return UnsafeList.AsSpan<V>(value);
+            return Implementation.AsSpan<V>(value);
         }
 
         /// <summary>
@@ -126,7 +126,7 @@ namespace Collections
         /// </summary>
         public readonly USpan<T> AsSpan(uint start)
         {
-            return UnsafeList.AsSpan<T>(value, start);
+            return Implementation.AsSpan<T>(value, start);
         }
 
         /// <summary>
@@ -134,7 +134,7 @@ namespace Collections
         /// </summary>
         public readonly USpan<T> AsSpan(uint start, uint length)
         {
-            return UnsafeList.AsSpan<T>(value, start, length);
+            return Implementation.AsSpan<T>(value, start, length);
         }
 
         /// <summary>
@@ -146,7 +146,7 @@ namespace Collections
         /// <exception cref="IndexOutOfRangeException"/>
         public readonly void Insert(uint index, T item)
         {
-            UnsafeList.Insert(value, index, item);
+            Implementation.Insert(value, index, item);
         }
 
         /// <summary>
@@ -154,7 +154,7 @@ namespace Collections
         /// </summary>
         public readonly void Add(T item)
         {
-            UnsafeList.Add(value, item);
+            Implementation.Add(value, item);
         }
 
         /// <summary>
@@ -163,13 +163,13 @@ namespace Collections
         /// <returns><c>true</c> if item was added.</returns>
         public readonly bool TryAdd<V>(V item) where V : unmanaged, IEquatable<V>
         {
-            USpan<V> span = UnsafeList.AsSpan<V>(value);
+            USpan<V> span = Implementation.AsSpan<V>(value);
             if (span.Contains(item))
             {
                 return false;
             }
 
-            UnsafeList.Add(value, item);
+            Implementation.Add(value, item);
             return true;
         }
 
@@ -178,7 +178,7 @@ namespace Collections
         /// </summary>
         public readonly void AddDefault(uint count = 1)
         {
-            UnsafeList.AddDefault(value, count);
+            Implementation.AddDefault(value, count);
         }
 
         /// <summary>
@@ -200,7 +200,7 @@ namespace Collections
         /// </summary>
         public readonly void AddRange(void* pointer, uint count)
         {
-            UnsafeList.AddRange(value, pointer, count);
+            Implementation.AddRange(value, pointer, count);
         }
 
         /// <summary>
@@ -237,7 +237,7 @@ namespace Collections
         /// </summary>
         public readonly void AddRange(USpan<T> span)
         {
-            UnsafeList.AddRange(value, span);
+            Implementation.AddRange(value, span);
         }
 
         /// <summary>
@@ -246,7 +246,7 @@ namespace Collections
         /// </summary>
         public readonly void AddRange<V>(USpan<V> span) where V : unmanaged
         {
-            UnsafeList.AddRange(value, span);
+            Implementation.AddRange(value, span);
         }
 
         /// <summary>
@@ -254,8 +254,8 @@ namespace Collections
         /// </summary>
         public readonly void AddRange(List<T> list)
         {
-            nint address = UnsafeList.GetStartAddress(list.value);
-            UnsafeList.AddRange(value, (void*)address, list.Count);
+            nint address = Implementation.GetStartAddress(list.value);
+            Implementation.AddRange(value, (void*)address, list.Count);
         }
 
         /// <summary>
@@ -267,7 +267,7 @@ namespace Collections
         /// <exception cref="NullReferenceException"></exception>
         public readonly uint IndexOf<V>(V item) where V : unmanaged, IEquatable<V>
         {
-            return UnsafeList.IndexOf(value, item);
+            return Implementation.IndexOf(value, item);
         }
 
         /// <summary>
@@ -276,7 +276,7 @@ namespace Collections
         /// <returns><c>true</c> if found.</returns>
         public readonly bool TryIndexOf<V>(V item, out uint index) where V : unmanaged, IEquatable<V>
         {
-            return UnsafeList.TryIndexOf(value, item, out index);
+            return Implementation.TryIndexOf(value, item, out index);
         }
 
         /// <summary>
@@ -284,7 +284,7 @@ namespace Collections
         /// </summary>
         public readonly bool Contains<V>(V item) where V : unmanaged, IEquatable<V>
         {
-            return UnsafeList.Contains(value, item);
+            return Implementation.Contains(value, item);
         }
 
         /// <summary>
@@ -316,7 +316,7 @@ namespace Collections
         public readonly T RemoveAt(uint index)
         {
             T removed = this[index];
-            UnsafeList.RemoveAt(value, index);
+            Implementation.RemoveAt(value, index);
             return removed;
         }
 
@@ -329,7 +329,7 @@ namespace Collections
         /// <exception cref="IndexOutOfRangeException"></exception>"
         public readonly void RemoveAtBySwapping(uint index)
         {
-            UnsafeList.RemoveAtBySwapping(value, index);
+            Implementation.RemoveAtBySwapping(value, index);
         }
 
         /// <summary>
@@ -342,7 +342,7 @@ namespace Collections
         /// <exception cref="IndexOutOfRangeException"></exception>"
         public readonly V RemoveAt<V>(uint index) where V : unmanaged, IEquatable<V>
         {
-            return UnsafeList.RemoveAt<V>(value, index);
+            return Implementation.RemoveAt<V>(value, index);
         }
 
         /// <summary>
@@ -355,7 +355,7 @@ namespace Collections
         /// <exception cref="IndexOutOfRangeException"></exception>"
         public readonly V RemoveAtBySwapping<V>(uint index) where V : unmanaged, IEquatable<V>
         {
-            return UnsafeList.RemoveAtBySwapping<V>(value, index);
+            return Implementation.RemoveAtBySwapping<V>(value, index);
         }
 
         /// <summary>
@@ -363,7 +363,7 @@ namespace Collections
         /// </summary>
         public readonly void Clear()
         {
-            UnsafeList.Clear(value);
+            Implementation.Clear(value);
         }
 
         /// <summary>
@@ -375,10 +375,10 @@ namespace Collections
             uint capacity = Capacity;
             if (capacity < minimumCapacity)
             {
-                UnsafeList.AddDefault(value, minimumCapacity - capacity);
+                Implementation.AddDefault(value, minimumCapacity - capacity);
             }
 
-            UnsafeList.Clear(value);
+            Implementation.Clear(value);
         }
 
         /// <inheritdoc/>
@@ -479,13 +479,13 @@ namespace Collections
 
         public struct Enumerator : IEnumerator<T>
         {
-            private readonly UnsafeList* list;
+            private readonly Implementation* list;
             private int index;
 
-            public readonly T Current => UnsafeList.GetRef<T>(list, (uint)index);
+            public readonly T Current => Implementation.GetRef<T>(list, (uint)index);
             readonly object IEnumerator.Current => Current;
 
-            public Enumerator(UnsafeList* list)
+            public Enumerator(Implementation* list)
             {
                 this.list = list;
                 index = -1;
@@ -494,7 +494,7 @@ namespace Collections
             public bool MoveNext()
             {
                 index++;
-                return index < UnsafeList.GetCountRef(list);
+                return index < Implementation.GetCountRef(list);
             }
 
             public void Reset()

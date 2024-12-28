@@ -1,4 +1,4 @@
-﻿using Collections.Unsafe;
+﻿using Collections.Implementations;
 using System;
 using Unmanaged;
 using Unmanaged.Tests;
@@ -212,13 +212,13 @@ namespace Collections.Tests
         [Test]
         public unsafe void ReadBytesFromList()
         {
-            UnsafeList* data = UnsafeList.Allocate<int>(4);
-            UnsafeList.Add(data, 1);
-            UnsafeList.Add(data, 2);
-            UnsafeList.Add(data, 3);
-            UnsafeList.Add(data, 4);
+            List* data = List.Allocate<int>(4);
+            List.Add(data, 1);
+            List.Add(data, 2);
+            List.Add(data, 3);
+            List.Add(data, 4);
 
-            USpan<byte> span = UnsafeList.AsSpan<byte>(data);
+            USpan<byte> span = List.AsSpan<byte>(data);
             Assert.That(span.Length, Is.EqualTo(sizeof(int) * 4));
             int value1 = BitConverter.ToInt32(span.Slice(0, 4).AsSystemSpan());
             int value2 = BitConverter.ToInt32(span.Slice(4, 4).AsSystemSpan());
@@ -228,7 +228,7 @@ namespace Collections.Tests
             Assert.That(value2, Is.EqualTo(2));
             Assert.That(value3, Is.EqualTo(3));
             Assert.That(value4, Is.EqualTo(4));
-            UnsafeList.Free(ref data);
+            List.Free(ref data);
             Assert.That(data is null, Is.True);
         }
 
@@ -273,16 +273,16 @@ namespace Collections.Tests
         [Test]
         public unsafe void AddAnotherUnsafeList()
         {
-            UnsafeList* a = UnsafeList.Allocate<int>(4);
-            UnsafeList* b = UnsafeList.Allocate<int>(4);
-            UnsafeList.AddRange(a, [1, 3]);
-            UnsafeList.AddRange(b, [3, 7, 7]);
-            Assert.That(UnsafeList.AsSpan<int>(a).ToArray(), Is.EqualTo(new[] { 1, 3 }));
-            Assert.That(UnsafeList.AsSpan<int>(b).ToArray(), Is.EqualTo(new[] { 3, 7, 7 }));
-            UnsafeList.AddRange(a, (void*)UnsafeList.GetStartAddress(b), UnsafeList.GetCountRef(b));
-            Assert.That(UnsafeList.AsSpan<int>(a).ToArray(), Is.EqualTo(new[] { 1, 3, 3, 7, 7 }));
-            UnsafeList.Free(ref a);
-            UnsafeList.Free(ref b);
+            List* a = List.Allocate<int>(4);
+            List* b = List.Allocate<int>(4);
+            List.AddRange(a, [1, 3]);
+            List.AddRange(b, [3, 7, 7]);
+            Assert.That(List.AsSpan<int>(a).ToArray(), Is.EqualTo(new[] { 1, 3 }));
+            Assert.That(List.AsSpan<int>(b).ToArray(), Is.EqualTo(new[] { 3, 7, 7 }));
+            List.AddRange(a, (void*)List.GetStartAddress(b), List.GetCountRef(b));
+            Assert.That(List.AsSpan<int>(a).ToArray(), Is.EqualTo(new[] { 1, 3, 3, 7, 7 }));
+            List.Free(ref a);
+            List.Free(ref b);
         }
 
         [Test]

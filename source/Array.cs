@@ -1,8 +1,8 @@
-﻿using Collections.Unsafe;
-using System;
+﻿using System;
 using System.Collections;
 using System.Collections.Generic;
 using Unmanaged;
+using Implementation = Collections.Implementations.Array;
 
 namespace Collections
 {
@@ -11,7 +11,7 @@ namespace Collections
     /// </summary>
     public unsafe struct Array<T> : IDisposable, IReadOnlyList<T>, IEquatable<Array<T>> where T : unmanaged
     {
-        private UnsafeArray* value;
+        private Implementation* value;
 
         /// <summary>
         /// Checks if the array has been disposed.
@@ -23,22 +23,22 @@ namespace Collections
         /// </summary>
         public readonly uint Length
         {
-            get => UnsafeArray.GetLength(value);
-            set => UnsafeArray.Resize(this.value, value);
+            get => Implementation.GetLength(value);
+            set => Implementation.Resize(this.value, value);
         }
 
         /// <summary>
         /// Accesses the element at the specified index.
         /// </summary>
-        public readonly ref T this[uint index] => ref UnsafeArray.GetRef<T>(value, index);
+        public readonly ref T this[uint index] => ref Implementation.GetRef<T>(value, index);
 
         readonly int IReadOnlyCollection<T>.Count => (int)Length;
-        readonly T IReadOnlyList<T>.this[int index] => UnsafeArray.GetRef<T>(value, (uint)index);
+        readonly T IReadOnlyList<T>.this[int index] => Implementation.GetRef<T>(value, (uint)index);
 
         /// <summary>
         /// Initializes an existing array from the given <paramref name="pointer"/>
         /// </summary>
-        public Array(UnsafeArray* pointer)
+        public Array(Implementation* pointer)
         {
             value = pointer;
         }
@@ -48,7 +48,7 @@ namespace Collections
         /// </summary>
         public Array(uint length = 0)
         {
-            value = UnsafeArray.Allocate<T>(length);
+            value = Implementation.Allocate<T>(length);
         }
 
         /// <summary>
@@ -56,7 +56,7 @@ namespace Collections
         /// </summary>
         public Array(USpan<T> span)
         {
-            value = UnsafeArray.Allocate(span);
+            value = Implementation.Allocate(span);
         }
 
         /// <summary>
@@ -64,7 +64,7 @@ namespace Collections
         /// </summary>
         public Array(List<T> list)
         {
-            value = UnsafeArray.Allocate(list.AsSpan());
+            value = Implementation.Allocate(list.AsSpan());
         }
 
 #if NET
@@ -73,7 +73,7 @@ namespace Collections
         /// </summary>
         public Array()
         {
-            value = UnsafeArray.Allocate<T>(0);
+            value = Implementation.Allocate<T>(0);
         }
 #endif
 
@@ -85,7 +85,7 @@ namespace Collections
         /// </para>
         public void Dispose()
         {
-            UnsafeArray.Free(ref value);
+            Implementation.Free(ref value);
         }
 
         /// <summary>
@@ -93,7 +93,7 @@ namespace Collections
         /// </summary>
         public readonly void Clear()
         {
-            UnsafeArray.Clear(value);
+            Implementation.Clear(value);
         }
 
         /// <summary>
@@ -102,7 +102,7 @@ namespace Collections
         /// </summary>
         public readonly void Clear(uint start, uint length)
         {
-            UnsafeArray.Clear(value, start, length);
+            Implementation.Clear(value, start, length);
         }
 
         /// <summary>
@@ -118,7 +118,7 @@ namespace Collections
         /// </summary>
         public readonly USpan<T> AsSpan()
         {
-            return UnsafeArray.AsSpan<T>(value);
+            return Implementation.AsSpan<T>(value);
         }
 
         /// <summary>
@@ -144,7 +144,7 @@ namespace Collections
         /// <returns><c>true</c> if found.</returns>
         public readonly bool TryIndexOf<V>(V value, out uint index) where V : unmanaged, IEquatable<V>
         {
-            return UnsafeArray.TryIndexOf(this.value, value, out index);
+            return Implementation.TryIndexOf(this.value, value, out index);
         }
 
         /// <summary>
@@ -158,7 +158,7 @@ namespace Collections
         {
             if (!TryIndexOf(value, out uint index))
             {
-                throw new NullReferenceException($"The value {value} was not found in the array.");
+                throw new NullReferenceException($"The value {value} was not found in the array");
             }
 
             return index;
@@ -169,7 +169,7 @@ namespace Collections
         /// </summary>
         public readonly bool Contains<V>(V value) where V : unmanaged, IEquatable<V>
         {
-            return UnsafeArray.Contains(this.value, value);
+            return Implementation.Contains(this.value, value);
         }
 
         /// <summary>
@@ -234,14 +234,14 @@ namespace Collections
         /// </summary>
         public struct Enumerator : IEnumerator<T>
         {
-            private readonly UnsafeArray* array;
+            private readonly Implementation* array;
             private int index;
 
-            public readonly T Current => UnsafeArray.GetRef<T>(array, (uint)index);
+            public readonly T Current => Implementation.GetRef<T>(array, (uint)index);
 
             readonly object IEnumerator.Current => Current;
 
-            public Enumerator(UnsafeArray* array)
+            public Enumerator(Implementation* array)
             {
                 this.array = array;
                 index = -1;
@@ -250,7 +250,7 @@ namespace Collections
             public bool MoveNext()
             {
                 index++;
-                return index < UnsafeArray.GetLength(array);
+                return index < Implementation.GetLength(array);
             }
 
             public void Reset()

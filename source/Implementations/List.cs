@@ -2,12 +2,12 @@
 using System.Diagnostics;
 using Unmanaged;
 
-namespace Collections.Unsafe
+namespace Collections.Implementations
 {
     /// <summary>
     /// Opaque pointer implementation of a list.
     /// </summary>
-    public unsafe struct UnsafeList
+    public unsafe struct List
     {
         private uint stride;
         private uint count;
@@ -15,7 +15,7 @@ namespace Collections.Unsafe
         private Allocation items;
 
         [Conditional("DEBUG")]
-        private static void ThrowIfOutOfRange(UnsafeList* list, uint index)
+        private static void ThrowIfOutOfRange(List* list, uint index)
         {
             if (index >= list->count)
             {
@@ -24,7 +24,7 @@ namespace Collections.Unsafe
         }
 
         [Conditional("DEBUG")]
-        private static void ThrowIfPastRange(UnsafeList* list, uint index)
+        private static void ThrowIfPastRange(List* list, uint index)
         {
             if (index > list->count)
             {
@@ -32,7 +32,7 @@ namespace Collections.Unsafe
             }
         }
 
-        public static void Free(ref UnsafeList* list)
+        public static void Free(ref List* list)
         {
             Allocations.ThrowIfNull(list);
 
@@ -47,7 +47,7 @@ namespace Collections.Unsafe
         /// </para>
         /// </summary>
         /// <exception cref="InvalidOperationException"></exception>"
-        public static UnsafeList* Allocate<T>(uint initialCapacity) where T : unmanaged
+        public static List* Allocate<T>(uint initialCapacity) where T : unmanaged
         {
             return Allocate(initialCapacity, TypeInfo<T>.size);
         }
@@ -55,9 +55,9 @@ namespace Collections.Unsafe
         /// <summary>
         /// Allocates a new list with the given <paramref name="initialCapacity"/>.
         /// </summary>
-        public static UnsafeList* Allocate(uint initialCapacity, uint stride)
+        public static List* Allocate(uint initialCapacity, uint stride)
         {
-            UnsafeList* list = Allocations.Allocate<UnsafeList>();
+            List* list = Allocations.Allocate<List>();
             list->stride = stride;
             list->count = 0;
             list->capacity = Allocations.GetNextPowerOf2(Math.Max(1, initialCapacity));
@@ -68,10 +68,10 @@ namespace Collections.Unsafe
         /// <summary>
         /// Allocates a new list containing the given <paramref name="span"/>.
         /// </summary>
-        public static UnsafeList* Allocate<T>(USpan<T> span) where T : unmanaged
+        public static List* Allocate<T>(USpan<T> span) where T : unmanaged
         {
             uint stride = TypeInfo<T>.size;
-            UnsafeList* list = Allocations.Allocate<UnsafeList>();
+            List* list = Allocations.Allocate<List>();
             list->count = span.Length;
             list->stride = stride;
             list->capacity = Allocations.GetNextPowerOf2(Math.Max(1, span.Length));
@@ -80,7 +80,7 @@ namespace Collections.Unsafe
             return list;
         }
 
-        public static ref T GetRef<T>(UnsafeList* list, uint index) where T : unmanaged
+        public static ref T GetRef<T>(List* list, uint index) where T : unmanaged
         {
             Allocations.ThrowIfNull(list);
             ThrowIfOutOfRange(list, index);
@@ -92,7 +92,7 @@ namespace Collections.Unsafe
         /// <summary>
         /// Returns the bytes for the element at the given index.
         /// </summary>
-        public static USpan<byte> GetElementBytes(UnsafeList* list, uint index)
+        public static USpan<byte> GetElementBytes(List* list, uint index)
         {
             Allocations.ThrowIfNull(list);
             ThrowIfOutOfRange(list, index);
@@ -101,14 +101,14 @@ namespace Collections.Unsafe
             return list->items.AsSpan<byte>(index * stride, stride);
         }
 
-        public static void Insert<T>(UnsafeList* list, uint index, T item) where T : unmanaged
+        public static void Insert<T>(List* list, uint index, T item) where T : unmanaged
         {
             T* ptr = &item;
             USpan<byte> bytes = new(ptr, list->stride);
             Insert(list, index, bytes);
         }
 
-        public static void Insert(UnsafeList* list, uint index, USpan<byte> elementBytes)
+        public static void Insert(List* list, uint index, USpan<byte> elementBytes)
         {
             Allocations.ThrowIfNull(list);
             ThrowIfPastRange(list, index);
@@ -121,7 +121,7 @@ namespace Collections.Unsafe
                 list->capacity = newCapacity;
                 if (list->count > 0)
                 {
-                    list->items.CopyTo(newItems, 0, 0, list->count * stride);
+                    list->items.CopyTo(newItems, list->count * stride);
                 }
 
                 list->items.Dispose();
@@ -140,14 +140,14 @@ namespace Collections.Unsafe
             list->count++;
         }
 
-        public static void Add<T>(UnsafeList* list, T item) where T : unmanaged
+        public static void Add<T>(List* list, T item) where T : unmanaged
         {
             T* ptr = &item;
             USpan<byte> bytes = new(ptr, list->stride);
             Add(list, bytes);
         }
 
-        public static void Add(UnsafeList* list, USpan<byte> elementBytes)
+        public static void Add(List* list, USpan<byte> elementBytes)
         {
             Allocations.ThrowIfNull(list);
 
@@ -159,7 +159,7 @@ namespace Collections.Unsafe
                 list->capacity = newCapacity;
                 if (list->count > 0)
                 {
-                    list->items.CopyTo(newItems, 0, 0, list->count * stride);
+                    list->items.CopyTo(newItems, list->count * stride);
                 }
 
                 list->items.Dispose();
@@ -172,7 +172,7 @@ namespace Collections.Unsafe
             list->count++;
         }
 
-        public static void AddDefault(UnsafeList* list, uint count = 1)
+        public static void AddDefault(List* list, uint count = 1)
         {
             Allocations.ThrowIfNull(list);
 
@@ -190,7 +190,7 @@ namespace Collections.Unsafe
                 list->capacity = newCapacity;
                 if (list->count > 0)
                 {
-                    list->items.CopyTo(newItems, 0, 0, stride * list->count);
+                    list->items.CopyTo(newItems, stride * list->count);
                 }
 
                 list->items.Dispose();
@@ -202,7 +202,7 @@ namespace Collections.Unsafe
             list->count = newCount;
         }
 
-        public static void AddRange<T>(UnsafeList* list, USpan<T> items) where T : unmanaged
+        public static void AddRange<T>(List* list, USpan<T> items) where T : unmanaged
         {
             Allocations.ThrowIfNull(list);
 
@@ -221,7 +221,7 @@ namespace Collections.Unsafe
                 list->capacity = newCapacity;
                 if (list->count > 0)
                 {
-                    list->items.CopyTo(newItems, 0, 0, stride * list->count);
+                    list->items.CopyTo(newItems, stride * list->count);
                 }
 
                 list->items.Dispose();
@@ -233,7 +233,7 @@ namespace Collections.Unsafe
             list->count = newCount;
         }
 
-        public static void AddRange(UnsafeList* list, void* pointer, uint count)
+        public static void AddRange(List* list, void* pointer, uint count)
         {
             Allocations.ThrowIfNull(list);
 
@@ -251,7 +251,7 @@ namespace Collections.Unsafe
                 list->capacity = newCapacity;
                 if (list->count > 0)
                 {
-                    list->items.CopyTo(newItems, 0, 0, stride * list->count);
+                    list->items.CopyTo(newItems, stride * list->count);
                 }
 
                 list->items.Dispose();
@@ -264,7 +264,7 @@ namespace Collections.Unsafe
             list->count = newCount;
         }
 
-        public static uint IndexOf<T>(UnsafeList* list, T item) where T : unmanaged, IEquatable<T>
+        public static uint IndexOf<T>(List* list, T item) where T : unmanaged, IEquatable<T>
         {
             Allocations.ThrowIfNull(list);
 
@@ -279,7 +279,7 @@ namespace Collections.Unsafe
             }
         }
 
-        public static bool TryIndexOf<T>(UnsafeList* list, T item, out uint index) where T : unmanaged, IEquatable<T>
+        public static bool TryIndexOf<T>(List* list, T item, out uint index) where T : unmanaged, IEquatable<T>
         {
             Allocations.ThrowIfNull(list);
 
@@ -287,7 +287,7 @@ namespace Collections.Unsafe
             return span.TryIndexOf(item, out index);
         }
 
-        public static bool Contains<T>(UnsafeList* list, T item) where T : unmanaged, IEquatable<T>
+        public static bool Contains<T>(List* list, T item) where T : unmanaged, IEquatable<T>
         {
             Allocations.ThrowIfNull(list);
 
@@ -295,7 +295,7 @@ namespace Collections.Unsafe
             return span.Contains(item);
         }
 
-        public static void RemoveAt(UnsafeList* list, uint index)
+        public static void RemoveAt(List* list, uint index)
         {
             Allocations.ThrowIfNull(list);
             ThrowIfOutOfRange(list, index);
@@ -313,7 +313,7 @@ namespace Collections.Unsafe
             list->count--;
         }
 
-        public static void RemoveAtBySwapping(UnsafeList* list, uint index)
+        public static void RemoveAtBySwapping(List* list, uint index)
         {
             Allocations.ThrowIfNull(list);
             ThrowIfOutOfRange(list, index);
@@ -327,7 +327,7 @@ namespace Collections.Unsafe
             list->count = lastIndex;
         }
 
-        public static T RemoveAt<T>(UnsafeList* list, uint index) where T : unmanaged, IEquatable<T>
+        public static T RemoveAt<T>(List* list, uint index) where T : unmanaged, IEquatable<T>
         {
             Allocations.ThrowIfNull(list);
             ThrowIfOutOfRange(list, index);
@@ -338,7 +338,7 @@ namespace Collections.Unsafe
             return removed;
         }
 
-        public static T RemoveAtBySwapping<T>(UnsafeList* list, uint index) where T : unmanaged, IEquatable<T>
+        public static T RemoveAtBySwapping<T>(List* list, uint index) where T : unmanaged, IEquatable<T>
         {
             Allocations.ThrowIfNull(list);
             ThrowIfOutOfRange(list, index);
@@ -349,14 +349,14 @@ namespace Collections.Unsafe
             return removed;
         }
 
-        public static void Clear(UnsafeList* list)
+        public static void Clear(List* list)
         {
             Allocations.ThrowIfNull(list);
 
             list->count = 0;
         }
 
-        public static USpan<T> AsSpan<T>(UnsafeList* list) where T : unmanaged
+        public static USpan<T> AsSpan<T>(List* list) where T : unmanaged
         {
             Allocations.ThrowIfNull(list);
 
@@ -364,7 +364,7 @@ namespace Collections.Unsafe
             return list->items.AsSpan<T>(0, count);
         }
 
-        public static USpan<T> AsSpan<T>(UnsafeList* list, uint start) where T : unmanaged
+        public static USpan<T> AsSpan<T>(List* list, uint start) where T : unmanaged
         {
             Allocations.ThrowIfNull(list);
             ThrowIfOutOfRange(list, start);
@@ -373,7 +373,7 @@ namespace Collections.Unsafe
             return list->items.AsSpan<T>(start, count - start);
         }
 
-        public static USpan<T> AsSpan<T>(UnsafeList* list, uint start, uint length) where T : unmanaged
+        public static USpan<T> AsSpan<T>(List* list, uint start, uint length) where T : unmanaged
         {
             Allocations.ThrowIfNull(list);
 
@@ -384,14 +384,14 @@ namespace Collections.Unsafe
             return list->items.AsSpan<T>(start, length);
         }
 
-        public static ref uint GetCountRef(UnsafeList* list)
+        public static ref uint GetCountRef(List* list)
         {
             Allocations.ThrowIfNull(list);
 
             return ref list->count;
         }
 
-        public static uint GetCapacity(UnsafeList* list)
+        public static uint GetCapacity(List* list)
         {
             Allocations.ThrowIfNull(list);
 
@@ -401,14 +401,14 @@ namespace Collections.Unsafe
         /// <summary>
         /// Returns the address of the first element in the list.
         /// </summary>
-        public static nint GetStartAddress(UnsafeList* list)
+        public static nint GetStartAddress(List* list)
         {
             Allocations.ThrowIfNull(list);
 
             return list->items.Address;
         }
 
-        public static void CopyElementTo(UnsafeList* source, uint sourceIndex, UnsafeList* destination, uint destinationIndex)
+        public static void CopyElementTo(List* source, uint sourceIndex, List* destination, uint destinationIndex)
         {
             ThrowIfOutOfRange(source, sourceIndex);
             ThrowIfOutOfRange(destination, destinationIndex);
@@ -419,7 +419,7 @@ namespace Collections.Unsafe
             sourceElement.CopyTo(destinationElement);
         }
 
-        public static void CopyTo<T>(UnsafeList* source, uint sourceIndex, USpan<T> destination, uint destinationIndex) where T : unmanaged
+        public static void CopyTo<T>(List* source, uint sourceIndex, USpan<T> destination, uint destinationIndex) where T : unmanaged
         {
             ThrowIfOutOfRange(source, sourceIndex);
 
