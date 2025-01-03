@@ -5,13 +5,17 @@ using Unmanaged;
 
 namespace Collections
 {
-    public unsafe struct Text : IDisposable, IEquatable<Text>, IEnumerable<char>
+    public unsafe struct Text : IDisposable, IEquatable<Text>, IEnumerable<char>, IReadOnlyList<char>
     {
         private const uint Stride = 2;
 
         private UnsafeText* value;
 
         public readonly uint Length => value->length;
+        public readonly ref char this[uint index] => ref value->buffer.Read<char>(index * Stride);
+
+        readonly int IReadOnlyCollection<char>.Count => (int)Length;
+        readonly char IReadOnlyList<char>.this[int index] => value->buffer.Read<char>((uint)index * Stride);
 
         public Text()
         {
