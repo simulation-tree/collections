@@ -34,6 +34,11 @@ namespace Collections
         public readonly nint StartAddress => Implementation.GetStartAddress(value);
 
         /// <summary>
+        /// Native address of this list.
+        /// </summary>
+        public readonly nint Address => (nint)value;
+
+        /// <summary>
         /// Accesses the element at the specified index.
         /// </summary>
         public readonly ref T this[uint index] => ref Implementation.GetRef<T>(value, index);
@@ -51,9 +56,9 @@ namespace Collections
         /// <summary>
         /// Initializes an existing list from the given <paramref name="pointer"/>.
         /// </summary>
-        public List(Implementation* pointer)
+        public List(void* pointer)
         {
-            value = pointer;
+            value = (Implementation*)pointer;
         }
 
         /// <summary>
