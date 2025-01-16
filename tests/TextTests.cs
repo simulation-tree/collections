@@ -8,14 +8,14 @@ namespace Collections.Tests
         [Test]
         public void CreateTextFromSpan()
         {
-            using Text text = "Hello there";
+            using Text text = new("Hello there");
             Assert.That(text.ToString(), Is.EqualTo("Hello there"));
         }
 
         [Test]
         public void ResizeText()
         {
-            using Text text = "Apple";
+            using Text text = new("Apple");
             text.SetLength(10, 'x');
 
             Assert.That(text.Length, Is.EqualTo(10));
@@ -29,7 +29,7 @@ namespace Collections.Tests
         [Test]
         public void CopyFrom()
         {
-            using Text text = "";
+            using Text text = new("");
             text.CopyFrom("Hello there");
 
             Assert.That(text.ToString(), Is.EqualTo("Hello there"));
@@ -38,8 +38,8 @@ namespace Collections.Tests
         [Test]
         public void ConcatenateText()
         {
-            using Text a = "This";
-            using Text b = " a test";
+            using Text a = new("This");
+            using Text b = new(" a test");
             using Text result = a + b;
 
             Assert.That(result.ToString(), Is.EqualTo("This a test"));
@@ -48,7 +48,7 @@ namespace Collections.Tests
         [Test]
         public void Enumerate()
         {
-            using Text text = "Something in here";
+            using Text text = new("Something in here");
             using List<char> list = new();
             foreach (char c in text)
             {
@@ -61,7 +61,7 @@ namespace Collections.Tests
         [Test]
         public void ReplaceAll()
         {
-            using Text text = "Hello there";
+            using Text text = new("Hello there");
             USpan<char> destination = stackalloc char[256];
             uint newLength = Text.Replace(text.AsSpan(), "e", "x", destination);
             Assert.That(destination.Slice(0, newLength).ToString(), Is.EqualTo("Hxllo thxrx"));
