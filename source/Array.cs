@@ -229,9 +229,6 @@ namespace Collections
             return ((nint)value).GetHashCode();
         }
 
-        /// <summary>
-        /// Opaque pointer implementation of an array.
-        /// </summary>
         public struct Enumerator : IEnumerator<T>
         {
             private readonly Implementation* array;

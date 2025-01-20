@@ -49,7 +49,7 @@ namespace Collections.Implementations
         /// <exception cref="InvalidOperationException"></exception>"
         public static List* Allocate<T>(uint initialCapacity) where T : unmanaged
         {
-            return Allocate(initialCapacity, TypeInfo<T>.size);
+            return Allocate(initialCapacity, (uint)sizeof(T));
         }
 
         /// <summary>
