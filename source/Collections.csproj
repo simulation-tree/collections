@@ -18,6 +18,7 @@
 		<TreatWarningsAsErrors>True</TreatWarningsAsErrors>
 		<WarningLevel>8</WarningLevel>
 		<NoWarn>1701;1702;CS1591</NoWarn>
+		<NoStandardLib>true</NoStandardLib>
 	</PropertyGroup>
 
 	<ItemGroup>
