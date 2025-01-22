@@ -220,10 +220,10 @@ namespace Collections.Tests
 
             USpan<byte> span = List.AsSpan<byte>(data);
             Assert.That(span.Length, Is.EqualTo(sizeof(int) * 4));
-            int value1 = BitConverter.ToInt32(span.Slice(0, 4).AsSystemSpan());
-            int value2 = BitConverter.ToInt32(span.Slice(4, 4).AsSystemSpan());
-            int value3 = BitConverter.ToInt32(span.Slice(8, 4).AsSystemSpan());
-            int value4 = BitConverter.ToInt32(span.Slice(12, 4).AsSystemSpan());
+            int value1 = BitConverter.ToInt32(span.Slice(0, 4));
+            int value2 = BitConverter.ToInt32(span.Slice(4, 4));
+            int value3 = BitConverter.ToInt32(span.Slice(8, 4));
+            int value4 = BitConverter.ToInt32(span.Slice(12, 4));
             Assert.That(value1, Is.EqualTo(1));
             Assert.That(value2, Is.EqualTo(2));
             Assert.That(value3, Is.EqualTo(3));

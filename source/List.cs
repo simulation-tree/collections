@@ -437,14 +437,16 @@ namespace Collections
         readonly int IList<T>.IndexOf(T item)
         {
             USpan<T> values = AsSpan();
-            if (values.TryIndexOfSlow(item, out uint index))
+            EqualityComparer<T> comparer = EqualityComparer<T>.Default;
+            for (uint i = 0; i < values.Length; i++)
             {
-                return (int)index;
+                if (comparer.Equals(values[i], item))
+                {
+                    return (int)i;
+                }
             }
-            else
-            {
-                return -1;
-            }
+
+            return -1;
         }
 
         readonly void IList<T>.Insert(int index, T item)
@@ -460,7 +462,16 @@ namespace Collections
         readonly bool ICollection<T>.Contains(T item)
         {
             USpan<T> values = AsSpan();
-            return values.ContainsSlow(item);
+            EqualityComparer<T> comparer = EqualityComparer<T>.Default;
+            for (uint i = 0; i < values.Length; i++)
+            {
+                if (comparer.Equals(values[i], item))
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         readonly void ICollection<T>.CopyTo(T[] array, int arrayIndex)
@@ -471,15 +482,17 @@ namespace Collections
         readonly bool ICollection<T>.Remove(T item)
         {
             USpan<T> values = AsSpan();
-            if (values.TryIndexOfSlow(item, out uint index))
+            EqualityComparer<T> comparer = EqualityComparer<T>.Default;
+            for (uint i = 0; i < values.Length; i++)
             {
-                RemoveAt(index);
-                return true;
+                if (comparer.Equals(values[i], item))
+                {
+                    RemoveAt(i);
+                    return true;
+                }
             }
-            else
-            {
-                return false;
-            }
+
+            return false;
         }
 
         public struct Enumerator : IEnumerator<T>
