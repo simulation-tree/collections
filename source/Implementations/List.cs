@@ -70,7 +70,7 @@ namespace Collections.Implementations
         /// </summary>
         public static List* Allocate<T>(USpan<T> span) where T : unmanaged
         {
-            uint stride = TypeInfo<T>.size;
+            uint stride = (uint)sizeof(T);
             List* list = Allocations.Allocate<List>();
             list->count = span.Length;
             list->stride = stride;
@@ -360,7 +360,7 @@ namespace Collections.Implementations
         {
             Allocations.ThrowIfNull(list);
 
-            uint count = list->stride / TypeInfo<T>.size * list->count;
+            uint count = list->stride / (uint)sizeof(T) * list->count;
             return list->items.AsSpan<T>(0, count);
         }
 
@@ -369,7 +369,7 @@ namespace Collections.Implementations
             Allocations.ThrowIfNull(list);
             ThrowIfOutOfRange(list, start);
 
-            uint count = list->stride / TypeInfo<T>.size * list->count;
+            uint count = list->stride / (uint)sizeof(T) * list->count;
             return list->items.AsSpan<T>(start, count - start);
         }
 
@@ -378,7 +378,7 @@ namespace Collections.Implementations
             Allocations.ThrowIfNull(list);
 
             uint stride = list->stride;
-            uint count = stride / TypeInfo<T>.size * list->count;
+            uint count = stride / (uint)sizeof(T) * list->count;
 
             ThrowIfPastRange(list, start + length);
             return list->items.AsSpan<T>(start, length);

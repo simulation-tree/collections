@@ -46,7 +46,7 @@ namespace Collections.Implementations
 
         public static Array* Allocate<T>(uint length) where T : unmanaged
         {
-            return Allocate(length, TypeInfo<T>.size);
+            return Allocate(length, (uint)sizeof(T));
         }
 
         public static Array* Allocate(uint length, uint stride)
@@ -61,7 +61,7 @@ namespace Collections.Implementations
         public static Array* Allocate<T>(USpan<T> span) where T : unmanaged
         {
             Array* array = Allocations.Allocate<Array>();
-            array->stride = TypeInfo<T>.size;
+            array->stride = (uint)sizeof(T);
             array->length = span.Length;
             array->items = Allocation.Create(span);
             return array;

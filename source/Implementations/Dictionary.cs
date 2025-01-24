@@ -15,7 +15,7 @@ namespace Collections.Implementations
         public static Dictionary* Allocate<K, V>(uint initialCapacity) where K : unmanaged where V : unmanaged
         {
             Dictionary* map = Allocations.Allocate<Dictionary>();
-            map->entryStride = TypeInfo<Entry<K, V>>.size;
+            map->entryStride = (uint)sizeof(Entry<K, V>);
             map->capacity = Allocations.GetNextPowerOf2(Math.Max(1, initialCapacity));
             map->count = 0;
             map->entries = new(map->capacity * map->entryStride, true);
