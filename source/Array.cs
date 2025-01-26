@@ -59,14 +59,6 @@ namespace Collections
             value = Implementation.Allocate(span);
         }
 
-        /// <summary>
-        /// Creates a new array containing elements from the given <paramref name="list"/>.
-        /// </summary>
-        public Array(List<T> list)
-        {
-            value = Implementation.Allocate(list.AsSpan());
-        }
-
 #if NET
         /// <summary>
         /// Creates an empty array.
