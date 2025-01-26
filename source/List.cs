@@ -29,11 +29,6 @@ namespace Collections
         public readonly uint Capacity => Implementation.GetCapacity(value);
 
         /// <summary>
-        /// Native address where the memory for elements begin.
-        /// </summary>
-        public readonly nint StartAddress => Implementation.GetStartAddress(value);
-
-        /// <summary>
         /// Native address of this list.
         /// </summary>
         public readonly nint Address => (nint)value;
@@ -222,12 +217,11 @@ namespace Collections
         }
 
         /// <summary>
-        /// Adds the given <paramref name="list"/> to the list.
+        /// Retrieves the address where items start.
         /// </summary>
-        public readonly void AddRange(List<T> list)
+        public readonly nint GetStartAddress()
         {
-            nint address = Implementation.GetStartAddress(list.value);
-            Implementation.AddRange(value, (void*)address, list.Count);
+            return Implementation.GetStartAddress(value);
         }
 
         /// <summary>
