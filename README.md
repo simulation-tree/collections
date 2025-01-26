@@ -1,7 +1,9 @@
 # Collections
+
 Native C# library implementing collections.
 
 ### Arrays
+
 ```cs
 using Array<int> array = new(4);
 array[0] = 1;
@@ -15,6 +17,7 @@ foreach (int item in array)
 ```
 
 ### Lists
+
 ```cs
 using List<int> list = new();
 list.Add(1);
@@ -28,6 +31,7 @@ foreach (int item in list)
 ```
 
 ### Dictionaries
+
 ```cs
 using Dictionary<byte, int> dictionary = new();
 dictionary.Add(1, 1337);
@@ -36,5 +40,19 @@ dictionary.Add(3, 42);
 foreach (byte key in dictionary.Keys)
 {
     Console.WriteLine(dictionary[key]);
+}
+```
+
+### Stacks
+
+```cs
+using Stack<int> stack = new();
+stack.Push(1);
+stack.Push(3);
+stack.Push(3);
+
+while (stack.TryPop(out int item))
+{
+    Console.WriteLine(item);
 }
 ```
