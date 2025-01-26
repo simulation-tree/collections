@@ -13,12 +13,23 @@ namespace Collections
     {
         private Implementation* implementation;
 
+        /// <summary>
+        /// Checks if this stack has been disposed.
+        /// </summary>
         public readonly bool IsDisposed => implementation is null;
+
+        /// <summary>
+        /// Amount of items in the stack.
+        /// </summary>
         public readonly uint Count => implementation->top;
+
+        /// <summary>
+        /// Checks if the stack is empty.
+        /// </summary>
         public readonly bool IsEmpty => implementation->top == 0;
 
         int ICollection<T>.Count => (int)implementation->top;
-        bool ICollection<T>.IsReadOnly => false;
+        readonly bool ICollection<T>.IsReadOnly => false;
         int IReadOnlyCollection<T>.Count => (int)implementation->top;
 
 #if NET
@@ -115,17 +126,27 @@ namespace Collections
             }
         }
 
-        public readonly bool Contains(T item)
-        {
-            return Implementation.Contains(implementation, item);
-        }
-
         readonly void ICollection<T>.Add(T item)
         {
             Push(item);
         }
 
-        void ICollection<T>.CopyTo(T[] array, int arrayIndex)
+        readonly bool ICollection<T>.Contains(T item)
+        {
+            EqualityComparer<T> comparer = EqualityComparer<T>.Default;
+            USpan<T> span = AsSpan();
+            for (uint i = 0; i < span.Length; i++)
+            {
+                if (comparer.Equals(span[i], item))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        readonly void ICollection<T>.CopyTo(T[] array, int arrayIndex)
         {
             USpan<T> span = AsSpan();
             for (uint i = 0; i < span.Length; i++)
@@ -134,9 +155,9 @@ namespace Collections
             }
         }
 
-        bool ICollection<T>.Remove(T item)
+        readonly bool ICollection<T>.Remove(T item)
         {
-            throw new NotImplementedException();
+            throw new NotSupportedException();
         }
 
         public readonly Enumerator GetEnumerator()

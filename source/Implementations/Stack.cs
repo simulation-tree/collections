@@ -110,22 +110,5 @@ namespace Collections.Implementations
 
             return stack->items.AsSpan<T>(0, stack->top);
         }
-
-        public static bool Contains<T>(Stack* stack, T item) where T : unmanaged
-        {
-            Allocations.ThrowIfNull(stack);
-
-            EqualityComparer<T> comparer = EqualityComparer<T>.Default;
-            for (uint i = 0; i < stack->top; i++)
-            {
-                T element = stack->items.Read<T>(i * stack->stride);
-                if (comparer.Equals(element, item))
-                {
-                    return true;
-                }
-            }
-
-            return false;
-        }
     }
 }

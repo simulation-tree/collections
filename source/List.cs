@@ -119,14 +119,6 @@ namespace Collections
         }
 
         /// <summary>
-        /// Returns the list as a span of a different type <typeparamref name="V"/>.
-        /// </summary>
-        public readonly USpan<V> AsSpan<V>() where V : unmanaged
-        {
-            return Implementation.AsSpan<V>(value);
-        }
-
-        /// <summary>
         /// Returns the remaining span starting from <paramref name="start"/>.
         /// </summary>
         public readonly USpan<T> AsSpan(uint start)
@@ -160,22 +152,6 @@ namespace Collections
         public readonly void Add(T item)
         {
             Implementation.Add(value, item);
-        }
-
-        /// <summary>
-        /// Attempts to add the given item if its unique.
-        /// </summary>
-        /// <returns><c>true</c> if item was added.</returns>
-        public readonly bool TryAdd<V>(V item) where V : unmanaged, IEquatable<V>
-        {
-            USpan<V> span = Implementation.AsSpan<V>(value);
-            if (span.Contains(item))
-            {
-                return false;
-            }
-
-            Implementation.Add(value, item);
-            return true;
         }
 
         /// <summary>
@@ -223,7 +199,7 @@ namespace Collections
                 throw new IndexOutOfRangeException($"Index {index} is greater than the count {count}");
             }
 
-            uint length = span.Length;
+            //todo: efficiency: this deserves its own logic
             if (index == count)
             {
                 AddRange(span);
@@ -246,15 +222,6 @@ namespace Collections
         }
 
         /// <summary>
-        /// Adds the given <paramref name="span"/> of <typeparamref name="V"/> into
-        /// the list, assuming its size equals to <typeparamref name="T"/>.
-        /// </summary>
-        public readonly void AddRange<V>(USpan<V> span) where V : unmanaged
-        {
-            Implementation.AddRange(value, span);
-        }
-
-        /// <summary>
         /// Adds the given <paramref name="list"/> to the list.
         /// </summary>
         public readonly void AddRange(List<T> list)
@@ -264,54 +231,7 @@ namespace Collections
         }
 
         /// <summary>
-        /// Returns the index of the given <paramref name="item"/> in the list.
-        /// <para>
-        /// May throw <see cref="NullReferenceException"/> if the item is not found.
-        /// </para>
-        /// </summary>
-        /// <exception cref="NullReferenceException"></exception>
-        public readonly uint IndexOf<V>(V item) where V : unmanaged, IEquatable<V>
-        {
-            return Implementation.IndexOf(value, item);
-        }
-
-        /// <summary>
-        /// Attempts to find the index of the given <paramref name="item"/>.
-        /// </summary>
-        /// <returns><c>true</c> if found.</returns>
-        public readonly bool TryIndexOf<V>(V item, out uint index) where V : unmanaged, IEquatable<V>
-        {
-            return Implementation.TryIndexOf(value, item, out index);
-        }
-
-        /// <summary>
-        /// Checks whether the list contains the given <paramref name="item"/>.
-        /// </summary>
-        public readonly bool Contains<V>(V item) where V : unmanaged, IEquatable<V>
-        {
-            return Implementation.Contains(value, item);
-        }
-
-        /// <summary>
-        /// Attempts to remove the given <paramref name="item"/> from the list
-        /// by swapping it with the removed element.
-        /// </summary>
-        /// <returns><c>true</c> if the item was removed.</returns>
-        public readonly bool TryRemoveBySwapping<V>(V item) where V : unmanaged, IEquatable<V>
-        {
-            if (TryIndexOf(item, out uint index))
-            {
-                RemoveAtBySwapping(index);
-                return true;
-            }
-            else
-            {
-                return false;
-            }
-        }
-
-        /// <summary>
-        /// Removes the element at the given index.
+        /// Removes the element at the given index and returns the removed value.
         /// <para>
         /// May throw <see cref="IndexOutOfRangeException"/> if the index is outside the bounds.
         /// </para>
@@ -326,41 +246,18 @@ namespace Collections
         }
 
         /// <summary>
-        /// Removes the element at the given index by swapping it with the last element.
+        /// Removes the element at the given index by swapping it with the last element,
+        /// and returns the removed value.
         /// <para>
         /// May throw <see cref="IndexOutOfRangeException"/> if the index is outside the bounds.
         /// </para>
         /// </summary>
         /// <exception cref="IndexOutOfRangeException"></exception>"
-        public readonly void RemoveAtBySwapping(uint index)
+        public readonly T RemoveAtBySwapping(uint index)
         {
+            T removed = this[index];
             Implementation.RemoveAtBySwapping(value, index);
-        }
-
-        /// <summary>
-        /// Removes the element at the given index.
-        /// <para>
-        /// May throw <see cref="IndexOutOfRangeException"/> if the index is outside the bounds.
-        /// </para>
-        /// </summary>
-        /// <returns>The removed element.</returns>
-        /// <exception cref="IndexOutOfRangeException"></exception>"
-        public readonly V RemoveAt<V>(uint index) where V : unmanaged, IEquatable<V>
-        {
-            return Implementation.RemoveAt<V>(value, index);
-        }
-
-        /// <summary>
-        /// Removes the element at the given index by swapping it with the last element.
-        /// <para>
-        /// May throw <see cref="IndexOutOfRangeException"/> if the index is outside the bounds.
-        /// </para>
-        /// </summary>
-        /// <returns>The removed element.</returns>
-        /// <exception cref="IndexOutOfRangeException"></exception>"
-        public readonly V RemoveAtBySwapping<V>(uint index) where V : unmanaged, IEquatable<V>
-        {
-            return Implementation.RemoveAtBySwapping<V>(value, index);
+            return removed;
         }
 
         /// <summary>

@@ -139,40 +139,6 @@ namespace Collections
         }
 
         /// <summary>
-        /// Attempts to find the index of the given <paramref name="value"/>.
-        /// </summary>
-        /// <returns><c>true</c> if found.</returns>
-        public readonly bool TryIndexOf<V>(V value, out uint index) where V : unmanaged, IEquatable<V>
-        {
-            return Implementation.TryIndexOf(this.value, value, out index);
-        }
-
-        /// <summary>
-        /// Retrieves the index of the given <paramref name="value"/>.
-        /// <para>
-        /// May throw <see cref="NullReferenceException"/> if <paramref name="value"/> was not found.
-        /// </para>
-        /// </summary>
-        /// <returns>Index of the <paramref name="value"/>.</returns>
-        public readonly uint IndexOf<V>(V value) where V : unmanaged, IEquatable<V>
-        {
-            if (!TryIndexOf(value, out uint index))
-            {
-                throw new NullReferenceException($"The value {value} was not found in the array");
-            }
-
-            return index;
-        }
-
-        /// <summary>
-        /// Checks if the array contains the given <paramref name="value"/>.
-        /// </summary>
-        public readonly bool Contains<V>(V value) where V : unmanaged, IEquatable<V>
-        {
-            return Implementation.Contains(this.value, value);
-        }
-
-        /// <summary>
         /// Copies the array to the given <paramref name="destination"/>.
         /// </summary>
         /// <returns>Amount of elements copied.</returns>
