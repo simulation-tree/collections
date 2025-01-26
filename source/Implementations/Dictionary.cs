@@ -51,6 +51,24 @@ namespace Collections.Implementations
             return ref map->entries.Read<Entry<K, V>>(index * map->entryStride);
         }
 
+        public static bool TryGetPair<K, V>(Dictionary* map, uint index, out KeyValuePair<K, V> pair) where K : unmanaged, IEquatable<K> where V : unmanaged
+        {
+            Allocations.ThrowIfNull(map);
+
+            ref Entry<K, V> entry = ref map->entries.Read<Entry<K, V>>(index * map->entryStride);
+            bool occupied = entry.state == EntryState.Occupied;
+            if (occupied)
+            {
+                pair = new KeyValuePair<K, V>(entry.key, entry.value);
+            }
+            else
+            {
+                pair = default;
+            }
+
+            return occupied;
+        }
+
         private static uint GetHash<K>(Dictionary* map, K key) where K : unmanaged, IEquatable<K>
         {
             unchecked

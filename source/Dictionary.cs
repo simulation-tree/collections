@@ -46,15 +46,16 @@ namespace Collections
                 uint capacity = Capacity;
                 for (uint i = 0; i < capacity; i++)
                 {
-                    Implementation.Entry<K, V> entry;
+                    bool contains;
+                    KeyValuePair<K, V> pair;
                     unsafe
                     {
-                        entry = Implementation.GetEntry<K, V>(dictionary, i);
+                        contains = Implementation.TryGetPair(dictionary, i, out pair);
                     }
 
-                    if (entry.state == Implementation.EntryState.Occupied)
+                    if (contains)
                     {
-                        yield return entry.key;
+                        yield return pair.key;
                     }
                 }
             }
@@ -70,36 +71,16 @@ namespace Collections
                 uint capacity = Capacity;
                 for (uint i = 0; i < capacity; i++)
                 {
-                    Implementation.Entry<K, V> entry;
+                    bool contains;
+                    KeyValuePair<K, V> pair;
                     unsafe
                     {
-                        entry = Implementation.GetEntry<K, V>(dictionary, i);
+                        contains = Implementation.TryGetPair(dictionary, i, out pair);
                     }
 
-                    if (entry.state == Implementation.EntryState.Occupied)
+                    if (contains)
                     {
-                        yield return entry.value;
-                    }
-                }
-            }
-        }
-
-        public readonly IEnumerable<KeyValuePair<K, V>> Pairs
-        {
-            get
-            {
-                uint count = Capacity;
-                for (uint i = 0; i < count; i++)
-                {
-                    Implementation.Entry<K, V> entry;
-                    unsafe
-                    {
-                        entry = Implementation.GetEntry<K, V>(dictionary, i);
-                    }
-
-                    if (entry.state == Implementation.EntryState.Occupied)
-                    {
-                        yield return new KeyValuePair<K, V>(entry.key, entry.value);
+                        yield return pair.value;
                     }
                 }
             }
@@ -135,9 +116,9 @@ namespace Collections
             }
         }
 
-        readonly int ICollection<KeyValuePair<K, V>>.Count => (int)Count;
-        readonly bool ICollection<KeyValuePair<K, V>>.IsReadOnly => false;
-        readonly int IReadOnlyCollection<KeyValuePair<K, V>>.Count => (int)Count;
+        readonly int ICollection<System.Collections.Generic.KeyValuePair<K, V>>.Count => (int)Count;
+        readonly bool ICollection<System.Collections.Generic.KeyValuePair<K, V>>.IsReadOnly => false;
+        readonly int IReadOnlyCollection<System.Collections.Generic.KeyValuePair<K, V>>.Count => (int)Count;
 
         readonly V IReadOnlyDictionary<K, V>.this[K key] => Implementation.GetValue<K, V>(dictionary, key);
         readonly V IDictionary<K, V>.this[K key]
@@ -320,17 +301,17 @@ namespace Collections
             return TryRemove(key);
         }
 
-        readonly void ICollection<KeyValuePair<K, V>>.Add(KeyValuePair<K, V> item)
+        readonly void ICollection<System.Collections.Generic.KeyValuePair<K, V>>.Add(System.Collections.Generic.KeyValuePair<K, V> item)
         {
             Add(item.Key, item.Value);
         }
 
-        readonly bool ICollection<KeyValuePair<K, V>>.Contains(KeyValuePair<K, V> item)
+        readonly bool ICollection<System.Collections.Generic.KeyValuePair<K, V>>.Contains(System.Collections.Generic.KeyValuePair<K, V> item)
         {
             return TryGetValue(item.Key, out V value) && EqualityComparer<V>.Default.Equals(value, item.Value);
         }
 
-        readonly void ICollection<KeyValuePair<K, V>>.CopyTo(KeyValuePair<K, V>[] array, int arrayIndex)
+        readonly void ICollection<System.Collections.Generic.KeyValuePair<K, V>>.CopyTo(System.Collections.Generic.KeyValuePair<K, V>[] array, int arrayIndex)
         {
             if (array is null)
             {
@@ -347,20 +328,24 @@ namespace Collections
                 throw new ArgumentException("The number of elements in the dictionary is greater than the available space from the index to the end of the destination array");
             }
 
-            foreach (KeyValuePair<K, V> pair in Pairs)
+            uint count = Capacity;
+            for (uint i = 0; i < count; i++)
             {
-                array[arrayIndex++] = pair;
+                if (Implementation.TryGetPair(dictionary, i, out KeyValuePair<K, V> pair))
+                {
+                    array[arrayIndex++] = new(pair.key, pair.value);
+                }
             }
         }
 
-        readonly bool ICollection<KeyValuePair<K, V>>.Remove(KeyValuePair<K, V> item)
+        readonly bool ICollection<System.Collections.Generic.KeyValuePair<K, V>>.Remove(System.Collections.Generic.KeyValuePair<K, V> item)
         {
             return TryRemove(item.Key);
         }
 
-        readonly IEnumerator<KeyValuePair<K, V>> IEnumerable<KeyValuePair<K, V>>.GetEnumerator()
+        readonly IEnumerator<System.Collections.Generic.KeyValuePair<K, V>> IEnumerable<System.Collections.Generic.KeyValuePair<K, V>>.GetEnumerator()
         {
-            return GetEnumerator();
+            return new SystemEnumerator(dictionary);
         }
 
         IEnumerator IEnumerable.GetEnumerator()
@@ -441,6 +426,52 @@ namespace Collections
                     }
                 }
 
+                return false;
+            }
+
+            public void Reset()
+            {
+                index = -1;
+            }
+
+            readonly void IDisposable.Dispose()
+            {
+            }
+        }
+
+        public struct SystemEnumerator : IEnumerator<System.Collections.Generic.KeyValuePair<K, V>>
+        {
+            private readonly Implementation* map;
+            private readonly uint capacity;
+            private int index;
+            public readonly System.Collections.Generic.KeyValuePair<K, V> Current
+            {
+                get
+                {
+                    ref Implementation.Entry<K, V> entry = ref Implementation.GetEntry<K, V>(map, (uint)index);
+                    return new(entry.key, entry.value);
+                }
+            }
+
+            readonly object IEnumerator.Current => Current;
+
+            internal SystemEnumerator(Implementation* map)
+            {
+                this.map = map;
+                index = -1;
+                capacity = Implementation.GetCapacity(map);
+            }
+
+            public bool MoveNext()
+            {
+                while (++index < capacity)
+                {
+                    ref Implementation.Entry<K, V> entry = ref Implementation.GetEntry<K, V>(map, (uint)index);
+                    if (entry.state == Implementation.EntryState.Occupied)
+                    {
+                        return true;
+                    }
+                }
                 return false;
             }
 

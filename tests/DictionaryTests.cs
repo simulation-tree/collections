@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using Unmanaged;
 using Unmanaged.Tests;
 
@@ -120,7 +119,7 @@ namespace Collections.Tests
         public void ThrowIfModifyingNonExistentKeys()
         {
             using Dictionary<byte, int> map = new();
-            Assert.Throws<KeyNotFoundException>(() => map.Set(1, 123));
+            Assert.Throws<System.Collections.Generic.KeyNotFoundException>(() => map.Set(1, 123));
         }
 
         [Test]
@@ -128,7 +127,7 @@ namespace Collections.Tests
         {
             using Dictionary<byte, uint> map = new();
             map.Add(0, 23);
-            Assert.Throws<KeyNotFoundException>(() => map.Remove(1));
+            Assert.Throws<System.Collections.Generic.KeyNotFoundException>(() => map.Remove(1));
         }
 #endif
 
@@ -260,8 +259,8 @@ namespace Collections.Tests
             }
 
             Assert.That(pairs.Count, Is.EqualTo(1));
-            Assert.That(pairs[0].Key, Is.EqualTo(0));
-            Assert.That(pairs[0].Value, Is.EqualTo(23));
+            Assert.That(pairs[0].key, Is.EqualTo(0));
+            Assert.That(pairs[0].value, Is.EqualTo(23));
 
             map.Add(1, 42);
             map.Add(50, 1337);
@@ -275,14 +274,14 @@ namespace Collections.Tests
             }
 
             Assert.That(pairs.Count, Is.EqualTo(3));
-            Assert.That(pairs[0].Key, Is.EqualTo(1));
-            Assert.That(pairs[0].Value, Is.EqualTo(42));
+            Assert.That(pairs[0].key, Is.EqualTo(1));
+            Assert.That(pairs[0].value, Is.EqualTo(42));
 
-            Assert.That(pairs[1].Key, Is.EqualTo(50));
-            Assert.That(pairs[1].Value, Is.EqualTo(1337));
+            Assert.That(pairs[1].key, Is.EqualTo(50));
+            Assert.That(pairs[1].value, Is.EqualTo(1337));
 
-            Assert.That(pairs[2].Key, Is.EqualTo(3));
-            Assert.That(pairs[2].Value, Is.EqualTo(8008135));
+            Assert.That(pairs[2].key, Is.EqualTo(3));
+            Assert.That(pairs[2].value, Is.EqualTo(8008135));
         }
     }
 }
