@@ -32,6 +32,15 @@ namespace Collections.Implementations
             }
         }
 
+        [Conditional("DEBUG")]
+        private static void ThrowIfLessThanCount(List* list, uint newCapacity)
+        {
+            if (newCapacity < list->count)
+            {
+                throw new InvalidOperationException("New capacity cannot be less than the current count");
+            }
+        }
+
         public static void Free(ref List* list)
         {
             Allocations.ThrowIfNull(list);
@@ -396,6 +405,22 @@ namespace Collections.Implementations
             Allocations.ThrowIfNull(list);
 
             return list->capacity;
+        }
+
+        public static uint SetCapacity(List* list, uint newCapacity)
+        {
+            Allocations.ThrowIfNull(list);
+
+            newCapacity = Allocations.GetNextPowerOf2(newCapacity);
+            ThrowIfLessThanCount(list, newCapacity);
+
+            uint stride = list->stride;
+            Allocation newItems = new(stride * newCapacity);
+            list->items.CopyTo(newItems, stride * list->count);
+            list->items.Dispose();
+            list->items = newItems;
+            list->capacity = newCapacity;
+            return newCapacity;
         }
 
         /// <summary>

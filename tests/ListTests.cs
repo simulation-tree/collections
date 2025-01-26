@@ -53,6 +53,33 @@ namespace Collections.Tests
         }
 
         [Test]
+        public void ChangingCapacity()
+        {
+            using List<int> list = new(1);
+            list.Add(1);
+            list.Add(2);
+            Assert.That(list[0], Is.EqualTo(1));
+            Assert.That(list[1], Is.EqualTo(2));
+            Assert.That(list.Count, Is.EqualTo(2));
+            Assert.That(list.Capacity, Is.EqualTo(2));
+
+            list.Capacity = 9;
+
+            Assert.That(list[0], Is.EqualTo(1));
+            Assert.That(list[1], Is.EqualTo(2));
+            Assert.That(list.Count, Is.EqualTo(2));
+            Assert.That(list.Capacity, Is.EqualTo(16));
+
+            list.Add(3);
+
+            Assert.That(list[0], Is.EqualTo(1));
+            Assert.That(list[1], Is.EqualTo(2));
+            Assert.That(list[2], Is.EqualTo(3));
+            Assert.That(list.Count, Is.EqualTo(3));
+            Assert.That(list.Capacity, Is.EqualTo(16));
+        }
+
+        [Test]
         public void RemoveAtIndex()
         {
             using List<int> list = new();

@@ -26,7 +26,11 @@ namespace Collections
         /// <summary>
         /// Capacity of the list.
         /// </summary>
-        public readonly uint Capacity => Implementation.GetCapacity(value);
+        public readonly uint Capacity
+        {
+            get => Implementation.GetCapacity(value);
+            set => Implementation.SetCapacity(this.value, value);
+        }
 
         /// <summary>
         /// Native address of this list.
