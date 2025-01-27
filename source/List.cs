@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics;
 using Unmanaged;
 using Implementation = Collections.Implementations.List;
 
@@ -9,6 +10,7 @@ namespace Collections
     /// <summary>
     /// Native list that can be used in unmanaged code.
     /// </summary>
+    [DebuggerDisplay("{Count,nq}")]
     public unsafe struct List<T> : IDisposable, IReadOnlyList<T>, IList<T>, IEquatable<List<T>> where T : unmanaged
     {
         private Implementation* value;
@@ -51,6 +53,9 @@ namespace Collections
             get => Implementation.GetRef<T>(value, (uint)index);
             set => Implementation.GetRef<T>(this.value, (uint)index) = value;
         }
+
+        [DebuggerBrowsable(DebuggerBrowsableState.RootHidden)]
+        private readonly T[] DebuggerDisplay => AsSpan().ToArray();
 
         /// <summary>
         /// Initializes an existing list from the given <paramref name="pointer"/>.
@@ -430,6 +435,16 @@ namespace Collections
         public static bool operator !=(List<T> left, List<T> right)
         {
             return !left.Equals(right);
+        }
+    }
+
+    internal class ListDebugView<T> where T : unmanaged
+    {
+        private readonly T[] items;
+        
+        public ListDebugView(List<T> list)
+        {
+            items = list.AsSpan().ToArray();
         }
     }
 }
