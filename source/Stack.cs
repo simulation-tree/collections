@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics;
 using Unmanaged;
 using Implementation = Collections.Implementations.Stack;
 
@@ -11,6 +12,7 @@ namespace Collections
     /// </summary>
     public unsafe struct Stack<T> : IDisposable, IReadOnlyCollection<T>, ICollection<T>, IEquatable<Stack<T>> where T : unmanaged
     {
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private Implementation* implementation;
 
         /// <summary>
@@ -28,10 +30,17 @@ namespace Collections
         /// </summary>
         public readonly bool IsEmpty => implementation->top == 0;
 
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         int ICollection<T>.Count => (int)implementation->top;
+
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         readonly bool ICollection<T>.IsReadOnly => false;
+
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         int IReadOnlyCollection<T>.Count => (int)implementation->top;
 
+        [DebuggerBrowsable(DebuggerBrowsableState.Collapsed)]
+        private readonly T[] Items => AsSpan().ToArray();
 #if NET
         /// <summary>
         /// Creates an empty stack

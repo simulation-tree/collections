@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics;
 using Unmanaged;
 using Implementation = Collections.Implementations.Array;
 
@@ -11,6 +12,7 @@ namespace Collections
     /// </summary>
     public unsafe struct Array<T> : IDisposable, IReadOnlyList<T>, IEquatable<Array<T>> where T : unmanaged
     {
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private Implementation* value;
 
         /// <summary>
@@ -32,8 +34,13 @@ namespace Collections
         /// </summary>
         public readonly ref T this[uint index] => ref Implementation.GetRef<T>(value, index);
 
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         readonly int IReadOnlyCollection<T>.Count => (int)Length;
+
         readonly T IReadOnlyList<T>.this[int index] => Implementation.GetRef<T>(value, (uint)index);
+
+        [DebuggerBrowsable(DebuggerBrowsableState.Collapsed)]
+        private readonly T[] Items => AsSpan().ToArray();
 
         /// <summary>
         /// Initializes an existing array from the given <paramref name="pointer"/>

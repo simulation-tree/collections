@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics;
 using Implementation = Collections.Implementations.Dictionary;
 
 namespace Collections
@@ -10,6 +11,7 @@ namespace Collections
     /// </summary>
     public unsafe struct Dictionary<K, V> : IDisposable, IReadOnlyDictionary<K, V>, IDictionary<K, V>, IEquatable<Dictionary<K, V>> where K : unmanaged, IEquatable<K> where V : unmanaged
     {
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private Implementation* dictionary;
 
         /// <summary>
@@ -39,6 +41,7 @@ namespace Collections
         /// <summary>
         /// All keys in this dictionary.
         /// </summary>
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         public readonly IEnumerable<K> Keys
         {
             get
@@ -64,6 +67,7 @@ namespace Collections
         /// <summary>
         /// All values in this dictionary.
         /// </summary>
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         public readonly IEnumerable<V> Values
         {
             get
@@ -86,6 +90,7 @@ namespace Collections
             }
         }
 
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         readonly ICollection<K> IDictionary<K, V>.Keys
         {
             get
@@ -101,6 +106,7 @@ namespace Collections
             }
         }
 
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         readonly ICollection<V> IDictionary<K, V>.Values
         {
             get
@@ -116,15 +122,37 @@ namespace Collections
             }
         }
 
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         readonly int ICollection<System.Collections.Generic.KeyValuePair<K, V>>.Count => (int)Count;
+
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         readonly bool ICollection<System.Collections.Generic.KeyValuePair<K, V>>.IsReadOnly => false;
+
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         readonly int IReadOnlyCollection<System.Collections.Generic.KeyValuePair<K, V>>.Count => (int)Count;
 
         readonly V IReadOnlyDictionary<K, V>.this[K key] => Implementation.GetValue<K, V>(dictionary, key);
+
         readonly V IDictionary<K, V>.this[K key]
         {
             get => Implementation.GetValue<K, V>(dictionary, key);
             set => Implementation.GetValue<K, V>(dictionary, key) = value;
+        }
+
+        [DebuggerBrowsable(DebuggerBrowsableState.Collapsed)]
+        private readonly KeyValuePair<K, V>[] Pairs
+        {
+            get
+            {
+                KeyValuePair<K, V>[] pairs = new KeyValuePair<K, V>[Count];
+                uint index = 0;
+                foreach ((K key, V value) in this)
+                {
+                    pairs[index++] = new(key, value);
+                }
+
+                return pairs;
+            }
         }
 
         /// <summary>

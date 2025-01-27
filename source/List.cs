@@ -10,9 +10,9 @@ namespace Collections
     /// <summary>
     /// Native list that can be used in unmanaged code.
     /// </summary>
-    [DebuggerDisplay("{Count,nq}")]
     public unsafe struct List<T> : IDisposable, IReadOnlyList<T>, IList<T>, IEquatable<List<T>> where T : unmanaged
     {
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private Implementation* value;
 
         /// <summary>
@@ -45,17 +45,24 @@ namespace Collections
         public readonly ref T this[uint index] => ref Implementation.GetRef<T>(value, index);
 
         readonly T IReadOnlyList<T>.this[int index] => Implementation.GetRef<T>(value, (uint)index);
+
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         readonly int IReadOnlyCollection<T>.Count => (int)Count;
+
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         readonly int ICollection<T>.Count => (int)Count;
+
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         readonly bool ICollection<T>.IsReadOnly => false;
+
         readonly T IList<T>.this[int index]
         {
             get => Implementation.GetRef<T>(value, (uint)index);
             set => Implementation.GetRef<T>(this.value, (uint)index) = value;
         }
 
-        [DebuggerBrowsable(DebuggerBrowsableState.RootHidden)]
-        private readonly T[] DebuggerDisplay => AsSpan().ToArray();
+        [DebuggerBrowsable(DebuggerBrowsableState.Collapsed)]
+        private readonly T[] Items => AsSpan().ToArray();
 
         /// <summary>
         /// Initializes an existing list from the given <paramref name="pointer"/>.
@@ -435,16 +442,6 @@ namespace Collections
         public static bool operator !=(List<T> left, List<T> right)
         {
             return !left.Equals(right);
-        }
-    }
-
-    internal class ListDebugView<T> where T : unmanaged
-    {
-        private readonly T[] items;
-        
-        public ListDebugView(List<T> list)
-        {
-            items = list.AsSpan().ToArray();
         }
     }
 }

@@ -14,6 +14,11 @@ namespace Collections
             this.value = value;
         }
 
+        public override string ToString()
+        {
+            return $"{key}={value}";
+        }
+
         public readonly void Deconstruct(out K key, out V value)
         {
             key = this.key;
