@@ -391,18 +391,18 @@ namespace Collections
             return !(left == right);
         }
 
-        public struct Enumerator : IEnumerator<KeyValuePair<K, V>>
+        public struct Enumerator : IEnumerator<(K key, V value)>
         {
             private readonly Implementation* map;
             private readonly uint capacity;
             private int index;
 
-            public readonly KeyValuePair<K, V> Current
+            public readonly (K key, V value) Current
             {
                 get
                 {
                     ref Implementation.Entry<K, V> entry = ref Implementation.GetEntry<K, V>(map, (uint)index);
-                    return new(entry.key, entry.value);
+                    return (entry.key, entry.value);
                 }
             }
 
@@ -419,8 +419,7 @@ namespace Collections
             {
                 while (++index < capacity)
                 {
-                    ref Implementation.Entry<K, V> entry = ref Implementation.GetEntry<K, V>(map, (uint)index);
-                    if (entry.state == Implementation.EntryState.Occupied)
+                    if (Implementation.TryGetPair<K, V>(map, (uint)index, out _))
                     {
                         return true;
                     }

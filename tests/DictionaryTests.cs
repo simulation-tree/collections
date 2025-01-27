@@ -253,7 +253,7 @@ namespace Collections.Tests
             map.Add(0, 23);
 
             using List<KeyValuePair<byte, uint>> pairs = new();
-            foreach (KeyValuePair<byte, uint> pair in map)
+            foreach ((byte key, uint value) pair in map)
             {
                 pairs.Add(pair);
             }
@@ -266,22 +266,21 @@ namespace Collections.Tests
             map.Add(50, 1337);
             map.Add(3, 8008135);
             map.Remove(0);
+            map.Remove(1);
+            map.Add(0, 1234);
+            map.Add(4, map[50]);
 
             pairs.Clear();
-            foreach (KeyValuePair<byte, uint> pair in map)
+            foreach ((byte key, uint value) pair in map)
             {
                 pairs.Add(pair);
             }
 
-            Assert.That(pairs.Count, Is.EqualTo(3));
-            Assert.That(pairs[0].key, Is.EqualTo(1));
-            Assert.That(pairs[0].value, Is.EqualTo(42));
-
-            Assert.That(pairs[1].key, Is.EqualTo(50));
-            Assert.That(pairs[1].value, Is.EqualTo(1337));
-
-            Assert.That(pairs[2].key, Is.EqualTo(3));
-            Assert.That(pairs[2].value, Is.EqualTo(8008135));
+            Assert.That(pairs.Count, Is.EqualTo(4));
+            Assert.That(pairs.Contains(new(0, 1234)), Is.True);
+            Assert.That(pairs.Contains(new(50, 1337)), Is.True);
+            Assert.That(pairs.Contains(new(3, 8008135)), Is.True);
+            Assert.That(pairs.Contains(new(4, 1337)), Is.True);
         }
     }
 }
