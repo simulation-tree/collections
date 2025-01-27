@@ -26,7 +26,7 @@ namespace Collections.Tests
         [Test]
         public void ArrayLength()
         {
-            using Array<Guid> array = new(4);
+            using Array<uint> array = new(4);
             Assert.That(array.Length, Is.EqualTo(4));
         }
 
