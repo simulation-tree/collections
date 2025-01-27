@@ -206,9 +206,7 @@ namespace Collections
         /// <returns><c>true</c> if found.</returns>
         public readonly bool TryGetValue(K key, out V value)
         {
-            ref V found = ref Implementation.TryGetValue<K, V>(dictionary, key, out bool contains);
-            value = contains ? found : default;
-            return contains;
+            return Implementation.TryGetValue(dictionary, key, out value);
         }
 
         /// <summary>

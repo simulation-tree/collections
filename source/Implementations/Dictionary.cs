@@ -234,6 +234,24 @@ namespace Collections.Implementations
             return ref entry.value;
         }
 
+        public static bool TryGetValue<K, V>(Dictionary* map, K key, out V value) where K : unmanaged, IEquatable<K> where V : unmanaged
+        {
+            Allocations.ThrowIfNull(map);
+
+            uint index = FindIndex<K, V>(map, key);
+            bool found = index != uint.MaxValue;
+            if (found)
+            {
+                value = GetEntry<K, V>(map, index).value;
+            }
+            else
+            {
+                value = default;
+            }
+
+            return found;
+        }
+
         public static ref V GetValue<K, V>(Dictionary* map, K key) where K : unmanaged, IEquatable<K> where V : unmanaged
         {
             Allocations.ThrowIfNull(map);
