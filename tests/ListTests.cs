@@ -306,7 +306,7 @@ namespace Collections.Tests
             List.AddRange(b, [3, 7, 7]);
             Assert.That(List.AsSpan<int>(a).ToArray(), Is.EqualTo(new[] { 1, 3 }));
             Assert.That(List.AsSpan<int>(b).ToArray(), Is.EqualTo(new[] { 3, 7, 7 }));
-            List.AddRange(a, (void*)List.GetStartAddress(b), List.GetCountRef(b));
+            List.AddRange(a, (void*)List.GetStartAddress(b), List.GetCount(b));
             Assert.That(List.AsSpan<int>(a).ToArray(), Is.EqualTo(new[] { 1, 3, 3, 7, 7 }));
             List.Free(ref a);
             List.Free(ref b);

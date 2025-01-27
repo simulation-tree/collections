@@ -393,11 +393,11 @@ namespace Collections.Implementations
             return list->items.AsSpan<T>(start, length);
         }
 
-        public static ref uint GetCountRef(List* list)
+        public static uint GetCount(List* list)
         {
             Allocations.ThrowIfNull(list);
 
-            return ref list->count;
+            return list->count;
         }
 
         public static uint GetCapacity(List* list)

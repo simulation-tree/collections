@@ -21,7 +21,7 @@ namespace Collections
         /// <summary>
         /// Amount of elements in the list.
         /// </summary>
-        public readonly uint Count => Implementation.GetCountRef(value);
+        public readonly uint Count => Implementation.GetCount(value);
 
         /// <summary>
         /// Capacity of the list.
@@ -407,7 +407,7 @@ namespace Collections
             public bool MoveNext()
             {
                 index++;
-                return index < Implementation.GetCountRef(list);
+                return index < Implementation.GetCount(list);
             }
 
             public void Reset()
