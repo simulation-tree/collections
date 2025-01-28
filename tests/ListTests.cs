@@ -245,7 +245,7 @@ namespace Collections.Tests
             List.Add(data, 3);
             List.Add(data, 4);
 
-            USpan<byte> span = List.AsSpan<byte>(data);
+            USpan<byte> span = List.AsSpan<int>(data).Reinterpret<byte>();
             Assert.That(span.Length, Is.EqualTo(sizeof(int) * 4));
             int value1 = BitConverter.ToInt32(span.Slice(0, 4));
             int value2 = BitConverter.ToInt32(span.Slice(4, 4));
