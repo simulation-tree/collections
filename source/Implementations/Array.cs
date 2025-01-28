@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using Unmanaged;
 
@@ -19,6 +20,15 @@ namespace Collections.Implementations
             if (index >= array->length)
             {
                 throw new IndexOutOfRangeException($"Index {index} is out of range for array of length {array->length}");
+            }
+        }
+
+        [Conditional("DEBUG")]
+        private static void ThrowIfStrideSizeMismatch<T>(Array* array) where T : unmanaged
+        {
+            if (array->stride != (uint)sizeof(T))
+            {
+                throw new InvalidOperationException($"Stride size {array->stride} does not match expected size of type {sizeof(T)}");
             }
         }
 
@@ -79,6 +89,7 @@ namespace Collections.Implementations
         public static USpan<T> AsSpan<T>(Array* array) where T : unmanaged
         {
             Allocations.ThrowIfNull(array);
+            ThrowIfStrideSizeMismatch<T>(array);
 
             return array->items.AsSpan<T>(0, array->length);
         }
@@ -86,6 +97,7 @@ namespace Collections.Implementations
         public static bool TryIndexOf<T>(Array* array, T value, out uint index) where T : unmanaged, IEquatable<T>
         {
             Allocations.ThrowIfNull(array);
+            ThrowIfStrideSizeMismatch<T>(array);
 
             USpan<T> span = AsSpan<T>(array);
             return span.TryIndexOf(value, out index);
@@ -97,6 +109,7 @@ namespace Collections.Implementations
         public static bool Contains<T>(Array* array, T value) where T : unmanaged, IEquatable<T>
         {
             Allocations.ThrowIfNull(array);
+            ThrowIfStrideSizeMismatch<T>(array);
 
             USpan<T> span = AsSpan<T>(array);
             return span.Contains(value);
