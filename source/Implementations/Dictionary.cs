@@ -14,12 +14,15 @@ namespace Collections.Implementations
 
         public static Dictionary* Allocate<K, V>(uint initialCapacity) where K : unmanaged where V : unmanaged
         {
-            Dictionary* map = Allocations.Allocate<Dictionary>();
-            map->entryStride = (uint)sizeof(Entry<K, V>);
-            map->capacity = Allocations.GetNextPowerOf2(Math.Max(1, initialCapacity));
-            map->count = 0;
-            map->entries = new(map->capacity * map->entryStride, true);
-            return map;
+            ref Dictionary map = ref Allocations.Allocate<Dictionary>();
+            map.entryStride = (uint)sizeof(Entry<K, V>);
+            map.capacity = Allocations.GetNextPowerOf2(Math.Max(1, initialCapacity));
+            map.count = 0;
+            map.entries = new(map.capacity * map.entryStride, true);
+            fixed (Dictionary* pointer = &map)
+            {
+                return pointer;
+            }
         }
 
         public static void Free(ref Dictionary* map)

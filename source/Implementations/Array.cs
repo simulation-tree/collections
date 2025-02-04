@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using Unmanaged;
 
@@ -61,20 +60,26 @@ namespace Collections.Implementations
 
         public static Array* Allocate(uint length, uint stride)
         {
-            Array* array = Allocations.Allocate<Array>();
-            array->stride = stride;
-            array->length = length;
-            array->items = new(stride * length, true);
-            return array;
+            ref Array array = ref Allocations.Allocate<Array>();
+            array.stride = stride;
+            array.length = length;
+            array.items = new(stride * length, true);
+            fixed (Array* pointer = &array)
+            {
+                return pointer;
+            }
         }
 
         public static Array* Allocate<T>(USpan<T> span) where T : unmanaged
         {
-            Array* array = Allocations.Allocate<Array>();
-            array->stride = (uint)sizeof(T);
-            array->length = span.Length;
-            array->items = Allocation.Create(span);
-            return array;
+            ref Array array = ref Allocations.Allocate<Array>();
+            array.stride = (uint)sizeof(T);
+            array.length = span.Length;
+            array.items = Allocation.Create(span);
+            fixed (Array* pointer = &array)
+            {
+                return pointer;
+            }
         }
 
         public static ref T GetRef<T>(Array* array, uint index) where T : unmanaged

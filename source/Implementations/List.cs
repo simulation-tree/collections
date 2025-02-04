@@ -75,12 +75,15 @@ namespace Collections.Implementations
         /// </summary>
         public static List* Allocate(uint initialCapacity, uint stride)
         {
-            List* list = Allocations.Allocate<List>();
-            list->stride = stride;
-            list->count = 0;
-            list->capacity = Allocations.GetNextPowerOf2(Math.Max(1, initialCapacity));
-            list->items = new(stride * list->capacity);
-            return list;
+            ref List list = ref Allocations.Allocate<List>();
+            list.stride = stride;
+            list.count = 0;
+            list.capacity = Allocations.GetNextPowerOf2(Math.Max(1, initialCapacity));
+            list.items = new(stride * list.capacity);
+            fixed (List* pointer = &list)
+            {
+                return pointer;
+            }
         }
 
         /// <summary>
@@ -89,13 +92,16 @@ namespace Collections.Implementations
         public static List* Allocate<T>(USpan<T> span) where T : unmanaged
         {
             uint stride = (uint)sizeof(T);
-            List* list = Allocations.Allocate<List>();
-            list->count = span.Length;
-            list->stride = stride;
-            list->capacity = Allocations.GetNextPowerOf2(Math.Max(1, span.Length));
-            list->items = new(stride * list->capacity);
-            span.CopyTo(list->items.AsSpan<T>(0, span.Length));
-            return list;
+            ref List list = ref Allocations.Allocate<List>();
+            list.count = span.Length;
+            list.stride = stride;
+            list.capacity = Allocations.GetNextPowerOf2(Math.Max(1, span.Length));
+            list.items = new(stride * list.capacity);
+            span.CopyTo(list.items.AsSpan<T>(0, span.Length));
+            fixed (List* pointer = &list)
+            {
+                return pointer;
+            }
         }
 
         public static ref T GetRef<T>(List* list, uint index) where T : unmanaged
@@ -153,7 +159,7 @@ namespace Collections.Implementations
             void* source = (void*)(list->items.Address + index * stride);
             uint count = list->count - index;
             System.Runtime.CompilerServices.Unsafe.CopyBlockUnaligned(destination, source, count * stride);
-            
+
             //copy the new element to the index
             destination = (void*)(list->items.Address + index * stride);
             source = (void*)elementBytes.Address;

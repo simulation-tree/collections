@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using Unmanaged;
 
@@ -23,12 +22,15 @@ namespace Collections.Implementations
 
         public static Stack* Allocate<T>(uint initialCapacity) where T : unmanaged
         {
-            Stack* stack = Allocations.Allocate<Stack>();
-            stack->capacity = Allocations.GetNextPowerOf2(Math.Max(1, initialCapacity));
-            stack->top = 0;
-            stack->stride = (uint)sizeof(T);
-            stack->items = new(stack->capacity * stack->stride);
-            return stack;
+            ref Stack stack = ref Allocations.Allocate<Stack>();
+            stack.capacity = Allocations.GetNextPowerOf2(Math.Max(1, initialCapacity));
+            stack.top = 0;
+            stack.stride = (uint)sizeof(T);
+            stack.items = new(stack.capacity * stack.stride);
+            fixed (Stack* pointer = &stack)
+            {
+                return pointer;
+            }
         }
 
         public static void Free(ref Stack* stack)
@@ -56,7 +58,7 @@ namespace Collections.Implementations
         public static void PushRange<T>(Stack* stack, USpan<T> items) where T : unmanaged
         {
             Allocations.ThrowIfNull(stack);
-            
+
             if (stack->top + items.Length > stack->capacity)
             {
                 stack->capacity = Allocations.GetNextPowerOf2(stack->top + items.Length);
