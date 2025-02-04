@@ -16,7 +16,7 @@ namespace Collections
         /// <summary>
         /// Tries to push <paramref name="value"/> to the stack if it's not contained.
         /// </summary>
-        /// <returns><c>true</c> if it was pushed.</returns>
+        /// <returns><see langword="true"/> if it was pushed.</returns>
         public static bool TryPush<T>(this Stack<T> stack, T value) where T : unmanaged, IEquatable<T>
         {
             bool contains = stack.Contains(value);
