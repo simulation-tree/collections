@@ -42,9 +42,9 @@ namespace Collections
         /// <summary>
         /// Accesses the element at the specified index.
         /// </summary>
-        public readonly ref T this[uint index] => ref Implementation.GetRef<T>(value, index);
+        public readonly ref T this[uint index] => ref Implementation.GetElement<T>(value, index);
 
-        readonly T IReadOnlyList<T>.this[int index] => Implementation.GetRef<T>(value, (uint)index);
+        readonly T IReadOnlyList<T>.this[int index] => Implementation.GetElement<T>(value, (uint)index);
 
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         readonly int IReadOnlyCollection<T>.Count => (int)Count;
@@ -57,8 +57,8 @@ namespace Collections
 
         readonly T IList<T>.this[int index]
         {
-            get => Implementation.GetRef<T>(value, (uint)index);
-            set => Implementation.GetRef<T>(this.value, (uint)index) = value;
+            get => Implementation.GetElement<T>(value, (uint)index);
+            set => Implementation.GetElement<T>(this.value, (uint)index) = value;
         }
 
         [DebuggerBrowsable(DebuggerBrowsableState.Collapsed)]
@@ -407,7 +407,7 @@ namespace Collections
             private readonly Implementation* list;
             private int index;
 
-            public readonly T Current => Implementation.GetRef<T>(list, (uint)index);
+            public readonly T Current => Implementation.GetElement<T>(list, (uint)index);
             readonly object IEnumerator.Current => Current;
 
             public Enumerator(Implementation* list)

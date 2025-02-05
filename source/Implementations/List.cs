@@ -104,7 +104,7 @@ namespace Collections.Implementations
             }
         }
 
-        public static ref T GetRef<T>(List* list, uint index) where T : unmanaged
+        public static ref T GetElement<T>(List* list, uint index) where T : unmanaged
         {
             Allocations.ThrowIfNull(list);
             ThrowIfOutOfRange(list, index);
