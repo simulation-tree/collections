@@ -3,6 +3,10 @@ name: Test
 on:
   workflow_dispatch:
   push:
+    paths:
+      - '**/*.cs'
+      - '**/*.csproj'
+      - '.github/workflows/test.yml'
     branches:
       - main
       - dev
@@ -11,7 +15,6 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    
     permissions:
       statuses: write
       checks: write
@@ -24,27 +27,27 @@ jobs:
         uses: actions/checkout@v4.1.2
         with:
           path: ${{ github.event.repository.name }}
-
+            
       - name: Checkout `unmanaged`
         uses: actions/checkout@v4.1.2
         with:
           repository: game-simulations/unmanaged
           token: ${{ secrets.PAT }}
           path: unmanaged
-      
-      - name: Setup dotnet
+            
+      - name: Setup
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '9.0.x'
-
-      - name: Test project
-        run: dotnet test "${{ github.event.repository.name }}/tests" -c Debug --logger "trx;LogFileName=test-results.trx"
-
-      - name: Publish Report
+            
+      - name: Test
+        run: dotnet test "${{ github.event.repository.name }}/tests" -c Debug --logger "trx"
+            
+      - name: Report
         uses: dorny/test-reporter@v1
         if: always()
         with:
-          working-directory:  ${{ github.event.repository.name }}
+          working-directory: ${{ github.event.repository.name }}
           name: Report
           path: 'tests/TestResults/*.trx'
           reporter: dotnet-trx
