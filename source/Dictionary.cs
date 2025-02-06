@@ -49,14 +49,7 @@ namespace Collections
                 uint capacity = Capacity;
                 for (uint i = 0; i < capacity; i++)
                 {
-                    bool contains;
-                    KeyValuePair<K, V> pair;
-                    unsafe
-                    {
-                        contains = Implementation.TryGetPair(dictionary, i, out pair);
-                    }
-
-                    if (contains)
+                    if (TryGetPair(i, out KeyValuePair<K, V> pair))
                     {
                         yield return pair.key;
                     }
@@ -75,14 +68,7 @@ namespace Collections
                 uint capacity = Capacity;
                 for (uint i = 0; i < capacity; i++)
                 {
-                    bool contains;
-                    KeyValuePair<K, V> pair;
-                    unsafe
-                    {
-                        contains = Implementation.TryGetPair(dictionary, i, out pair);
-                    }
-
-                    if (contains)
+                    if (TryGetPair(i, out KeyValuePair<K, V> pair))
                     {
                         yield return pair.value;
                     }
@@ -190,6 +176,11 @@ namespace Collections
         public void Dispose()
         {
             Implementation.Free(ref dictionary);
+        }
+
+        private readonly bool TryGetPair(uint index, out KeyValuePair<K, V> pair)
+        {
+            return Implementation.TryGetPair<K, V>(dictionary, index, out pair);
         }
 
         /// <summary>

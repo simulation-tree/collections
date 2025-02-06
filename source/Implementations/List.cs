@@ -158,12 +158,16 @@ namespace Collections.Implementations
             void* destination = (void*)(list->items.Address + (index + 1) * stride);
             void* source = (void*)(list->items.Address + index * stride);
             uint count = list->count - index;
-            System.Runtime.CompilerServices.Unsafe.CopyBlockUnaligned(destination, source, count * stride);
+            Span<byte> destinationSpan = new(destination, (int)(count * stride));
+            Span<byte> sourceSpan = new(source, (int)(count * stride));
+            sourceSpan.CopyTo(destinationSpan);
 
             //copy the new element to the index
             destination = (void*)(list->items.Address + index * stride);
             source = (void*)elementBytes.Address;
-            System.Runtime.CompilerServices.Unsafe.CopyBlockUnaligned(destination, source, stride);
+            destinationSpan = new(destination, (int)stride);
+            sourceSpan = new(source, (int)stride);
+            sourceSpan.CopyTo(destinationSpan);
             list->count++;
         }
 
@@ -197,7 +201,9 @@ namespace Collections.Implementations
 
             void* destination = (void*)(list->items.Address + list->count * stride);
             void* source = (void*)elementBytes.Address;
-            System.Runtime.CompilerServices.Unsafe.CopyBlockUnaligned(destination, source, elementBytes.Length);
+            Span<byte> destinationSpan = new(destination, (int)elementBytes.Length);
+            Span<byte> sourceSpan = new(source, (int)elementBytes.Length);
+            sourceSpan.CopyTo(destinationSpan);
             list->count++;
         }
 
@@ -227,7 +233,8 @@ namespace Collections.Implementations
             }
 
             void* destination = (void*)(list->items.Address + list->count * stride);
-            System.Runtime.CompilerServices.Unsafe.InitBlockUnaligned(destination, 0, count * stride);
+            Span<byte> destinationSpan = new(destination, (int)(count * stride));
+            destinationSpan.Clear();
             list->count = newCount;
         }
 
@@ -356,7 +363,9 @@ namespace Collections.Implementations
             uint stride = list->stride;
             void* lastElement = (void*)(list->items.Address + lastIndex * stride);
             void* indexElement = (void*)(list->items.Address + index * stride);
-            System.Runtime.CompilerServices.Unsafe.CopyBlockUnaligned(indexElement, lastElement, stride);
+            Span<byte> indexElementSpan = new(indexElement, (int)stride);
+            Span<byte> lastElementSpan = new(lastElement, (int)stride);
+            lastElementSpan.CopyTo(indexElementSpan);
             list->count = lastIndex;
         }
 
