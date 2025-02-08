@@ -156,9 +156,9 @@ namespace Collections
         }
 
         /// <inheritdoc/>
-        public readonly Enumerator GetEnumerator()
+        public readonly Span<T>.Enumerator GetEnumerator()
         {
-            return new Enumerator(value);
+            return AsSpan().GetEnumerator();
         }
 
         readonly IEnumerator<T> IEnumerable<T>.GetEnumerator()

@@ -309,19 +309,20 @@ namespace Collections
         }
 
         /// <inheritdoc/>
-        public readonly Enumerator GetEnumerator()
+        public readonly Span<T>.Enumerator GetEnumerator()
         {
-            return new(value);
+            //return new(value);
+            return AsSpan().GetEnumerator();
         }
 
         readonly IEnumerator<T> IEnumerable<T>.GetEnumerator()
         {
-            return GetEnumerator();
+            return new Enumerator(value);
         }
 
         readonly IEnumerator IEnumerable.GetEnumerator()
         {
-            return GetEnumerator();
+            return new Enumerator(value);
         }
 
         /// <inheritdoc/>
