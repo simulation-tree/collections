@@ -99,27 +99,6 @@ namespace Collections.Implementations
             return array->items.AsSpan<T>(0, array->length);
         }
 
-        public static bool TryIndexOf<T>(Array* array, T value, out uint index) where T : unmanaged, IEquatable<T>
-        {
-            Allocations.ThrowIfNull(array);
-            ThrowIfStrideSizeMismatch<T>(array);
-
-            USpan<T> span = AsSpan<T>(array);
-            return span.TryIndexOf(value, out index);
-        }
-
-        /// <summary>
-        /// Checks if the array contains the given <paramref name="value"/>.
-        /// </summary>
-        public static bool Contains<T>(Array* array, T value) where T : unmanaged, IEquatable<T>
-        {
-            Allocations.ThrowIfNull(array);
-            ThrowIfStrideSizeMismatch<T>(array);
-
-            USpan<T> span = AsSpan<T>(array);
-            return span.Contains(value);
-        }
-
         /// <summary>
         /// Resizes the array and optionally initializes new elements.
         /// </summary>

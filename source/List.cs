@@ -166,7 +166,7 @@ namespace Collections
         }
 
         /// <summary>
-        /// Adds a range of default values to the list.
+        /// Adds a <see langword="default"/> value <paramref name="count"/> amount of times.
         /// </summary>
         public readonly void AddDefault(uint count = 1)
         {
@@ -178,13 +178,7 @@ namespace Collections
         /// </summary>
         public readonly void AddRepeat(T item, uint count)
         {
-            uint start = Count;
-            AddDefault(count);
-            USpan<T> span = AsSpan(start);
-            for (uint i = 0; i < count; i++)
-            {
-                span[i] = item;
-            }
+            Implementation.AddRepeat(value, item, count);
         }
 
         /// <summary>

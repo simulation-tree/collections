@@ -127,6 +127,16 @@ namespace Collections.Tests
 
             list.Insert(4, 2323);
             Assert.That(list[4], Is.EqualTo(2323));
+
+            list.Add(1000);
+            list.Insert(0, 2000);
+
+            Assert.That(list[0], Is.EqualTo(2000));
+            Assert.That(list[1], Is.EqualTo(1));
+            Assert.That(list[2], Is.EqualTo(2));
+            Assert.That(list[3], Is.EqualTo(3));
+            Assert.That(list[4], Is.EqualTo(4));
+            Assert.That(list[5], Is.EqualTo(2323));
         }
 
         [Test]
@@ -139,14 +149,16 @@ namespace Collections.Tests
             Assert.That(list[1], Is.EqualTo(2u));
             Assert.That(list[2], Is.EqualTo(3u));
             Assert.That(list[3], Is.EqualTo(4u));
-            uint[] result = list.AsSpan().ToArray();
-            list.AddRange(new[] { 5u, 6u, 7u, 8u });
-            uint[] result2 = list.AsSpan().ToArray();
-            Assert.That(list.Count, Is.EqualTo(8));
+            list.AddRange(new[] { 5u, 6u, 7u });
+            Assert.That(list.Count, Is.EqualTo(7));
             Assert.That(list[4], Is.EqualTo(5u));
             Assert.That(list[5], Is.EqualTo(6u));
             Assert.That(list[6], Is.EqualTo(7u));
+            list.AddRange(new[] { 8u, 9u, 10u });
+            Assert.That(list.Count, Is.EqualTo(10));
             Assert.That(list[7], Is.EqualTo(8u));
+            Assert.That(list[8], Is.EqualTo(9u));
+            Assert.That(list[9], Is.EqualTo(10u));
         }
 
         [Test]
@@ -161,6 +173,20 @@ namespace Collections.Tests
             Assert.That(list[32], Is.EqualTo(5));
             Assert.That(list[33], Is.EqualTo(9));
             Assert.That(list.Count, Is.EqualTo(77));
+        }
+
+        [Test]
+        public void AddDefaults()
+        {
+            using List<byte> list = new();
+            list.AddDefault(5);
+
+            Assert.That(list.Count, Is.EqualTo(5));
+            Assert.That(list[0], Is.EqualTo(default(byte)));
+            Assert.That(list[1], Is.EqualTo(default(byte)));
+            Assert.That(list[2], Is.EqualTo(default(byte)));
+            Assert.That(list[3], Is.EqualTo(default(byte)));
+            Assert.That(list[4], Is.EqualTo(default(byte)));
         }
 
         [Test]
