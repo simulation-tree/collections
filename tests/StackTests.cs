@@ -47,9 +47,13 @@ namespace Collections.Tests
         {
             using Stack<int> stack = new();
             stack.Push(1);
+            Assert.That(stack.Count, Is.EqualTo(1));
             stack.Push(2);
+            Assert.That(stack.Count, Is.EqualTo(2));
             stack.Push(3);
+            Assert.That(stack.Count, Is.EqualTo(3));
             stack.Push(4);
+            Assert.That(stack.Count, Is.EqualTo(4));
             stack.Push(5);
             Assert.That(stack.Count, Is.EqualTo(5));
             stack.PushRange([6, 7, 8, 9, 10]);
