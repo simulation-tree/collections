@@ -1,5 +1,7 @@
 # Collections
 
+[![Test](https://github.com/game-simulations/collections/actions/workflows/test.yml/badge.svg)](https://github.com/game-simulations/collections/actions/workflows/test.yml)
+
 Native C# library implementing collections.
 
 ### Arrays
