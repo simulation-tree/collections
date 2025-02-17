@@ -220,6 +220,23 @@ namespace Collections.Implementations
             list->count++;
         }
 
+        public static void AddDefault(List* list)
+        {
+            Allocations.ThrowIfNull(list);
+
+            uint stride = list->stride;
+            if (list->count == list->capacity)
+            {
+                list->capacity *= 2;
+                Allocation.Resize(ref list->items, stride * list->capacity);
+            }
+
+            void* destination = (void*)(list->items.Address + list->count * stride);
+            USpan<byte> destinationSpan = new(destination, stride);
+            destinationSpan.Clear();
+            list->count++;
+        }
+
         public static void AddDefault(List* list, uint count)
         {
             Allocations.ThrowIfNull(list);

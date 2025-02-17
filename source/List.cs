@@ -166,9 +166,17 @@ namespace Collections
         }
 
         /// <summary>
+        /// Adds a <see langword="default"/> value.
+        /// </summary>
+        public readonly void AddDefault()
+        {
+            Implementation.AddDefault(value);
+        }
+
+        /// <summary>
         /// Adds a <see langword="default"/> value <paramref name="count"/> amount of times.
         /// </summary>
-        public readonly void AddDefault(uint count = 1)
+        public readonly void AddDefault(uint count)
         {
             Implementation.AddDefault(value, count);
         }
