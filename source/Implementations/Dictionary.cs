@@ -76,8 +76,7 @@ namespace Collections.Implementations
         {
             unchecked
             {
-                EqualityComparer<K> comparer = EqualityComparer<K>.Default;
-                int hash = comparer.GetHashCode(key);
+                int hash = Comparer<K>.comparer.GetHashCode(key);
                 return (uint)hash % map->capacity;
             }
         }
@@ -87,12 +86,16 @@ namespace Collections.Implementations
             return (hash + index) % map->capacity;
         }
 
+        private static class Comparer<T> where T : unmanaged
+        {
+            public static readonly EqualityComparer<T> comparer = EqualityComparer<T>.Default;
+        }
+
         private static uint FindIndex<K, V>(Dictionary* map, K key) where K : unmanaged, IEquatable<K> where V : unmanaged
         {
             Allocations.ThrowIfNull(map);
 
             uint hash = GetHash(map, key);
-            EqualityComparer<K> comparer = EqualityComparer<K>.Default;
             for (uint a = 0; a < map->capacity; a++)
             {
                 uint index = Probe(map, hash, a);
@@ -101,7 +104,7 @@ namespace Collections.Implementations
                 {
                     return uint.MaxValue;
                 }
-                else if (entry.state == EntryState.Occupied && comparer.Equals(entry.key, key))
+                else if (entry.state == EntryState.Occupied && Comparer<K>.comparer.Equals(entry.key, key))
                 {
                     return index;
                 }
