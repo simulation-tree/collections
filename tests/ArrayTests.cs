@@ -82,5 +82,52 @@ namespace Collections.Tests
             Assert.That(array[2], Is.EqualTo(3));
             Assert.That(array[3], Is.EqualTo(4));
         }
+
+#if !DEBUG
+        [Test]
+        public void BenchmarkAgainstSystem()
+        {
+            uint[] systemArray = new uint[1024];
+            using Array<uint> array = new(1024);
+
+            Benchmark systemResult = new(() =>
+            {
+                for (uint i = 0; i < systemArray.Length; i++)
+                {
+                    systemArray[i] = i * 8;
+                }
+
+                Array.Clear(systemArray, 0, systemArray.Length);
+
+                for (uint i = 0; i < 256; i++)
+                {
+                    systemArray[systemArray.Length - 1] = i;
+                }
+
+                Array.Clear(systemArray, 0, systemArray.Length);
+            });
+
+            Benchmark customResult = new(() =>
+            {
+                USpan<uint> span = array.AsSpan();
+                for (uint i = 0; i < span.Length; i++)
+                {
+                    span[i] = i * 8;
+                }
+
+                span.Clear();
+
+                for (uint i = 0; i < 256; i++)
+                {
+                    span[span.Length - 1] = i;
+                }
+
+                span.Clear();
+            });
+
+            Console.WriteLine($"System: {systemResult}");
+            Console.WriteLine($"Custom: {customResult}");
+        }
+#endif
     }
 }

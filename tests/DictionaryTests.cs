@@ -13,6 +13,7 @@ namespace Collections.Tests
             map.Add(1, 1337);
             Assert.That(map.ContainsKey(1), Is.True);
             Assert.That(map.Count, Is.EqualTo(1));
+            Assert.That(map.Capacity, Is.EqualTo(4));
             Assert.That(map.TryGetValue(1, out int value), Is.True);
             Assert.That(value, Is.EqualTo(1337));
         }
@@ -29,6 +30,36 @@ namespace Collections.Tests
         }
 
         [Test]
+        public void CapacityResizing()
+        {
+            using Dictionary<byte, int> map = new();
+            map.Add(1, 1337);
+            map.Add(2, 2007);
+            map.Add(33, 8008135);
+            map.Add(5, 232323);
+
+            Assert.That(map.Count, Is.EqualTo(4));
+            Assert.That(map.Capacity, Is.EqualTo(4));
+            Assert.That(map.ContainsKey(1), Is.True);
+            Assert.That(map.ContainsKey(2), Is.True);
+            Assert.That(map.ContainsKey(33), Is.True);
+
+            map.Add(255, 0);
+            Assert.That(map.Count, Is.EqualTo(5));
+            Assert.That(map.Capacity, Is.EqualTo(8));
+
+            Assert.That(map.ContainsKey(1), Is.True);
+            Assert.That(map.ContainsKey(2), Is.True);
+            Assert.That(map.ContainsKey(33), Is.True);
+            Assert.That(map.ContainsKey(5), Is.True);
+            Assert.That(map[1], Is.EqualTo(1337));
+            Assert.That(map[2], Is.EqualTo(2007));
+            Assert.That(map[33], Is.EqualTo(8008135));
+            Assert.That(map[5], Is.EqualTo(232323));
+            Assert.That(map[255], Is.EqualTo(0));
+        }
+
+        [Test]
         public void AddOrSet()
         {
             using Dictionary<byte, int> map = new();
@@ -40,6 +71,7 @@ namespace Collections.Tests
             map.AddOrSet(5, 232323);
 
             Assert.That(map.Count, Is.EqualTo(4));
+            Assert.That(map.Capacity, Is.EqualTo(4));
             Assert.That(map.ContainsKey(1), Is.True);
             Assert.That(map.ContainsKey(2), Is.True);
             Assert.That(map.ContainsKey(33), Is.True);
@@ -195,6 +227,12 @@ namespace Collections.Tests
             map.Add(1, 42);
             map.Add(23, 69);
 
+            Assert.That(map.ContainsKey(0), Is.True);
+            Assert.That(map.ContainsKey(1), Is.True);
+            Assert.That(map.ContainsKey(23), Is.True);
+            Assert.That(map.Count, Is.EqualTo(3));
+            Assert.That(map.Capacity, Is.EqualTo(4));
+
             using List<byte> keys = new();
             foreach (byte key in map.Keys)
             {
@@ -282,5 +320,73 @@ namespace Collections.Tests
             Assert.That(pairs.Contains(new(3, 8008135)), Is.True);
             Assert.That(pairs.Contains(new(4, 1337)), Is.True);
         }
+
+#if !DEBUG
+        [Test]
+        public unsafe void BenchmarkAgainstSystem()
+        {
+            System.Collections.Generic.Dictionary<int, int> systemMap = new();
+            using Dictionary<int, int> map = new();
+
+            Benchmark customResult = new(() =>
+            {
+                for (int i = 0; i < 5000; i++)
+                {
+                    if (i % 2 == 0)
+                    {
+                        map.Add(i, i * 8);
+                    }
+                }
+
+                map.Clear();
+
+                for (int i = 0; i < 5000; i++)
+                {
+                    if (map.ContainsKey(i))
+                    {
+                        map[i] = i;
+                    }
+
+                    if (map.TryGetValue(i, out int value))
+                    {
+                        map[i] = value;
+                    }
+                }
+
+                map.Clear();
+            });
+
+            Benchmark systemResult = new(() =>
+            {
+                for (int i = 0; i < 5000; i++)
+                {
+                    if (i % 2 == 0)
+                    {
+                        systemMap.Add(i, i * 8);
+                    }
+                }
+
+                systemMap.Clear();
+
+                for (int i = 0; i < 5000; i++)
+                {
+                    if (systemMap.ContainsKey(i))
+                    {
+                        systemMap[i] = i;
+                    }
+
+                    if (systemMap.TryGetValue(i, out int value))
+                    {
+                        systemMap[i] = value;
+                    }
+                }
+
+                systemMap.Clear();
+            });
+
+            Console.WriteLine($"System: {systemResult}");
+            Console.WriteLine($"Custom: {customResult}");
+        }
+#endif
     }
 }

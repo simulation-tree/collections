@@ -1,8 +1,10 @@
-﻿using System;
+﻿using Collections.Implementations;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using Unmanaged;
+using static Collections.Implementations.Queue;
 using Implementation = Collections.Implementations.Queue;
 
 namespace Collections
@@ -10,31 +12,47 @@ namespace Collections
     public unsafe struct Queue<T> : IDisposable, IReadOnlyCollection<T>, ICollection<T>, IEquatable<Queue<T>> where T : unmanaged
     {
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        private Implementation* implementation;
+        private Implementation* queue;
 
         /// <summary>
         /// Checks if this queue has been disposed.
         /// </summary>
-        public readonly bool IsDisposed => implementation is null;
+        public readonly bool IsDisposed => queue is null;
 
         /// <summary>
         /// Amount of items in the queue.
         /// </summary>
-        public readonly uint Count => implementation->top - implementation->rear;
+        public readonly uint Count
+        {
+            get
+            {
+                Allocations.ThrowIfNull(queue);
+
+                return queue->top - queue->rear;
+            }
+        }
 
         /// <summary>
         /// Checks if the queue is empty.
         /// </summary>
-        public readonly bool IsEmpty => implementation->top == implementation->rear;
+        public readonly bool IsEmpty
+        {
+            get
+            {
+                Allocations.ThrowIfNull(queue);
+
+                return queue->top == queue->rear;
+            }
+        }
 
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        int ICollection<T>.Count => (int)implementation->top;
+        int ICollection<T>.Count => (int)queue->top;
 
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         readonly bool ICollection<T>.IsReadOnly => false;
 
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        int IReadOnlyCollection<T>.Count => (int)implementation->top;
+        int IReadOnlyCollection<T>.Count => (int)queue->top;
 
         [DebuggerBrowsable(DebuggerBrowsableState.Collapsed)]
         private readonly T[] Items => AsSpan().ToArray();
@@ -44,7 +62,7 @@ namespace Collections
         /// </summary>
         public Queue()
         {
-            implementation = Implementation.Allocate<T>(4);
+            queue = Allocate<T>(4);
         }
 #endif
 
@@ -53,7 +71,7 @@ namespace Collections
         /// </summary>
         public Queue(uint initialCapacity = 4)
         {
-            implementation = Implementation.Allocate<T>(initialCapacity);
+            queue = Allocate<T>(initialCapacity);
         }
 
         /// <summary>
@@ -61,49 +79,92 @@ namespace Collections
         /// </summary>
         public Queue(void* pointer)
         {
-            implementation = (Implementation*)pointer;
+            queue = (Implementation*)pointer;
         }
 
         public void Dispose()
         {
-            Implementation.Free(ref implementation);
+            Free(ref queue);
         }
 
         public readonly USpan<T> AsSpan()
         {
-            return Implementation.AsSpan<T>(implementation);
+            Allocations.ThrowIfNull(queue);
+
+            uint length = queue->top - queue->rear;
+            return queue->items.AsSpan<T>(queue->rear, length);
         }
 
         public readonly void Clear()
         {
-            Implementation.Clear(implementation);
+            Allocations.ThrowIfNull(queue);
+
+            queue->top = 0;
+            queue->rear = 0;
         }
 
         public readonly void Clear(uint minimumCapacity)
         {
-            Implementation.Clear(implementation, minimumCapacity);
+            Allocations.ThrowIfNull(queue);
+
+            if (queue->capacity < minimumCapacity)
+            {
+                queue->capacity = Allocations.GetNextPowerOf2(minimumCapacity);
+                Allocation.Resize(ref queue->items, queue->capacity * queue->stride);
+            }
+
+            queue->top = 0;
+            queue->rear = 0;
         }
 
         public readonly void Enqueue(T item)
         {
-            Implementation.Enqueue(implementation, item);
+            Allocations.ThrowIfNull(queue);
+
+            uint top = queue->top;
+            if (top == queue->capacity)
+            {
+                queue->capacity *= 2;
+                Allocation.Resize(ref queue->items, queue->capacity * (uint)sizeof(T));
+            }
+
+            queue->items.WriteElement(top, item);
+            queue->top = top + 1;
         }
 
         public readonly void EnqueueRange(USpan<T> items)
         {
-            Implementation.EnqueueRange(implementation, items);
+            Allocations.ThrowIfNull(queue);
+
+            uint newTop = queue->top + items.Length;
+            if (newTop > queue->capacity)
+            {
+                queue->capacity = Allocations.GetNextPowerOf2(newTop);
+                Allocation.Resize(ref queue->items, queue->capacity * (uint)sizeof(T));
+            }
+
+            queue->items.Write(queue->top * (uint)sizeof(T), items);
+            queue->top = newTop;
         }
 
         public readonly T Dequeue()
         {
-            return Implementation.Dequeue<T>(implementation);
+            Allocations.ThrowIfNull(queue);
+
+            uint rear = queue->rear;
+            T item = queue->items.Read<T>(rear * (uint)sizeof(T));
+            queue->rear = rear + 1;
+            return item;
         }
 
         public readonly bool TryDequeue(out T value)
         {
+            Allocations.ThrowIfNull(queue);
             if (!IsEmpty)
             {
-                value = Implementation.Dequeue<T>(implementation);
+                uint rear = queue->rear;
+                value = queue->items.Read<T>(rear * (uint)sizeof(T));
+                queue->rear = rear + 1;
                 return true;
             }
             else
@@ -149,7 +210,7 @@ namespace Collections
 
         public readonly Enumerator GetEnumerator()
         {
-            return new Enumerator(implementation);
+            return new Enumerator(queue);
         }
 
         readonly IEnumerator<T> IEnumerable<T>.GetEnumerator()
@@ -164,7 +225,7 @@ namespace Collections
 
         public readonly bool Equals(Queue<T> other)
         {
-            return implementation == other.implementation;
+            return queue == other.queue;
         }
 
         public readonly override bool Equals(object? obj)
@@ -174,7 +235,7 @@ namespace Collections
 
         public readonly override int GetHashCode()
         {
-            return (int)implementation;
+            return (int)queue;
         }
 
         public static bool operator ==(Queue<T> left, Queue<T> right)
@@ -192,7 +253,7 @@ namespace Collections
             private readonly Implementation* queue;
             private int index;
 
-            public readonly T Current => Implementation.AsSpan<T>(queue)[(uint)index];
+            public readonly T Current => AsSpan<T>(queue)[(uint)index];
             readonly object IEnumerator.Current => Current;
 
             public Enumerator(Implementation* queue)

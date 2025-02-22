@@ -9,13 +9,26 @@ namespace Collections.Implementations
     /// </summary>
     public unsafe struct List
     {
-        private uint stride;
-        private uint count;
-        private uint capacity;
-        private Allocation items;
+        public readonly uint stride;
+
+        internal uint count;
+        internal uint capacity;
+        internal Allocation items;
+
+        public readonly uint Count => count;
+        public readonly uint Capacity => capacity;
+        public readonly Allocation Items => items;
+
+        private List(uint stride, uint count, uint capacity, Allocation items)
+        {
+            this.stride = stride;
+            this.count = count;
+            this.capacity = capacity;
+            this.items = items;
+        }
 
         [Conditional("DEBUG")]
-        private static void ThrowIfOutOfRange(List* list, uint index)
+        internal static void ThrowIfOutOfRange(List* list, uint index)
         {
             if (index >= list->count)
             {
@@ -24,7 +37,7 @@ namespace Collections.Implementations
         }
 
         [Conditional("DEBUG")]
-        private static void ThrowIfPastRange(List* list, uint index)
+        internal static void ThrowIfPastRange(List* list, uint index)
         {
             if (index > list->count)
             {
@@ -33,7 +46,7 @@ namespace Collections.Implementations
         }
 
         [Conditional("DEBUG")]
-        private static void ThrowIfLessThanCount(List* list, uint newCapacity)
+        internal static void ThrowIfLessThanCount(List* list, uint newCapacity)
         {
             if (newCapacity < list->count)
             {
@@ -42,7 +55,7 @@ namespace Collections.Implementations
         }
 
         [Conditional("DEBUG")]
-        private static void ThrowifStrideSizeMismatch<T>(List* list) where T : unmanaged
+        internal static void ThrowifStrideSizeMismatch<T>(List* list) where T : unmanaged
         {
             if (list->stride != (uint)sizeof(T))
             {
@@ -51,7 +64,7 @@ namespace Collections.Implementations
         }
 
         [Conditional("DEBUG")]
-        private static void ThrowifStrideSizeMismatch(List* list, uint length)
+        internal static void ThrowifStrideSizeMismatch(List* list, uint length)
         {
             if (list->stride != length)
             {
@@ -84,11 +97,9 @@ namespace Collections.Implementations
         /// </summary>
         public static List* Allocate(uint initialCapacity, uint stride)
         {
+            initialCapacity = Allocations.GetNextPowerOf2(Math.Max(1, initialCapacity));
             ref List list = ref Allocations.Allocate<List>();
-            list.stride = stride;
-            list.count = 0;
-            list.capacity = Allocations.GetNextPowerOf2(Math.Max(1, initialCapacity));
-            list.items = new(stride * list.capacity);
+            list = new(stride, 0, initialCapacity, new(stride * initialCapacity));
             fixed (List* pointer = &list)
             {
                 return pointer;
@@ -101,11 +112,9 @@ namespace Collections.Implementations
         public static List* Allocate<T>(USpan<T> span) where T : unmanaged
         {
             uint stride = (uint)sizeof(T);
+            uint capacity = Allocations.GetNextPowerOf2(Math.Max(1, span.Length));
             ref List list = ref Allocations.Allocate<List>();
-            list.count = span.Length;
-            list.stride = stride;
-            list.capacity = Allocations.GetNextPowerOf2(Math.Max(1, span.Length));
-            list.items = new(stride * list.capacity);
+            list = new(stride, span.Length, capacity, new(stride * capacity));
             span.CopyTo(list.items.AsSpan<T>(0, span.Length));
             fixed (List* pointer = &list)
             {
@@ -113,45 +122,25 @@ namespace Collections.Implementations
             }
         }
 
-        public static ref T GetElement<T>(List* list, uint index) where T : unmanaged
-        {
-            Allocations.ThrowIfNull(list);
-            ThrowIfOutOfRange(list, index);
-
-            T* ptr = (T*)GetStartAddress(list);
-            return ref ptr[index];
-        }
-
-        /// <summary>
-        /// Returns the bytes for the element at the given index.
-        /// </summary>
-        public static USpan<byte> GetElementBytes(List* list, uint index)
-        {
-            Allocations.ThrowIfNull(list);
-            ThrowIfOutOfRange(list, index);
-
-            uint stride = list->stride;
-            return list->items.AsSpan<byte>(index * stride, stride);
-        }
-
         public static void Insert<T>(List* list, uint index, T item) where T : unmanaged
         {
+            Allocations.ThrowIfNull(list);
             ThrowifStrideSizeMismatch<T>(list);
 
-            uint stride = list->stride;
-            if (list->count == list->capacity)
+            uint count = list->count;
+            if (count == list->capacity)
             {
                 list->capacity *= 2;
-                Allocation.Resize(ref list->items, stride * list->capacity);
+                Allocation.Resize(ref list->items, (uint)sizeof(T) * list->capacity);
             }
 
-            uint count = list->count - index;
-            USpan<T> destination = list->items.AsSpan<T>(index + 1, count);
-            USpan<T> source = list->items.AsSpan<T>(index, count);
+            uint remainingCount = count - index;
+            USpan<T> destination = list->items.AsSpan<T>(index + 1, remainingCount);
+            USpan<T> source = list->items.AsSpan<T>(index, remainingCount);
             source.CopyTo(destination);
 
-            list->items.Write(index * stride, item);
-            list->count++;
+            list->items.WriteElement(index, item);
+            list->count = count + 1;
         }
 
         public static void Insert(List* list, uint index, USpan<byte> elementBytes)
@@ -161,7 +150,8 @@ namespace Collections.Implementations
             ThrowifStrideSizeMismatch(list, elementBytes.Length);
 
             uint stride = list->stride;
-            if (list->count == list->capacity)
+            uint count = list->count;
+            if (count == list->capacity)
             {
                 list->capacity *= 2;
                 Allocation.Resize(ref list->items, stride * list->capacity);
@@ -170,9 +160,9 @@ namespace Collections.Implementations
             //copy all elements after index to the right
             void* destination = (void*)(list->items.Address + (index + 1) * stride);
             void* source = (void*)(list->items.Address + index * stride);
-            uint count = list->count - index;
-            Span<byte> destinationSpan = new(destination, (int)(count * stride));
-            Span<byte> sourceSpan = new(source, (int)(count * stride));
+            uint remainingCount = count - index;
+            Span<byte> destinationSpan = new(destination, (int)(remainingCount * stride));
+            Span<byte> sourceSpan = new(source, (int)(remainingCount * stride));
             sourceSpan.CopyTo(destinationSpan);
 
             //copy the new element to the index
@@ -181,7 +171,37 @@ namespace Collections.Implementations
             destinationSpan = new(destination, (int)stride);
             sourceSpan = new(source, (int)stride);
             sourceSpan.CopyTo(destinationSpan);
-            list->count++;
+            list->count = count + 1;
+        }
+
+        public static void Insert(List* list, uint index, Allocation element)
+        {
+            Allocations.ThrowIfNull(list);
+            ThrowIfPastRange(list, index);
+
+            uint stride = list->stride;
+            uint count = list->count;
+            if (count == list->capacity)
+            {
+                list->capacity *= 2;
+                Allocation.Resize(ref list->items, stride * list->capacity);
+            }
+
+            //copy all elements after index to the right
+            void* destination = (void*)(list->items.Address + (index + 1) * stride);
+            void* source = (void*)(list->items.Address + index * stride);
+            uint remainingCount = count - index;
+            Span<byte> destinationSpan = new(destination, (int)(remainingCount * stride));
+            Span<byte> sourceSpan = new(source, (int)(remainingCount * stride));
+            sourceSpan.CopyTo(destinationSpan);
+
+            //copy the new element to the index
+            destination = (void*)(list->items.Address + index * stride);
+            source = (void*)element.Address;
+            destinationSpan = new(destination, (int)stride);
+            sourceSpan = new(source, (int)stride);
+            sourceSpan.CopyTo(destinationSpan);
+            list->count = count + 1;
         }
 
         public static void Add<T>(List* list, T item) where T : unmanaged
@@ -189,15 +209,15 @@ namespace Collections.Implementations
             Allocations.ThrowIfNull(list);
             ThrowifStrideSizeMismatch<T>(list);
 
-            uint stride = list->stride;
-            if (list->count == list->capacity)
+            uint count = list->count;
+            if (count == list->capacity)
             {
                 list->capacity *= 2;
-                Allocation.Resize(ref list->items, stride * list->capacity);
+                Allocation.Resize(ref list->items, (uint)sizeof(T) * list->capacity);
             }
 
-            list->items.Write(list->count * stride, item);
-            list->count++;
+            list->items.WriteElement(count, item);
+            list->count = count + 1;
         }
 
         public static void Add(List* list, USpan<byte> elementBytes)
@@ -206,7 +226,8 @@ namespace Collections.Implementations
             ThrowifStrideSizeMismatch(list, elementBytes.Length);
 
             uint stride = list->stride;
-            if (list->count == list->capacity)
+            uint count = list->count;
+            if (count == list->capacity)
             {
                 list->capacity *= 2;
                 Allocation.Resize(ref list->items, stride * list->capacity);
@@ -217,7 +238,7 @@ namespace Collections.Implementations
             Span<byte> destinationSpan = new(destination, (int)elementBytes.Length);
             Span<byte> sourceSpan = new(source, (int)elementBytes.Length);
             sourceSpan.CopyTo(destinationSpan);
-            list->count++;
+            list->count = count + 1;
         }
 
         public static void AddDefault(List* list)
@@ -225,16 +246,15 @@ namespace Collections.Implementations
             Allocations.ThrowIfNull(list);
 
             uint stride = list->stride;
-            if (list->count == list->capacity)
+            uint count = list->count;
+            if (count == list->capacity)
             {
                 list->capacity *= 2;
                 Allocation.Resize(ref list->items, stride * list->capacity);
             }
 
-            void* destination = (void*)(list->items.Address + list->count * stride);
-            USpan<byte> destinationSpan = new(destination, stride);
-            destinationSpan.Clear();
-            list->count++;
+            list->items.Clear(count * stride, stride);
+            list->count = count + 1;
         }
 
         public static void AddDefault(List* list, uint count)
@@ -249,9 +269,7 @@ namespace Collections.Implementations
                 Allocation.Resize(ref list->items, stride * list->capacity);
             }
 
-            void* destination = (void*)(list->items.Address + list->count * stride);
-            USpan<byte> destinationSpan = new(destination, count * stride);
-            destinationSpan.Clear();
+            list->items.Clear(list->count * stride, count * stride);
             list->count = newCount;
         }
 
@@ -272,12 +290,12 @@ namespace Collections.Implementations
             list->count = newCount;
         }
 
-        public static void AddRange<T>(List* list, USpan<T> items) where T : unmanaged
+        public static void AddRange<T>(List* list, USpan<T> span) where T : unmanaged
         {
             Allocations.ThrowIfNull(list);
             ThrowifStrideSizeMismatch<T>(list);
 
-            uint addLength = items.Length;
+            uint addLength = span.Length;
             uint newCount = list->count + addLength;
             if (newCount >= list->capacity)
             {
@@ -286,7 +304,7 @@ namespace Collections.Implementations
             }
 
             USpan<T> destination = list->items.AsSpan<T>(list->count, addLength);
-            items.CopyTo(destination);
+            span.CopyTo(destination);
             list->count = newCount;
         }
 
@@ -313,9 +331,9 @@ namespace Collections.Implementations
             Allocations.ThrowIfNull(list);
             ThrowIfOutOfRange(list, index);
 
-            uint count = list->count;
+            uint newCount = list->count - 1;
             uint stride = list->stride;
-            while (index < count - 1)
+            while (index < newCount)
             {
                 USpan<byte> thisElement = list->items.AsSpan<byte>(index * stride, stride);
                 USpan<byte> nextElement = list->items.AsSpan<byte>((index + 1) * stride, stride);
@@ -323,7 +341,7 @@ namespace Collections.Implementations
                 index++;
             }
 
-            list->count--;
+            list->count = newCount;
         }
 
         public static void RemoveAtBySwapping(List* list, uint index)
@@ -331,34 +349,41 @@ namespace Collections.Implementations
             Allocations.ThrowIfNull(list);
             ThrowIfOutOfRange(list, index);
 
-            USpan<byte> lastElement = list->items.AsSpan<byte>((list->count - 1) * list->stride, list->stride);
+            uint newCount = list->count - 1;
+            USpan<byte> lastElement = list->items.AsSpan<byte>(newCount * list->stride, list->stride);
             USpan<byte> indexElement = list->items.AsSpan<byte>(index * list->stride, list->stride);
             lastElement.CopyTo(indexElement);
-            list->count--;
+            list->count = newCount;
         }
 
-        public static T RemoveAt<T>(List* list, uint index) where T : unmanaged, IEquatable<T>
+        public static void RemoveAt<T>(List* list, uint index) where T : unmanaged, IEquatable<T>
         {
             Allocations.ThrowIfNull(list);
             ThrowIfOutOfRange(list, index);
             ThrowifStrideSizeMismatch<T>(list);
 
-            USpan<T> span = list->items.AsSpan<T>(0, list->count);
-            T removed = span[index];
-            RemoveAt(list, index);
-            return removed;
+            uint newCount = list->count - 1;
+            uint stride = list->stride;
+            while (index < newCount)
+            {
+                T nextElement = list->items.ReadElement<T>(index + 1);
+                list->items.WriteElement(index, nextElement);
+                index++;
+            }
+
+            list->count = newCount;
         }
 
-        public static T RemoveAtBySwapping<T>(List* list, uint index) where T : unmanaged, IEquatable<T>
+        public static void RemoveAtBySwapping<T>(List* list, uint index) where T : unmanaged, IEquatable<T>
         {
             Allocations.ThrowIfNull(list);
             ThrowIfOutOfRange(list, index);
             ThrowifStrideSizeMismatch<T>(list);
 
-            USpan<T> span = list->items.AsSpan<T>(0, list->count);
-            T removed = span[index];
-            RemoveAtBySwapping(list, index);
-            return removed;
+            uint newCount = list->count - 1;
+            T lastElement = list->items.ReadElement<T>(newCount);
+            list->items.WriteElement(index, lastElement);
+            list->count = newCount;
         }
 
         public static void Clear(List* list)
@@ -366,46 +391,6 @@ namespace Collections.Implementations
             Allocations.ThrowIfNull(list);
 
             list->count = 0;
-        }
-
-        public static USpan<T> AsSpan<T>(List* list) where T : unmanaged
-        {
-            Allocations.ThrowIfNull(list);
-            ThrowifStrideSizeMismatch<T>(list);
-
-            return list->items.AsSpan<T>(0, list->count);
-        }
-
-        public static USpan<T> AsSpan<T>(List* list, uint start) where T : unmanaged
-        {
-            Allocations.ThrowIfNull(list);
-            ThrowifStrideSizeMismatch<T>(list);
-            ThrowIfOutOfRange(list, start);
-
-            return list->items.AsSpan<T>(start, list->count - start);
-        }
-
-        public static USpan<T> AsSpan<T>(List* list, uint start, uint length) where T : unmanaged
-        {
-            Allocations.ThrowIfNull(list);
-            ThrowifStrideSizeMismatch<T>(list);
-            ThrowIfPastRange(list, start + length);
-
-            return list->items.AsSpan<T>(start, length);
-        }
-
-        public static uint GetCount(List* list)
-        {
-            Allocations.ThrowIfNull(list);
-
-            return list->count;
-        }
-
-        public static uint GetCapacity(List* list)
-        {
-            Allocations.ThrowIfNull(list);
-
-            return list->capacity;
         }
 
         public static uint SetCapacity(List* list, uint newCapacity)
@@ -422,40 +407,6 @@ namespace Collections.Implementations
             list->items = newItems;
             list->capacity = newCapacity;
             return newCapacity;
-        }
-
-        /// <summary>
-        /// Returns the address of the first element in the list.
-        /// </summary>
-        public static nint GetStartAddress(List* list)
-        {
-            Allocations.ThrowIfNull(list);
-
-            return list->items.Address;
-        }
-
-        public static void CopyElementTo(List* source, uint sourceIndex, List* destination, uint destinationIndex)
-        {
-            ThrowIfOutOfRange(source, sourceIndex);
-            ThrowIfOutOfRange(destination, destinationIndex);
-
-            uint stride = source->stride;
-            USpan<byte> sourceElement = source->items.AsSpan<byte>(sourceIndex * stride, stride);
-            USpan<byte> destinationElement = destination->items.AsSpan<byte>(destinationIndex * stride, stride);
-            sourceElement.CopyTo(destinationElement);
-        }
-
-        public static void CopyTo<T>(List* source, uint sourceIndex, USpan<T> destination, uint destinationIndex) where T : unmanaged
-        {
-            ThrowIfOutOfRange(source, sourceIndex);
-
-            if (destinationIndex + source->count - sourceIndex > destination.Length)
-            {
-                throw new ArgumentException("Destination span is too small to fit destination");
-            }
-
-            USpan<T> sourceSpan = AsSpan<T>(source, sourceIndex);
-            sourceSpan.CopyTo(destination.Slice(destinationIndex));
         }
     }
 }

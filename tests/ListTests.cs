@@ -265,13 +265,13 @@ namespace Collections.Tests
         [Test]
         public unsafe void ReadBytesFromList()
         {
-            List* data = List.Allocate<int>(4);
-            List.Add(data, 1);
-            List.Add(data, 2);
-            List.Add(data, 3);
-            List.Add(data, 4);
+            List<int> data = new(4);
+            data.Add(1);
+            data.Add(2);
+            data.Add(3);
+            data.Add(4);
 
-            USpan<byte> span = List.AsSpan<int>(data).Reinterpret<byte>();
+            USpan<byte> span = data.AsSpan().Reinterpret<byte>();
             Assert.That(span.Length, Is.EqualTo(sizeof(int) * 4));
             int value1 = BitConverter.ToInt32(span.Slice(0, 4));
             int value2 = BitConverter.ToInt32(span.Slice(4, 4));
@@ -281,8 +281,9 @@ namespace Collections.Tests
             Assert.That(value2, Is.EqualTo(2));
             Assert.That(value3, Is.EqualTo(3));
             Assert.That(value4, Is.EqualTo(4));
-            List.Free(ref data);
-            Assert.That(data is null, Is.True);
+
+            data.Dispose();
+            Assert.That(data.IsDisposed, Is.True);
         }
 
         [Test]
@@ -326,16 +327,16 @@ namespace Collections.Tests
         [Test]
         public unsafe void AddAnotherUnsafeList()
         {
-            List* a = List.Allocate<int>(4);
-            List* b = List.Allocate<int>(4);
-            List.AddRange(a, [1, 3]);
-            List.AddRange(b, [3, 7, 7]);
-            Assert.That(List.AsSpan<int>(a).ToArray(), Is.EqualTo(new[] { 1, 3 }));
-            Assert.That(List.AsSpan<int>(b).ToArray(), Is.EqualTo(new[] { 3, 7, 7 }));
-            List.AddRange(a, (void*)List.GetStartAddress(b), List.GetCount(b));
-            Assert.That(List.AsSpan<int>(a).ToArray(), Is.EqualTo(new[] { 1, 3, 3, 7, 7 }));
-            List.Free(ref a);
-            List.Free(ref b);
+            List<int> a = new(4);
+            List<int> b = new(4);
+            a.AddRange([1, 3]);
+            b.AddRange([3, 7, 7]);
+            Assert.That(a.AsSpan().ToArray(), Is.EqualTo(new[] { 1, 3 }));
+            Assert.That(b.AsSpan().ToArray(), Is.EqualTo(new[] { 3, 7, 7 }));
+            a.AddRange(b.AsSpan());
+            Assert.That(a.AsSpan().ToArray(), Is.EqualTo(new[] { 1, 3, 3, 7, 7 }));
+            b.Dispose();
+            a.Dispose();
         }
 
         [Test]
@@ -359,5 +360,75 @@ namespace Collections.Tests
             Assert.That(list.Count, Is.EqualTo(32));
             list.Dispose();
         }
+
+        [Test]
+        public unsafe void InsertAllocation()
+        {
+            List* a = List.Allocate<int>(4);
+            List.Add(a, 8);
+            List.Add(a, 9);
+            List.Add(a, 10);
+            List.Add(a, 11);
+
+            List* b = List.Allocate<int>(3);
+            List.Add(b, 5);
+            List.Add(b, 6);
+            List.Add(b, 7);
+
+            Allocation element = a->Items.Read(3 * sizeof(int)); //11
+            List.Insert(b, 1, element);
+
+            Assert.That(b->Count, Is.EqualTo(4));
+            USpan<int> span = b->Items.AsSpan<int>(0, b->Count);
+            Assert.That(span[0], Is.EqualTo(5));
+            Assert.That(span[1], Is.EqualTo(11));
+            Assert.That(span[2], Is.EqualTo(6));
+            Assert.That(span[3], Is.EqualTo(7));
+
+            List.Free(ref b);
+            List.Free(ref a);
+        }
+
+#if !DEBUG
+        [Test]
+        public void BenchmarkAgainstSystem()
+        {
+            System.Collections.Generic.List<uint> systemList = new(9);
+            using List<uint> list = new(9);
+
+            Benchmark systemResult = new(() =>
+            {
+                for (uint i = 0; i < 1024; i++)
+                {
+                    systemList.Add(i * 8);
+                }
+
+                systemList.Clear();
+
+                for (uint i = 0; i < 256; i++)
+                {
+                    systemList.Insert(0, i);
+                }
+            });
+
+            Benchmark customResult = new(() =>
+            {
+                for (uint i = 0; i < 1024; i++)
+                {
+                    list.Add(i * 8);
+                }
+
+                list.Clear();
+
+                for (uint i = 0; i < 256; i++)
+                {
+                    list.Insert(0, i);
+                }
+            });
+
+            Console.WriteLine($"System: {systemResult}");
+            Console.WriteLine($"Custom: {customResult}");
+        }
+#endif
     }
 }

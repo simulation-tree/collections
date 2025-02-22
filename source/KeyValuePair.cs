@@ -54,5 +54,10 @@ namespace Collections
         {
             return new(pair.key, pair.value);
         }
+
+        public static implicit operator (K key, V value)(KeyValuePair<K, V> pair)
+        {
+            return (pair.key, pair.value);
+        }
     }
 }

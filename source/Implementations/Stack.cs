@@ -1,18 +1,32 @@
 ﻿using System;
 using System.Diagnostics;
+using System.Reflection.Metadata;
 using Unmanaged;
 
 namespace Collections.Implementations
 {
     public unsafe struct Stack
     {
-        public uint capacity;
-        public uint top;
-        public uint stride;
-        public Allocation items;
+        public readonly uint stride;
+
+        internal uint capacity;
+        internal uint top;
+        internal Allocation items;
+
+        public readonly uint Capacity => capacity;
+        public readonly uint Top => top;
+        public readonly Allocation Items => items;
+
+        private Stack(uint stride, uint capacity)
+        {
+            this.stride = stride;
+            this.capacity = capacity;
+            this.top = 0;
+            this.items = new(stride * capacity);
+        }
 
         [Conditional("DEBUG")]
-        private static void ThrowIfZero(uint top)
+        internal static void ThrowIfZero(uint top)
         {
             if (top == 0)
             {
@@ -20,13 +34,20 @@ namespace Collections.Implementations
             }
         }
 
+        [Conditional("DEBUG")]
+        internal static void ThrowIfSizeMismatch<T>(Stack* stack) where T : unmanaged
+        {
+            if (stack->stride != (uint)sizeof(T))
+            {
+                throw new InvalidOperationException($"Stride size {stack->stride} does not match expected size of type {sizeof(T)}");
+            }
+        }
+
         public static Stack* Allocate<T>(uint initialCapacity) where T : unmanaged
         {
             ref Stack stack = ref Allocations.Allocate<Stack>();
-            stack.capacity = Allocations.GetNextPowerOf2(Math.Max(1, initialCapacity));
-            stack.top = 0;
-            stack.stride = (uint)sizeof(T);
-            stack.items = new(stack.capacity * stack.stride);
+            initialCapacity = Allocations.GetNextPowerOf2(Math.Max(1, initialCapacity));
+            stack = new((uint)sizeof(T), initialCapacity);
             fixed (Stack* pointer = &stack)
             {
                 return pointer;
@@ -44,28 +65,31 @@ namespace Collections.Implementations
         public static void Push<T>(Stack* stack, T item) where T : unmanaged
         {
             Allocations.ThrowIfNull(stack);
+            ThrowIfSizeMismatch<T>(stack);
 
-            if (stack->top == stack->capacity)
+            uint top = stack->top;
+            if (top == stack->capacity)
             {
                 stack->capacity *= 2;
-                Allocation.Resize(ref stack->items, stack->capacity * stack->stride);
+                Allocation.Resize(ref stack->items, stack->capacity * (uint)sizeof(T));
             }
 
-            stack->items.Write(stack->top * stack->stride, item);
-            stack->top++;
+            stack->items.WriteElement(top, item);
+            stack->top = top + 1;
         }
 
         public static void PushRange<T>(Stack* stack, USpan<T> items) where T : unmanaged
         {
             Allocations.ThrowIfNull(stack);
+            ThrowIfSizeMismatch<T>(stack);
 
             if (stack->top + items.Length > stack->capacity)
             {
                 stack->capacity = Allocations.GetNextPowerOf2(stack->top + items.Length);
-                Allocation.Resize(ref stack->items, stack->capacity * stack->stride);
+                Allocation.Resize(ref stack->items, stack->capacity * (uint)sizeof(T));
             }
 
-            stack->items.Write(stack->top * stack->stride, items);
+            stack->items.Write(stack->top * (uint)sizeof(T), items);
             stack->top += items.Length;
         }
 
@@ -73,17 +97,20 @@ namespace Collections.Implementations
         {
             Allocations.ThrowIfNull(stack);
             ThrowIfZero(stack->top);
+            ThrowIfSizeMismatch<T>(stack);
 
-            stack->top--;
-            return stack->items.Read<T>(stack->top * stack->stride);
+            uint newTop = stack->top - 1;
+            stack->top = newTop;
+            return stack->items.ReadElement<T>(newTop);
         }
 
         public static T Peek<T>(Stack* stack) where T : unmanaged
         {
             Allocations.ThrowIfNull(stack);
             ThrowIfZero(stack->top);
+            ThrowIfSizeMismatch<T>(stack);
 
-            return stack->items.Read<T>((stack->top - 1) * stack->stride);
+            return stack->items.ReadElement<T>(stack->top - 1);
         }
 
         public static void Clear(Stack* stack)
@@ -109,6 +136,7 @@ namespace Collections.Implementations
         public static USpan<T> AsSpan<T>(Stack* stack) where T : unmanaged
         {
             Allocations.ThrowIfNull(stack);
+            ThrowIfSizeMismatch<T>(stack);
 
             return stack->items.AsSpan<T>(0, stack->top);
         }

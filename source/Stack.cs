@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using Unmanaged;
+using static Collections.Implementations.Stack;
 using Implementation = Collections.Implementations.Stack;
 
 namespace Collections
@@ -13,31 +14,47 @@ namespace Collections
     public unsafe struct Stack<T> : IDisposable, IReadOnlyCollection<T>, ICollection<T>, IEquatable<Stack<T>> where T : unmanaged
     {
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        private Implementation* implementation;
+        private Implementation* stack;
 
         /// <summary>
         /// Checks if this stack has been disposed.
         /// </summary>
-        public readonly bool IsDisposed => implementation is null;
+        public readonly bool IsDisposed => stack is null;
 
         /// <summary>
         /// Amount of items in the stack.
         /// </summary>
-        public readonly uint Count => implementation->top;
+        public readonly uint Count
+        {
+            get
+            {
+                Allocations.ThrowIfNull(stack);
+
+                return stack->top;
+            }
+        }
 
         /// <summary>
         /// Checks if the stack is empty.
         /// </summary>
-        public readonly bool IsEmpty => implementation->top == 0;
+        public readonly bool IsEmpty
+        {
+            get
+            {
+                Allocations.ThrowIfNull(stack);
+
+                return stack->top == 0;
+            }
+        }
 
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        int ICollection<T>.Count => (int)implementation->top;
+        int ICollection<T>.Count => (int)stack->top;
 
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         readonly bool ICollection<T>.IsReadOnly => false;
 
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        int IReadOnlyCollection<T>.Count => (int)implementation->top;
+        int IReadOnlyCollection<T>.Count => (int)stack->top;
 
         [DebuggerBrowsable(DebuggerBrowsableState.Collapsed)]
         private readonly T[] Items => AsSpan().ToArray();
@@ -47,7 +64,7 @@ namespace Collections
         /// </summary>
         public Stack()
         {
-            implementation = Implementation.Allocate<T>(4);
+            stack = Allocate<T>(4);
         }
 #endif
 
@@ -56,7 +73,7 @@ namespace Collections
         /// </summary>
         public Stack(uint initialCapacity = 4)
         {
-            implementation = Implementation.Allocate<T>(initialCapacity);
+            stack = Allocate<T>(initialCapacity);
         }
 
         /// <summary>
@@ -64,49 +81,90 @@ namespace Collections
         /// </summary>
         public Stack(void* pointer)
         {
-            implementation = (Implementation*)pointer;
+            stack = (Implementation*)pointer;
         }
 
         public void Dispose()
         {
-            Implementation.Free(ref implementation);
+            Free(ref stack);
         }
 
         public readonly USpan<T> AsSpan()
         {
-            return Implementation.AsSpan<T>(implementation);
+            Allocations.ThrowIfNull(stack);
+
+            return stack->items.AsSpan<T>(0, stack->top);
         }
 
         public readonly void Clear()
         {
-            Implementation.Clear(implementation);
+            Allocations.ThrowIfNull(stack);
+
+            stack->top = 0;
         }
 
         public readonly void Clear(uint minimumCapacity)
         {
-            Implementation.Clear(implementation, minimumCapacity);
+            Allocations.ThrowIfNull(stack);
+
+            if (stack->capacity < minimumCapacity)
+            {
+                stack->capacity = Allocations.GetNextPowerOf2(minimumCapacity);
+                Allocation.Resize(ref stack->items, stack->capacity * (uint)sizeof(T));
+            }
+
+            stack->top = 0;
         }
 
         public readonly void Push(T item)
         {
-            Implementation.Push(implementation, item);
+            Allocations.ThrowIfNull(stack);
+
+            uint top = stack->top;
+            if (top == stack->capacity)
+            {
+                stack->capacity *= 2;
+                Allocation.Resize(ref stack->items, stack->capacity * (uint)sizeof(T));
+            }
+
+            stack->items.WriteElement(top, item);
+            stack->top = top + 1;
         }
 
         public readonly void PushRange(USpan<T> items)
         {
-            Implementation.PushRange(implementation, items);
+            Allocations.ThrowIfNull(stack);
+
+            if (stack->top + items.Length > stack->capacity)
+            {
+                stack->capacity = Allocations.GetNextPowerOf2(stack->top + items.Length);
+                Allocation.Resize(ref stack->items, stack->capacity * (uint)sizeof(T));
+            }
+
+            stack->items.Write(stack->top * (uint)sizeof(T), items);
+            stack->top += items.Length;
         }
 
         public readonly T Pop()
         {
-            return Implementation.Pop<T>(implementation);
+            Allocations.ThrowIfNull(stack);
+            ThrowIfZero(stack->top);
+
+            uint newTop = stack->top - 1;
+            stack->top = newTop;
+            return stack->items.ReadElement<T>(newTop);
         }
 
         public readonly bool TryPop(out T value)
         {
-            if (implementation->top > 0)
+            Allocations.ThrowIfNull(stack);
+            if (stack->top > 0)
             {
-                value = Implementation.Pop<T>(implementation);
+                ThrowIfZero(stack->top);
+
+                uint newTop = stack->top - 1;
+                stack->top = newTop;
+                value = stack->items.ReadElement<T>(newTop);
                 return true;
             }
             else
@@ -118,14 +176,19 @@ namespace Collections
 
         public readonly T Peek()
         {
-            return Implementation.Peek<T>(implementation);
+            Allocations.ThrowIfNull(stack);
+            ThrowIfZero(stack->top);
+
+            return stack->items.ReadElement<T>(stack->top - 1);
         }
 
         public readonly bool TryPeek(out T value)
         {
-            if (implementation->top > 0)
+            Allocations.ThrowIfNull(stack);
+
+            if (stack->top > 0)
             {
-                value = Implementation.Peek<T>(implementation);
+                value = stack->items.ReadElement<T>(stack->top - 1);
                 return true;
             }
             else
@@ -171,7 +234,7 @@ namespace Collections
 
         public readonly Enumerator GetEnumerator()
         {
-            return new Enumerator(implementation);
+            return new Enumerator(stack);
         }
 
         readonly IEnumerator<T> IEnumerable<T>.GetEnumerator()
@@ -186,7 +249,7 @@ namespace Collections
 
         public readonly bool Equals(Stack<T> other)
         {
-            return implementation == other.implementation;
+            return stack == other.stack;
         }
 
         public readonly override bool Equals(object? obj)
@@ -196,7 +259,7 @@ namespace Collections
 
         public readonly override int GetHashCode()
         {
-            return (int)implementation;
+            return (int)stack;
         }
 
         public static bool operator ==(Stack<T> left, Stack<T> right)

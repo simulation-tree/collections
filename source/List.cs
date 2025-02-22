@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using Unmanaged;
+using static Collections.Implementations.List;
 using Implementation = Collections.Implementations.List;
 
 namespace Collections
@@ -13,38 +14,65 @@ namespace Collections
     public unsafe struct List<T> : IDisposable, IReadOnlyList<T>, IList<T>, IEquatable<List<T>> where T : unmanaged
     {
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        private Implementation* value;
+        private Implementation* list;
 
         /// <summary>
         /// Checks if the list has been disposed.
         /// </summary>
-        public readonly bool IsDisposed => value is null;
+        public readonly bool IsDisposed => list is null;
 
         /// <summary>
         /// Amount of elements in the list.
         /// </summary>
-        public readonly uint Count => Implementation.GetCount(value);
+        public readonly uint Count
+        {
+            get
+            {
+                Allocations.ThrowIfNull(list);
+
+                return list->count;
+            }
+        }
 
         /// <summary>
         /// Capacity of the list.
         /// </summary>
         public readonly uint Capacity
         {
-            get => Implementation.GetCapacity(value);
-            set => Implementation.SetCapacity(this.value, value);
+            get
+            {
+                Allocations.ThrowIfNull(list);
+
+                return list->capacity;
+            }
+            set
+            {
+                Allocations.ThrowIfNull(list);
+
+                SetCapacity(list, value);
+            }
         }
 
         /// <summary>
         /// Native address of this list.
         /// </summary>
-        public readonly nint Address => (nint)value;
+        public readonly nint Address => (nint)list;
 
         /// <summary>
         /// Accesses the element at the specified index.
         /// </summary>
-        public readonly ref T this[uint index] => ref Implementation.GetElement<T>(value, index);
+        public readonly ref T this[uint index]
+        {
+            get
+            {
+                Allocations.ThrowIfNull(list);
+                ThrowIfOutOfRange(list, index);
 
-        readonly T IReadOnlyList<T>.this[int index] => Implementation.GetElement<T>(value, (uint)index);
+                return ref list->Items.ReadElement<T>(index);
+            }
+        }
+
+        readonly T IReadOnlyList<T>.this[int index] => list->Items.ReadElement<T>((uint)index);
 
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         readonly int IReadOnlyCollection<T>.Count => (int)Count;
@@ -57,8 +85,20 @@ namespace Collections
 
         readonly T IList<T>.this[int index]
         {
-            get => Implementation.GetElement<T>(value, (uint)index);
-            set => Implementation.GetElement<T>(this.value, (uint)index) = value;
+            get
+            {
+                Allocations.ThrowIfNull(list);
+                ThrowIfOutOfRange(list, (uint)index);
+
+                return list->Items.ReadElement<T>((uint)index);
+            }
+            set
+            {
+                Allocations.ThrowIfNull(list);
+                ThrowIfOutOfRange(list, (uint)index);
+
+                list->Items.WriteElement((uint)index, value);
+            }
         }
 
         [DebuggerBrowsable(DebuggerBrowsableState.Collapsed)]
@@ -69,7 +109,7 @@ namespace Collections
         /// </summary>
         public List(void* pointer)
         {
-            value = (Implementation*)pointer;
+            list = (Implementation*)pointer;
         }
 
         /// <summary>
@@ -77,7 +117,7 @@ namespace Collections
         /// </summary>
         public List(uint initialCapacity = 4)
         {
-            value = Implementation.Allocate<T>(initialCapacity);
+            list = Allocate<T>(initialCapacity);
         }
 
         /// <summary>
@@ -85,7 +125,7 @@ namespace Collections
         /// </summary>
         public List(USpan<T> span)
         {
-            value = Implementation.Allocate(span);
+            list = Allocate(span);
         }
 
         /// <summary>
@@ -93,7 +133,7 @@ namespace Collections
         /// </summary>
         public List(IEnumerable<T> list)
         {
-            value = Implementation.Allocate<T>(4);
+            this.list = Allocate<T>(4);
             foreach (T item in list)
             {
                 Add(item);
@@ -106,7 +146,7 @@ namespace Collections
         /// </summary>
         public List()
         {
-            value = Implementation.Allocate<T>(4);
+            list = Allocate<T>(4);
         }
 #endif
 
@@ -118,7 +158,7 @@ namespace Collections
         /// </summary>
         public void Dispose()
         {
-            Implementation.Free(ref value);
+            Free(ref list);
         }
 
         /// <summary>
@@ -126,7 +166,9 @@ namespace Collections
         /// </summary>
         public readonly USpan<T> AsSpan()
         {
-            return Implementation.AsSpan<T>(value);
+            Allocations.ThrowIfNull(list);
+
+            return list->Items.AsSpan<T>(0, Count);
         }
 
         /// <summary>
@@ -134,7 +176,10 @@ namespace Collections
         /// </summary>
         public readonly USpan<T> AsSpan(uint start)
         {
-            return Implementation.AsSpan<T>(value, start);
+            Allocations.ThrowIfNull(list);
+            ThrowIfOutOfRange(list, start);
+
+            return list->Items.AsSpan<T>(start, Count - start);
         }
 
         /// <summary>
@@ -142,7 +187,10 @@ namespace Collections
         /// </summary>
         public readonly USpan<T> AsSpan(uint start, uint length)
         {
-            return Implementation.AsSpan<T>(value, start, length);
+            Allocations.ThrowIfNull(list);
+            ThrowIfOutOfRange(list, start + length);
+
+            return list->Items.AsSpan<T>(start, length);
         }
 
         /// <summary>
@@ -154,7 +202,23 @@ namespace Collections
         /// <exception cref="IndexOutOfRangeException"/>
         public readonly void Insert(uint index, T item)
         {
-            Implementation.Insert(value, index, item);
+            Allocations.ThrowIfNull(list);
+            ThrowifStrideSizeMismatch<T>(list);
+
+            uint count = list->count;
+            if (count == list->capacity)
+            {
+                list->capacity *= 2;
+                Allocation.Resize(ref list->items, (uint)sizeof(T) * list->capacity);
+            }
+
+            uint remaining = count - index;
+            USpan<T> destination = list->items.AsSpan<T>(index + 1, remaining);
+            USpan<T> source = list->items.AsSpan<T>(index, remaining);
+            source.CopyTo(destination);
+
+            list->items.WriteElement(index, item);
+            list->count = count + 1;
         }
 
         /// <summary>
@@ -162,7 +226,18 @@ namespace Collections
         /// </summary>
         public readonly void Add(T item)
         {
-            Implementation.Add(value, item);
+            Allocations.ThrowIfNull(list);
+            ThrowifStrideSizeMismatch<T>(list);
+
+            uint count = list->count;
+            if (count == list->capacity)
+            {
+                list->capacity *= 2;
+                Allocation.Resize(ref list->items, (uint)sizeof(T) * list->capacity);
+            }
+
+            list->items.WriteElement(count, item);
+            list->count = count + 1;
         }
 
         /// <summary>
@@ -170,7 +245,17 @@ namespace Collections
         /// </summary>
         public readonly void AddDefault()
         {
-            Implementation.AddDefault(value);
+            Allocations.ThrowIfNull(list);
+
+            uint count = list->count;
+            if (count == list->capacity)
+            {
+                list->capacity *= 2;
+                Allocation.Resize(ref list->items, (uint)sizeof(T) * list->capacity);
+            }
+
+            list->items.WriteElement<T>(count, default);
+            list->count = count + 1;
         }
 
         /// <summary>
@@ -178,7 +263,17 @@ namespace Collections
         /// </summary>
         public readonly void AddDefault(uint count)
         {
-            Implementation.AddDefault(value, count);
+            Allocations.ThrowIfNull(list);
+
+            uint newCount = list->count + count;
+            if (newCount >= list->capacity)
+            {
+                list->capacity = Allocations.GetNextPowerOf2(newCount);
+                Allocation.Resize(ref list->items, (uint)sizeof(T) * list->capacity);
+            }
+
+            list->items.Clear(list->count * (uint)sizeof(T), count * (uint)sizeof(T));
+            list->count = newCount;
         }
 
         /// <summary>
@@ -186,7 +281,19 @@ namespace Collections
         /// </summary>
         public readonly void AddRepeat(T item, uint count)
         {
-            Implementation.AddRepeat(value, item, count);
+            Allocations.ThrowIfNull(list);
+
+            uint stride = list->stride;
+            uint newCount = list->count + count;
+            if (newCount >= list->capacity)
+            {
+                list->capacity = Allocations.GetNextPowerOf2(newCount);
+                Allocation.Resize(ref list->items, stride * list->capacity);
+            }
+
+            USpan<T> span = list->items.AsSpan<T>(list->count, count);
+            span.Fill(item);
+            list->count = newCount;
         }
 
         /// <summary>
@@ -194,7 +301,7 @@ namespace Collections
         /// </summary>
         public readonly void AddRange(void* pointer, uint count)
         {
-            Implementation.AddRange(value, pointer, count);
+            Implementation.AddRange(list, pointer, count);
         }
 
         /// <summary>
@@ -231,15 +338,20 @@ namespace Collections
         /// </summary>
         public readonly void AddRange(USpan<T> span)
         {
-            Implementation.AddRange(value, span);
-        }
+            Allocations.ThrowIfNull(list);
+            ThrowifStrideSizeMismatch<T>(list);
 
-        /// <summary>
-        /// Retrieves the address where items start.
-        /// </summary>
-        public readonly nint GetStartAddress()
-        {
-            return Implementation.GetStartAddress(value);
+            uint addLength = span.Length;
+            uint newCount = list->count + addLength;
+            if (newCount >= list->capacity)
+            {
+                list->capacity = Allocations.GetNextPowerOf2(newCount);
+                Allocation.Resize(ref list->items, list->stride * list->capacity);
+            }
+
+            USpan<T> destination = list->items.AsSpan<T>(list->count, addLength);
+            span.CopyTo(destination);
+            list->count = newCount;
         }
 
         /// <summary>
@@ -250,11 +362,43 @@ namespace Collections
         /// </summary>
         /// <returns>The removed element.</returns>
         /// <exception cref="IndexOutOfRangeException"></exception>"
-        public readonly T RemoveAt(uint index)
+        public readonly void RemoveAt(uint index)
         {
-            T removed = this[index];
-            Implementation.RemoveAt(value, index);
-            return removed;
+            Allocations.ThrowIfNull(list);
+            ThrowIfOutOfRange(list, index);
+
+            uint newCount = list->count - 1;
+            uint stride = list->stride;
+            while (index < newCount)
+            {
+                T nextElement = list->Items.ReadElement<T>(index + 1);
+                list->Items.WriteElement(index, nextElement);
+                index++;
+            }
+
+            list->count = newCount;
+        }
+
+        /// <summary>
+        /// Removes the element at the given <paramref name="index"/>, and
+        /// provides access to the <paramref name="removed"/> value.
+        /// </summary>
+        public readonly void RemoveAt(uint index, out T removed)
+        {
+            Allocations.ThrowIfNull(list);
+            ThrowIfOutOfRange(list, index);
+
+            removed = this[index];
+            uint newCount = list->count - 1;
+            uint stride = list->stride;
+            while (index < newCount)
+            {
+                T nextElement = list->Items.ReadElement<T>(index + 1);
+                list->Items.WriteElement(index, nextElement);
+                index++;
+            }
+
+            list->count = newCount;
         }
 
         /// <summary>
@@ -265,11 +409,32 @@ namespace Collections
         /// </para>
         /// </summary>
         /// <exception cref="IndexOutOfRangeException"></exception>"
-        public readonly T RemoveAtBySwapping(uint index)
+        public readonly void RemoveAtBySwapping(uint index)
         {
-            T removed = this[index];
-            Implementation.RemoveAtBySwapping(value, index);
-            return removed;
+            Allocations.ThrowIfNull(list);
+            ThrowIfOutOfRange(list, index);
+
+            uint newCount = list->count - 1;
+            T lastElement = list->Items.ReadElement<T>(newCount);
+            list->Items.WriteElement(index, lastElement);
+            list->count = newCount;
+        }
+
+        /// <summary>
+        /// Removes the element at the given <paramref name="index"/> by
+        /// swapping it with the last element, and provides access to the 
+        /// <paramref name="removed"/> value.
+        /// </summary>
+        public readonly void RemoveAtBySwapping(uint index, out T removed)
+        {
+            Allocations.ThrowIfNull(list);
+            ThrowIfOutOfRange(list, index);
+
+            removed = this[index];
+            uint newCount = list->count - 1;
+            T lastElement = list->Items.ReadElement<T>(newCount);
+            list->Items.WriteElement(index, lastElement);
+            list->count = newCount;
         }
 
         /// <summary>
@@ -277,7 +442,9 @@ namespace Collections
         /// </summary>
         public readonly void Clear()
         {
-            Implementation.Clear(value);
+            Allocations.ThrowIfNull(list);
+
+            list->count = 0;
         }
 
         /// <summary>
@@ -289,16 +456,16 @@ namespace Collections
             uint capacity = Capacity;
             if (capacity < minimumCapacity)
             {
-                Implementation.AddDefault(value, minimumCapacity - capacity);
+                Implementation.AddDefault(list, minimumCapacity - capacity);
             }
 
-            Implementation.Clear(value);
+            Implementation.Clear(list);
         }
 
         /// <inheritdoc/>
         public readonly override int GetHashCode()
         {
-            return ((nint)value).GetHashCode();
+            return ((nint)list).GetHashCode();
         }
 
         /// <summary>
@@ -319,12 +486,12 @@ namespace Collections
 
         readonly IEnumerator<T> IEnumerable<T>.GetEnumerator()
         {
-            return new Enumerator(value);
+            return new Enumerator(list);
         }
 
         readonly IEnumerator IEnumerable.GetEnumerator()
         {
-            return new Enumerator(value);
+            return new Enumerator(list);
         }
 
         /// <inheritdoc/>
@@ -335,7 +502,7 @@ namespace Collections
                 return true;
             }
 
-            return value == other.value;
+            return list == other.list;
         }
 
         /// <inheritdoc/>
@@ -410,7 +577,7 @@ namespace Collections
             private readonly Implementation* list;
             private int index;
 
-            public readonly T Current => Implementation.GetElement<T>(list, (uint)index);
+            public readonly T Current => list->Items.ReadElement<T>((uint)index);
             readonly object IEnumerator.Current => Current;
 
             public Enumerator(Implementation* list)
@@ -422,7 +589,7 @@ namespace Collections
             public bool MoveNext()
             {
                 index++;
-                return index < Implementation.GetCount(list);
+                return index < list->Count;
             }
 
             public void Reset()

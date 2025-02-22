@@ -6,14 +6,25 @@ namespace Collections.Implementations
 {
     public unsafe struct Queue
     {
-        public uint capacity;
-        public uint top;
-        public uint rear;
-        public uint stride;
-        public Allocation items;
+        public readonly uint stride;
+
+        internal uint capacity;
+        internal uint top;
+        internal uint rear;
+        internal Allocation items;
+
+        private Queue(uint stride, uint capacity)
+        {
+            this.stride = stride;
+            this.capacity = capacity;
+            
+            top = 0;
+            rear = 0;
+            items = new(stride * capacity);
+        }
 
         [Conditional("DEBUG")]
-        private static void ThrowIfZero(uint top)
+        internal static void ThrowIfZero(uint top)
         {
             if (top == 0)
             {
@@ -21,93 +32,106 @@ namespace Collections.Implementations
             }
         }
 
+        [Conditional("DEBUG")]
+        internal static void ThrowIfSizeMismatch<T>(Queue* queue) where T : unmanaged
+        {
+            if (queue->stride != (uint)sizeof(T))
+            {
+                throw new InvalidOperationException($"Stride size {queue->stride} does not match expected size of type {sizeof(T)}");
+            }
+        }
+
         public static Queue* Allocate<T>(uint initialCapacity) where T : unmanaged
         {
-            ref Queue stack = ref Allocations.Allocate<Queue>();
-            stack.capacity = Allocations.GetNextPowerOf2(Math.Max(1, initialCapacity));
-            stack.top = 0;
-            stack.rear = 0;
-            stack.stride = (uint)sizeof(T);
-            stack.items = new(stack.capacity * stack.stride);
-            fixed (Queue* pointer = &stack)
+            initialCapacity = Allocations.GetNextPowerOf2(Math.Max(1, initialCapacity));
+            ref Queue queue = ref Allocations.Allocate<Queue>();
+            queue = new((uint)sizeof(T), initialCapacity);
+            fixed (Queue* pointer = &queue)
             {
                 return pointer;
             }
         }
 
-        public static void Free(ref Queue* stack)
+        public static void Free(ref Queue* queue)
         {
-            Allocations.ThrowIfNull(stack);
+            Allocations.ThrowIfNull(queue);
 
-            stack->items.Dispose();
-            Allocations.Free(ref stack);
+            queue->items.Dispose();
+            Allocations.Free(ref queue);
         }
 
-        public static void Enqueue<T>(Queue* stack, T item) where T : unmanaged
+        public static void Enqueue<T>(Queue* queue, T item) where T : unmanaged
         {
-            Allocations.ThrowIfNull(stack);
+            Allocations.ThrowIfNull(queue);
+            ThrowIfSizeMismatch<T>(queue);
 
-            if (stack->top == stack->capacity)
+            uint top = queue->top;
+            if (top == queue->capacity)
             {
-                stack->capacity *= 2;
-                Allocation.Resize(ref stack->items, stack->capacity * stack->stride);
+                queue->capacity *= 2;
+                Allocation.Resize(ref queue->items, queue->capacity * (uint)sizeof(T));
             }
 
-            stack->items.Write(stack->top * stack->stride, item);
-            stack->top++;
+            queue->items.WriteElement(top, item);
+            queue->top = top + 1;
         }
 
-        public static void EnqueueRange<T>(Queue* stack, USpan<T> items) where T : unmanaged
+        public static void EnqueueRange<T>(Queue* queue, USpan<T> items) where T : unmanaged
         {
-            Allocations.ThrowIfNull(stack);
+            Allocations.ThrowIfNull(queue);
+            ThrowIfSizeMismatch<T>(queue);
 
-            if (stack->top + items.Length > stack->capacity)
+            uint newTop = queue->top + items.Length;
+            if (newTop > queue->capacity)
             {
-                stack->capacity = Allocations.GetNextPowerOf2(stack->top + items.Length);
-                Allocation.Resize(ref stack->items, stack->capacity * stack->stride);
+                queue->capacity = Allocations.GetNextPowerOf2(newTop);
+                Allocation.Resize(ref queue->items, queue->capacity * (uint)sizeof(T));
             }
 
-            stack->items.Write(stack->top * stack->stride, items);
-            stack->top += items.Length;
+            queue->items.Write(queue->top * (uint)sizeof(T), items);
+            queue->top = newTop;
         }
 
-        public static T Dequeue<T>(Queue* stack) where T : unmanaged
+        public static T Dequeue<T>(Queue* queue) where T : unmanaged
         {
-            Allocations.ThrowIfNull(stack);
+            Allocations.ThrowIfNull(queue);
+            ThrowIfSizeMismatch<T>(queue);
 
-            T item = stack->items.Read<T>(stack->rear * stack->stride);
-            stack->rear++;
+            uint rear = queue->rear;
+            T item = queue->items.Read<T>(rear * (uint)sizeof(T));
+            queue->rear = rear + 1;
             return item;
         }
 
-        public static void Clear(Queue* stack)
+        public static void Clear(Queue* queue)
         {
-            Allocations.ThrowIfNull(stack);
+            Allocations.ThrowIfNull(queue);
 
-            stack->top = 0;
-            stack->rear = 0;
+            queue->top = 0;
+            queue->rear = 0;
         }
 
-        public static void Clear(Queue* stack, uint minimumCapacity)
+        public static void Clear(Queue* queue, uint minimumCapacity)
         {
-            Allocations.ThrowIfNull(stack);
+            Allocations.ThrowIfNull(queue);
 
-            if (stack->capacity < minimumCapacity)
+            if (queue->capacity < minimumCapacity)
             {
-                stack->capacity = Allocations.GetNextPowerOf2(minimumCapacity);
-                Allocation.Resize(ref stack->items, stack->capacity * stack->stride);
+                queue->capacity = Allocations.GetNextPowerOf2(minimumCapacity);
+                Allocation.Resize(ref queue->items, queue->capacity * queue->stride);
             }
 
-            stack->top = 0;
-            stack->rear = 0;
+            queue->top = 0;
+            queue->rear = 0;
         }
 
-        public static USpan<T> AsSpan<T>(Queue* stack) where T : unmanaged
+        public static USpan<T> AsSpan<T>(Queue* queue) where T : unmanaged
         {
-            Allocations.ThrowIfNull(stack);
+            Allocations.ThrowIfNull(queue);
+            ThrowIfSizeMismatch<T>(queue);
 
-            uint length = stack->top - stack->rear;
-            return stack->items.AsSpan<T>(stack->rear, length);
+            uint length = queue->top - queue->rear;
+            return queue->items.AsSpan<T>(queue->rear, length);
         }
     }
 }

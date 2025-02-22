@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using Unmanaged;
+using static Collections.Implementations.Array;
 using Implementation = Collections.Implementations.Array;
 
 namespace Collections
@@ -12,32 +13,62 @@ namespace Collections
     /// </summary>
     public unsafe struct Array<T> : IDisposable, IReadOnlyList<T>, IEquatable<Array<T>> where T : unmanaged
     {
+        private static readonly uint Stride = (uint)sizeof(T);
+
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        private Implementation* value;
+        private Implementation* array;
 
         /// <summary>
         /// Checks if the array has been disposed.
         /// </summary>
-        public readonly bool IsDisposed => value is null;
+        public readonly bool IsDisposed => array is null;
 
         /// <summary>
         /// Length of the array.
         /// </summary>
         public readonly uint Length
         {
-            get => Implementation.GetLength(value);
-            set => Implementation.Resize(this.value, value);
+            get
+            {
+                Allocations.ThrowIfNull(array);
+
+                return array->length;
+            }
+            set
+            {
+                Allocations.ThrowIfNull(array);
+
+                Resize(array, value);
+            }
         }
 
         /// <summary>
         /// Accesses the element at the specified index.
         /// </summary>
-        public readonly ref T this[uint index] => ref Implementation.GetRef<T>(value, index);
+        public readonly ref T this[uint index]
+        {
+            get
+            {
+                Allocations.ThrowIfNull(array);
+                ThrowIfOutOfRange(array, index);
+
+                return ref array->Items.ReadElement<T>(index);
+            }
+        }
 
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         readonly int IReadOnlyCollection<T>.Count => (int)Length;
 
-        readonly T IReadOnlyList<T>.this[int index] => Implementation.GetRef<T>(value, (uint)index);
+        readonly T IReadOnlyList<T>.this[int index]
+        {
+            get
+            {
+                Allocations.ThrowIfNull(array);
+                ThrowIfOutOfRange(array, (uint)index);
+
+                return array->Items.ReadElement<T>((uint)index);
+            }
+        }
 
         [DebuggerBrowsable(DebuggerBrowsableState.Collapsed)]
         private readonly T[] Items => AsSpan().ToArray();
@@ -47,15 +78,15 @@ namespace Collections
         /// </summary>
         public Array(Implementation* pointer)
         {
-            value = pointer;
+            array = pointer;
         }
 
         /// <summary>
         /// Creates a new array with the given <paramref name="length"/>.
         /// </summary>
-        public Array(uint length = 0)
+        public Array(uint length = 0, bool clear = true)
         {
-            value = Implementation.Allocate<T>(length);
+            array = Allocate<T>(length, clear);
         }
 
         /// <summary>
@@ -63,7 +94,7 @@ namespace Collections
         /// </summary>
         public Array(USpan<T> span)
         {
-            value = Implementation.Allocate(span);
+            array = Allocate(span);
         }
 
 #if NET
@@ -72,7 +103,7 @@ namespace Collections
         /// </summary>
         public Array()
         {
-            value = Implementation.Allocate<T>(0);
+            array = Allocate<T>(0, false);
         }
 #endif
 
@@ -84,7 +115,7 @@ namespace Collections
         /// </para>
         public void Dispose()
         {
-            Implementation.Free(ref value);
+            Free(ref array);
         }
 
         /// <summary>
@@ -92,7 +123,9 @@ namespace Collections
         /// </summary>
         public readonly void Clear()
         {
-            Implementation.Clear(value);
+            Allocations.ThrowIfNull(array);
+
+            array->Items.Clear(array->Length * Stride);
         }
 
         /// <summary>
@@ -101,7 +134,9 @@ namespace Collections
         /// </summary>
         public readonly void Clear(uint start, uint length)
         {
-            Implementation.Clear(value, start, length);
+            Allocations.ThrowIfNull(array);
+
+            array->Items.Clear(start * Stride, length * Stride);
         }
 
         /// <summary>
@@ -109,7 +144,9 @@ namespace Collections
         /// </summary>
         public readonly void Fill(T value)
         {
-            AsSpan().Fill(value);
+            Allocations.ThrowIfNull(array);
+
+            array->Items.AsSpan<T>(0, array->Length).Fill(value);
         }
 
         /// <summary>
@@ -117,7 +154,9 @@ namespace Collections
         /// </summary>
         public readonly USpan<T> AsSpan()
         {
-            return Implementation.AsSpan<T>(value);
+            Allocations.ThrowIfNull(array);
+
+            return array->Items.AsSpan<T>(0, array->Length);
         }
 
         /// <summary>
@@ -125,7 +164,9 @@ namespace Collections
         /// </summary>
         public readonly USpan<T> AsSpan(uint start)
         {
-            return AsSpan().Slice(start);
+            Allocations.ThrowIfNull(array);
+
+            return array->Items.AsSpan<T>(start, array->Length - start);
         }
 
         /// <summary>
@@ -134,7 +175,9 @@ namespace Collections
         /// </summary>
         public readonly USpan<T> AsSpan(uint start, uint length)
         {
-            return AsSpan().Slice(start, length);
+            Allocations.ThrowIfNull(array);
+
+            return array->Items.AsSpan<T>(start, length);
         }
 
         /// <summary>
@@ -163,12 +206,12 @@ namespace Collections
 
         readonly IEnumerator<T> IEnumerable<T>.GetEnumerator()
         {
-            return new Enumerator(value);
+            return new Enumerator(array);
         }
 
         readonly IEnumerator IEnumerable.GetEnumerator()
         {
-            return new Enumerator(value);
+            return new Enumerator(array);
         }
 
         /// <inheritdoc/>
@@ -185,13 +228,13 @@ namespace Collections
                 return true;
             }
 
-            return value == other.value;
+            return array == other.array;
         }
 
         /// <inheritdoc/>
         public override readonly int GetHashCode()
         {
-            return ((nint)value).GetHashCode();
+            return ((nint)array).GetHashCode();
         }
 
         public struct Enumerator : IEnumerator<T>
@@ -199,7 +242,7 @@ namespace Collections
             private readonly Implementation* array;
             private int index;
 
-            public readonly T Current => Implementation.GetRef<T>(array, (uint)index);
+            public readonly T Current => array->Items.Read<T>((uint)index * Stride);
 
             readonly object IEnumerator.Current => Current;
 
@@ -212,7 +255,7 @@ namespace Collections
             public bool MoveNext()
             {
                 index++;
-                return index < Implementation.GetLength(array);
+                return index < array->Length;
             }
 
             public void Reset()

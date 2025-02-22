@@ -9,12 +9,23 @@ namespace Collections.Implementations
     /// </summary>
     public unsafe struct Array
     {
-        private uint stride;
-        private uint length;
-        private Allocation items;
+        public readonly uint stride;
+
+        internal uint length;
+        internal Allocation items;
+
+        public readonly uint Length => length;
+        public readonly Allocation Items => items;
+
+        private Array(uint stride, uint length, Allocation items)
+        {
+            this.stride = stride;
+            this.length = length;
+            this.items = items;
+        }
 
         [Conditional("DEBUG")]
-        private static void ThrowIfOutOfRange(Array* array, uint index)
+        internal static void ThrowIfOutOfRange(Array* array, uint index)
         {
             if (index >= array->length)
             {
@@ -23,7 +34,7 @@ namespace Collections.Implementations
         }
 
         [Conditional("DEBUG")]
-        private static void ThrowIfStrideSizeMismatch<T>(Array* array) where T : unmanaged
+        internal static void ThrowIfStrideSizeMismatch<T>(Array* array) where T : unmanaged
         {
             if (array->stride != (uint)sizeof(T))
             {
@@ -39,31 +50,15 @@ namespace Collections.Implementations
             Allocations.Free(ref array);
         }
 
-        public static uint GetLength(Array* array)
+        public static Array* Allocate<T>(uint length, bool clear) where T : unmanaged
         {
-            Allocations.ThrowIfNull(array);
-
-            return array->length;
+            return Allocate(length, (uint)sizeof(T), clear);
         }
 
-        public static nint GetStartAddress(Array* array)
-        {
-            Allocations.ThrowIfNull(array);
-
-            return array->items.Address;
-        }
-
-        public static Array* Allocate<T>(uint length) where T : unmanaged
-        {
-            return Allocate(length, (uint)sizeof(T));
-        }
-
-        public static Array* Allocate(uint length, uint stride)
+        public static Array* Allocate(uint length, uint stride, bool clear)
         {
             ref Array array = ref Allocations.Allocate<Array>();
-            array.stride = stride;
-            array.length = length;
-            array.items = new(stride * length, true);
+            array = new(stride, length, new(stride * length, clear));
             fixed (Array* pointer = &array)
             {
                 return pointer;
@@ -73,30 +68,11 @@ namespace Collections.Implementations
         public static Array* Allocate<T>(USpan<T> span) where T : unmanaged
         {
             ref Array array = ref Allocations.Allocate<Array>();
-            array.stride = (uint)sizeof(T);
-            array.length = span.Length;
-            array.items = Allocation.Create(span);
+            array = new((uint)sizeof(T), span.Length, Allocation.Create(span));
             fixed (Array* pointer = &array)
             {
                 return pointer;
             }
-        }
-
-        public static ref T GetRef<T>(Array* array, uint index) where T : unmanaged
-        {
-            Allocations.ThrowIfNull(array);
-            ThrowIfOutOfRange(array, index);
-
-            T* ptr = (T*)GetStartAddress(array);
-            return ref ptr[index];
-        }
-
-        public static USpan<T> AsSpan<T>(Array* array) where T : unmanaged
-        {
-            Allocations.ThrowIfNull(array);
-            ThrowIfStrideSizeMismatch<T>(array);
-
-            return array->items.AsSpan<T>(0, array->length);
         }
 
         /// <summary>
@@ -118,26 +94,6 @@ namespace Collections.Implementations
                     array->items.Clear(stride * oldLength, stride * (newLength - oldLength));
                 }
             }
-        }
-
-        /// <summary>
-        /// Clears the entire array to <c>default</c> state.
-        /// </summary>
-        public static void Clear(Array* array)
-        {
-            Allocations.ThrowIfNull(array);
-
-            array->items.Clear(array->length * array->stride);
-        }
-
-        /// <summary>
-        /// Clears a range of elements in the array to <c>default</c> state.
-        /// </summary>
-        public static void Clear(Array* array, uint start, uint length)
-        {
-            Allocations.ThrowIfNull(array);
-
-            array->items.Clear(start * array->stride, length * array->stride);
         }
     }
 }
