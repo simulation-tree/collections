@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using Unmanaged;
 
 namespace Collections.Implementations
@@ -113,6 +114,7 @@ namespace Collections.Implementations
             }
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal static bool DoValuesEqual<T>(T left, T right) where T : unmanaged, IEquatable<T>
         {
             return left.Equals(right);
