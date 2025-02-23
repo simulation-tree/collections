@@ -125,7 +125,7 @@ namespace Collections
         {
             Allocations.ThrowIfNull(array);
 
-            array->Items.Clear(array->Length * Stride);
+            array->Items.Clear(array->Length * (uint)sizeof(T));
         }
 
         /// <summary>
@@ -136,7 +136,7 @@ namespace Collections
         {
             Allocations.ThrowIfNull(array);
 
-            array->Items.Clear(start * Stride, length * Stride);
+            array->Items.Clear(start * (uint)sizeof(T), length * (uint)sizeof(T));
         }
 
         /// <summary>
