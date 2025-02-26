@@ -1,4 +1,5 @@
-﻿using Unmanaged;
+﻿using Collections.Generic;
+using Unmanaged;
 using Unmanaged.Tests;
 
 namespace Collections.Tests

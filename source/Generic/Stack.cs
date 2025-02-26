@@ -3,10 +3,9 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using Unmanaged;
-using static Collections.Implementations.Stack;
-using Implementation = Collections.Implementations.Stack;
+using Pointer = Collections.Pointers.Stack;
 
-namespace Collections
+namespace Collections.Generic
 {
     /// <summary>
     /// Native stack that can be used in native code.
@@ -14,7 +13,7 @@ namespace Collections
     public unsafe struct Stack<T> : IDisposable, IReadOnlyCollection<T>, ICollection<T>, IEquatable<Stack<T>> where T : unmanaged
     {
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        private Implementation* stack;
+        private Pointer* stack;
 
         /// <summary>
         /// Checks if this stack has been disposed.
@@ -64,7 +63,12 @@ namespace Collections
         /// </summary>
         public Stack()
         {
-            stack = Allocate<T>(4);
+            ref Pointer stack = ref Allocations.Allocate<Pointer>();
+            stack = new((uint)sizeof(T), 4);
+            fixed (Pointer* pointer = &stack)
+            {
+                this.stack = pointer;
+            }
         }
 #endif
 
@@ -73,7 +77,13 @@ namespace Collections
         /// </summary>
         public Stack(uint initialCapacity = 4)
         {
-            stack = Allocate<T>(initialCapacity);
+            ref Pointer stack = ref Allocations.Allocate<Pointer>();
+            initialCapacity = Allocations.GetNextPowerOf2(Math.Max(1, initialCapacity));
+            stack = new((uint)sizeof(T), initialCapacity);
+            fixed (Pointer* pointer = &stack)
+            {
+                this.stack = pointer;
+            }
         }
 
         /// <summary>
@@ -81,19 +91,22 @@ namespace Collections
         /// </summary>
         public Stack(void* pointer)
         {
-            stack = (Implementation*)pointer;
+            stack = (Pointer*)pointer;
         }
 
         public void Dispose()
         {
-            Free(ref stack);
+            Allocations.ThrowIfNull(stack);
+
+            stack->items.Dispose();
+            Allocations.Free(ref stack);
         }
 
         public readonly USpan<T> AsSpan()
         {
             Allocations.ThrowIfNull(stack);
 
-            return stack->items.AsSpan<T>(0, stack->top);
+            return stack->items.GetSpan<T>(stack->top);
         }
 
         public readonly void Clear()
@@ -110,7 +123,10 @@ namespace Collections
             if (stack->capacity < minimumCapacity)
             {
                 stack->capacity = Allocations.GetNextPowerOf2(minimumCapacity);
-                Allocation.Resize(ref stack->items, stack->capacity * (uint)sizeof(T));
+                unchecked
+                {
+                    Allocation.Resize(ref stack->items, stack->capacity * (uint)sizeof(T));
+                }
             }
 
             stack->top = 0;
@@ -124,7 +140,10 @@ namespace Collections
             if (top == stack->capacity)
             {
                 stack->capacity *= 2;
-                Allocation.Resize(ref stack->items, stack->capacity * (uint)sizeof(T));
+                unchecked
+                {
+                    Allocation.Resize(ref stack->items, stack->capacity * (uint)sizeof(T));
+                }
             }
 
             stack->items.WriteElement(top, item);
@@ -138,7 +157,10 @@ namespace Collections
             if (stack->top + items.Length > stack->capacity)
             {
                 stack->capacity = Allocations.GetNextPowerOf2(stack->top + items.Length);
-                Allocation.Resize(ref stack->items, stack->capacity * (uint)sizeof(T));
+                unchecked
+                {
+                    Allocation.Resize(ref stack->items, stack->capacity * (uint)sizeof(T));
+                }
             }
 
             stack->items.Write(stack->top * (uint)sizeof(T), items);
@@ -160,8 +182,6 @@ namespace Collections
             Allocations.ThrowIfNull(stack);
             if (stack->top > 0)
             {
-                ThrowIfZero(stack->top);
-
                 uint newTop = stack->top - 1;
                 stack->top = newTop;
                 value = stack->items.ReadElement<T>(newTop);
@@ -221,9 +241,12 @@ namespace Collections
         readonly void ICollection<T>.CopyTo(T[] array, int arrayIndex)
         {
             USpan<T> span = AsSpan();
-            for (uint i = 0; i < span.Length; i++)
+            unchecked
             {
-                array[arrayIndex + i] = span[i];
+                for (uint i = 0; i < span.Length; i++)
+                {
+                    array[arrayIndex + i] = span[i];
+                }
             }
         }
 
@@ -262,6 +285,15 @@ namespace Collections
             return (int)stack;
         }
 
+        [Conditional("DEBUG")]
+        private static void ThrowIfZero(uint value)
+        {
+            if (value == 0)
+            {
+                throw new InvalidOperationException("Stack is empty");
+            }
+        }
+
         public static bool operator ==(Stack<T> left, Stack<T> right)
         {
             return left.Equals(right);
@@ -274,13 +306,25 @@ namespace Collections
 
         public struct Enumerator : IEnumerator<T>
         {
-            private readonly Implementation* stack;
+            private readonly Pointer* stack;
             private int index;
 
-            public readonly T Current => Implementation.AsSpan<T>(stack)[(uint)index];
+            public readonly T Current
+            {
+                get
+                {
+                    unchecked
+                    {
+                        Allocations.ThrowIfNull(stack);
+
+                        return stack->items.GetSpan<T>(stack->top)[(uint)index];
+                    }
+                }
+            }
+
             readonly object IEnumerator.Current => Current;
 
-            public Enumerator(Implementation* stack)
+            public Enumerator(Pointer* stack)
             {
                 this.stack = stack;
                 index = -1;

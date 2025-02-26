@@ -1,4 +1,4 @@
-﻿using Collections.Implementations;
+﻿using Collections.Generic;
 using System;
 using Unmanaged;
 using Unmanaged.Tests;
@@ -362,37 +362,56 @@ namespace Collections.Tests
         }
 
         [Test]
-        public unsafe void InsertAllocation()
+        public void InsertAllocation()
         {
-            List* a = List.Allocate<int>(4);
-            List.Add(a, 8);
-            List.Add(a, 9);
-            List.Add(a, 10);
-            List.Add(a, 11);
+            List a = new List<int>(4);
+            a.Add(8);
+            a.Add(9);
+            a.Add(10);
+            a.Add(11);
 
-            List* b = List.Allocate<int>(3);
-            List.Add(b, 5);
-            List.Add(b, 6);
-            List.Add(b, 7);
+            List b = new List<int>(3);
+            b.Add(5);
+            b.Add(6);
+            b.Add(7);
 
-            Allocation element = a->Items.Read(3 * sizeof(int)); //11
-            List.Insert(b, 1, element);
+            Allocation element = a[3]; //11
+            b.Insert(1, element);
 
-            Assert.That(b->Count, Is.EqualTo(4));
-            USpan<int> span = b->Items.AsSpan<int>(0, b->Count);
+            Assert.That(b.Count, Is.EqualTo(4));
+            USpan<int> span = b.AsSpan<int>();
             Assert.That(span[0], Is.EqualTo(5));
             Assert.That(span[1], Is.EqualTo(11));
             Assert.That(span[2], Is.EqualTo(6));
             Assert.That(span[3], Is.EqualTo(7));
 
-            List.Free(ref b);
-            List.Free(ref a);
+            b.Dispose();
+            a.Dispose();
+        }
+
+        [Test]
+        public void InsertAtEndIntoEmptyList()
+        {
+            using List<int> a = new(0);
+            a.Insert(0, 32);
+            Assert.That(a.Count, Is.EqualTo(1));
+            Assert.That(a[0], Is.EqualTo(32));
+
+            using List b = new List<int>(0);
+            b.Insert(0, 32);
+            Assert.That(b.Count, Is.EqualTo(1));
+            Assert.That(b.Get<int>(0), Is.EqualTo(32));
         }
 
 #if !DEBUG
         [Test]
         public void BenchmarkAgainstSystem()
         {
+            if (IsRunningRemotely())
+            {
+                return;
+            }
+
             System.Collections.Generic.List<uint> systemList = new(9);
             using List<uint> list = new(9);
 
@@ -426,8 +445,11 @@ namespace Collections.Tests
                 }
             });
 
-            Console.WriteLine($"System: {systemResult}");
-            Console.WriteLine($"Custom: {customResult}");
+            const uint Iterations = 30000;
+            Console.WriteLine($"System: {systemResult.Run(Iterations)}");
+            Console.WriteLine($"Unmanaged: {customResult.Run(Iterations)}");
+            Console.WriteLine($"System: {systemResult.Run(Iterations)}");
+            Console.WriteLine($"Unmanaged: {customResult.Run(Iterations)}");
         }
 #endif
     }

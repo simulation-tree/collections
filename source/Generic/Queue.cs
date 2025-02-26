@@ -1,18 +1,16 @@
-﻿using Collections.Implementations;
-using System;
+﻿using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using Unmanaged;
-using static Collections.Implementations.Queue;
-using Implementation = Collections.Implementations.Queue;
+using Pointer = Collections.Pointers.Queue;
 
-namespace Collections
+namespace Collections.Generic
 {
     public unsafe struct Queue<T> : IDisposable, IReadOnlyCollection<T>, ICollection<T>, IEquatable<Queue<T>> where T : unmanaged
     {
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        private Implementation* queue;
+        private Pointer* queue;
 
         /// <summary>
         /// Checks if this queue has been disposed.
@@ -62,7 +60,12 @@ namespace Collections
         /// </summary>
         public Queue()
         {
-            queue = Allocate<T>(4);
+            ref Pointer queue = ref Allocations.Allocate<Pointer>();
+            queue = new((uint)sizeof(T), 4);
+            fixed (Pointer* pointer = &queue)
+            {
+                this.queue = pointer;
+            }
         }
 #endif
 
@@ -71,7 +74,13 @@ namespace Collections
         /// </summary>
         public Queue(uint initialCapacity = 4)
         {
-            queue = Allocate<T>(initialCapacity);
+            initialCapacity = Allocations.GetNextPowerOf2(Math.Max(1, initialCapacity));
+            ref Pointer queue = ref Allocations.Allocate<Pointer>();
+            queue = new((uint)sizeof(T), initialCapacity);
+            fixed (Pointer* pointer = &queue)
+            {
+                this.queue = pointer;
+            }
         }
 
         /// <summary>
@@ -79,12 +88,15 @@ namespace Collections
         /// </summary>
         public Queue(void* pointer)
         {
-            queue = (Implementation*)pointer;
+            queue = (Pointer*)pointer;
         }
 
         public void Dispose()
         {
-            Free(ref queue);
+            Allocations.ThrowIfNull(queue);
+
+            queue->items.Dispose();
+            Allocations.Free(ref queue);
         }
 
         public readonly USpan<T> AsSpan()
@@ -110,7 +122,10 @@ namespace Collections
             if (queue->capacity < minimumCapacity)
             {
                 queue->capacity = Allocations.GetNextPowerOf2(minimumCapacity);
-                Allocation.Resize(ref queue->items, queue->capacity * queue->stride);
+                unchecked
+                {
+                    Allocation.Resize(ref queue->items, queue->capacity * (uint)sizeof(T));
+                }
             }
 
             queue->top = 0;
@@ -125,7 +140,10 @@ namespace Collections
             if (top == queue->capacity)
             {
                 queue->capacity *= 2;
-                Allocation.Resize(ref queue->items, queue->capacity * (uint)sizeof(T));
+                unchecked
+                {
+                    Allocation.Resize(ref queue->items, queue->capacity * (uint)sizeof(T));
+                }
             }
 
             queue->items.WriteElement(top, item);
@@ -136,36 +154,45 @@ namespace Collections
         {
             Allocations.ThrowIfNull(queue);
 
-            uint newTop = queue->top + items.Length;
-            if (newTop > queue->capacity)
+            unchecked
             {
-                queue->capacity = Allocations.GetNextPowerOf2(newTop);
-                Allocation.Resize(ref queue->items, queue->capacity * (uint)sizeof(T));
-            }
+                uint newTop = queue->top + items.Length;
+                if (newTop > queue->capacity)
+                {
+                    queue->capacity = Allocations.GetNextPowerOf2(newTop);
+                    Allocation.Resize(ref queue->items, queue->capacity * (uint)sizeof(T));
+                }
 
-            queue->items.Write(queue->top * (uint)sizeof(T), items);
-            queue->top = newTop;
+                queue->items.Write(queue->top * (uint)sizeof(T), items);
+                queue->top = newTop;
+            }
         }
 
         public readonly T Dequeue()
         {
             Allocations.ThrowIfNull(queue);
 
-            uint rear = queue->rear;
-            T item = queue->items.Read<T>(rear * (uint)sizeof(T));
-            queue->rear = rear + 1;
-            return item;
+            unchecked
+            {
+                uint rear = queue->rear;
+                T item = queue->items.Read<T>(rear * (uint)sizeof(T));
+                queue->rear = rear + 1;
+                return item;
+            }
         }
 
         public readonly bool TryDequeue(out T value)
         {
             Allocations.ThrowIfNull(queue);
-            if (!IsEmpty)
+            if (queue->top != queue->rear)
             {
-                uint rear = queue->rear;
-                value = queue->items.Read<T>(rear * (uint)sizeof(T));
-                queue->rear = rear + 1;
-                return true;
+                unchecked
+                {
+                    uint rear = queue->rear;
+                    value = queue->items.Read<T>(rear * (uint)sizeof(T));
+                    queue->rear = rear + 1;
+                    return true;
+                }
             }
             else
             {
@@ -250,13 +277,26 @@ namespace Collections
 
         public struct Enumerator : IEnumerator<T>
         {
-            private readonly Implementation* queue;
+            private readonly Pointer* queue;
             private int index;
 
-            public readonly T Current => AsSpan<T>(queue)[(uint)index];
+            public readonly T Current
+            {
+                get
+                {
+                    unchecked
+                    {
+                        Allocations.ThrowIfNull(queue);
+
+                        uint length = queue->top - queue->rear;
+                        return queue->items.AsSpan<T>(queue->rear, length)[(uint)index];
+                    }
+                }
+            }
+
             readonly object IEnumerator.Current => Current;
 
-            public Enumerator(Implementation* queue)
+            public Enumerator(Pointer* queue)
             {
                 this.queue = queue;
                 index = -1;
@@ -273,7 +313,7 @@ namespace Collections
                 index = -1;
             }
 
-            readonly void System.IDisposable.Dispose()
+            readonly void IDisposable.Dispose()
             {
             }
         }

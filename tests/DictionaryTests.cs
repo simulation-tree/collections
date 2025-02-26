@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Collections.Generic;
+using System;
 using Unmanaged;
 using Unmanaged.Tests;
 
@@ -325,6 +326,11 @@ namespace Collections.Tests
         [Test]
         public unsafe void BenchmarkAgainstSystem()
         {
+            if (IsRunningRemotely())
+            {
+                return;
+            }
+
             System.Collections.Generic.Dictionary<int, int> systemMap = new();
             using Dictionary<int, int> map = new();
 
@@ -384,8 +390,11 @@ namespace Collections.Tests
                 systemMap.Clear();
             });
 
-            Console.WriteLine($"System: {systemResult}");
-            Console.WriteLine($"Custom: {customResult}");
+            const uint Iterations = 30000;
+            Console.WriteLine($"System: {systemResult.Run(Iterations)}");
+            Console.WriteLine($"Unmanaged: {customResult.Run(Iterations)}");
+            Console.WriteLine($"System: {systemResult.Run(Iterations)}");
+            Console.WriteLine($"Unmanaged: {customResult.Run(Iterations)}");
         }
 #endif
     }

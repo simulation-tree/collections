@@ -1,4 +1,6 @@
-﻿using System;
+﻿using Collections.Generic;
+using System;
+using System.Diagnostics;
 using Unmanaged;
 using Unmanaged.Tests;
 
@@ -87,8 +89,13 @@ namespace Collections.Tests
         [Test]
         public void BenchmarkAgainstSystem()
         {
-            uint[] systemArray = new uint[1024];
-            using Array<uint> array = new(1024);
+            if (IsRunningRemotely())
+            {
+                return;
+            }
+
+            uint[] systemArray = new uint[10000];
+            using Array<uint> array = new(10000);
 
             Benchmark systemResult = new(() =>
             {
@@ -97,14 +104,14 @@ namespace Collections.Tests
                     systemArray[i] = i * 8;
                 }
 
-                Array.Clear(systemArray, 0, systemArray.Length);
+                System.Array.Clear(systemArray, 0, systemArray.Length);
 
                 for (uint i = 0; i < 256; i++)
                 {
                     systemArray[systemArray.Length - 1] = i;
                 }
 
-                Array.Clear(systemArray, 0, systemArray.Length);
+                System.Array.Clear(systemArray, 0, systemArray.Length);
             });
 
             Benchmark customResult = new(() =>
@@ -125,8 +132,11 @@ namespace Collections.Tests
                 span.Clear();
             });
 
-            Console.WriteLine($"System: {systemResult}");
-            Console.WriteLine($"Custom: {customResult}");
+            const uint Iterations = 300000;
+            Console.WriteLine($"System: {systemResult.Run(Iterations)}");
+            Console.WriteLine($"Unmanaged: {customResult.Run(Iterations)}");
+            Console.WriteLine($"System: {systemResult.Run(Iterations)}");
+            Console.WriteLine($"Unmanaged: {customResult.Run(Iterations)}");
         }
 #endif
     }

@@ -1,22 +1,15 @@
 ﻿using System;
 using System.Collections;
-using System.Collections.Generic;
 using System.Diagnostics;
 using Unmanaged;
-using static Collections.Implementations.Array;
-using Implementation = Collections.Implementations.Array;
+using Pointer = Collections.Pointers.Array;
 
 namespace Collections
 {
-    /// <summary>
-    /// Native array that can be used in unmanaged code.
-    /// </summary>
-    public unsafe struct Array<T> : IDisposable, IReadOnlyList<T>, IEquatable<Array<T>> where T : unmanaged
+    public unsafe struct Array : IDisposable, IList
     {
-        private static readonly uint Stride = (uint)sizeof(T);
-
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        private Implementation* array;
+        private Pointer* array;
 
         /// <summary>
         /// Checks if the array has been disposed.
@@ -25,6 +18,9 @@ namespace Collections
 
         /// <summary>
         /// Length of the array.
+        /// <para>
+        /// Resizing the array to be bigger will not clear the new elements.
+        /// </para>
         /// </summary>
         public readonly uint Length
         {
@@ -38,72 +34,96 @@ namespace Collections
             {
                 Allocations.ThrowIfNull(array);
 
-                Resize(array, value);
+                if (array->length != value)
+                {
+                    uint oldLength = array->length;
+                    Allocation.Resize(ref array->items, array->stride * value);
+                    array->length = value;
+                }
             }
         }
 
         /// <summary>
-        /// Accesses the element at the specified index.
+        /// Size of each element in the array.
         /// </summary>
-        public readonly ref T this[uint index]
+        public readonly uint Stride
         {
             get
             {
                 Allocations.ThrowIfNull(array);
-                ThrowIfOutOfRange(array, index);
 
-                return ref array->Items.ReadElement<T>(index);
+                return array->stride;
             }
         }
 
-        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        readonly int IReadOnlyCollection<T>.Count => (int)Length;
-
-        readonly T IReadOnlyList<T>.this[int index]
+        /// <summary>
+        /// The underlying allocation of the array containing all elements.
+        /// </summary>
+        public readonly Allocation Items
         {
             get
             {
                 Allocations.ThrowIfNull(array);
-                ThrowIfOutOfRange(array, (uint)index);
 
-                return array->Items.ReadElement<T>((uint)index);
+                return array->items;
             }
         }
 
-        [DebuggerBrowsable(DebuggerBrowsableState.Collapsed)]
-        private readonly T[] Items => AsSpan().ToArray();
+        public readonly Allocation this[uint index]
+        {
+            get
+            {
+                Allocations.ThrowIfNull(array);
+                ThrowIfOutOfRange(index);
+
+                return new((void*)((nint)array->items + array->stride * index));
+            }
+        }
+
+        readonly bool IList.IsFixedSize => false;
+        readonly bool IList.IsReadOnly => false;
+        readonly int ICollection.Count => (int)Length;
+        readonly bool ICollection.IsSynchronized => false;
+        readonly object ICollection.SyncRoot => false;
+
+        readonly object? IList.this[int index]
+        {
+            get
+            {
+                throw new NotImplementedException();
+            }
+            set
+            {
+                throw new NotSupportedException();
+            }
+        }
 
         /// <summary>
         /// Initializes an existing array from the given <paramref name="pointer"/>
         /// </summary>
-        public Array(Implementation* pointer)
+        public Array(Pointer* pointer)
         {
             array = pointer;
         }
 
         /// <summary>
-        /// Creates a new array with the given <paramref name="length"/>.
+        /// Creates a new array with the given <paramref name="length"/> and <paramref name="stride"/>.
         /// </summary>
-        public Array(uint length = 0, bool clear = true)
+        public Array(uint length, uint stride)
         {
-            array = Allocate<T>(length, clear);
-        }
-
-        /// <summary>
-        /// Creates a new array containing the given <paramref name="span"/>.
-        /// </summary>
-        public Array(USpan<T> span)
-        {
-            array = Allocate(span);
+            ref Pointer array = ref Allocations.Allocate<Pointer>();
+            array = new(stride, length, Allocation.CreateZeroed(stride * length));
+            fixed (Pointer* pointer = &array)
+            {
+                this.array = pointer;
+            }
         }
 
 #if NET
-        /// <summary>
-        /// Creates an empty array.
-        /// </summary>
+        [Obsolete("Default constructor not supported", true)]
         public Array()
         {
-            array = Allocate<T>(0, false);
+            throw new NotSupportedException();
         }
 #endif
 
@@ -115,167 +135,123 @@ namespace Collections
         /// </para>
         public void Dispose()
         {
-            Free(ref array);
+            Allocations.ThrowIfNull(array);
+
+            array->items.Dispose();
+            Allocations.Free(ref array);
+        }
+
+        [Conditional("DEBUG")]
+        private readonly void ThrowIfOutOfRange(uint index)
+        {
+            if (index >= array->length)
+            {
+                throw new IndexOutOfRangeException($"Index {index} is out of range for array of length {array->length}");
+            }
+        }
+
+        [Conditional("DEBUG")]
+        private readonly void ThrowIfSizeMismatch<T>() where T : unmanaged
+        {
+            if (array->stride != sizeof(T))
+            {
+                throw new InvalidOperationException($"Cannot get element of type {typeof(T)} from array with stride {array->stride}");
+            }
+        }
+
+        public readonly USpan<T> AsSpan<T>() where T : unmanaged
+        {
+            Allocations.ThrowIfNull(array);
+            ThrowIfSizeMismatch<T>();
+
+            return array->items.GetSpan<T>(array->length);
         }
 
         /// <summary>
-        /// Resets all elements in the array back to <c>default</c> state.
+        /// Resets all elements in the array to <see langword="default"/> state.
         /// </summary>
         public readonly void Clear()
         {
             Allocations.ThrowIfNull(array);
 
-            array->Items.Clear(array->Length * (uint)sizeof(T));
+            unchecked
+            {
+                array->items.Clear(array->length * array->stride);
+            }
         }
 
         /// <summary>
-        /// Clears <paramref name="length"/> amount of elements from this array
-        /// starting at <paramref name="start"/> index.
+        /// Resets a range of elements in the array to <see langword="default"/> state.
         /// </summary>
-        public readonly void Clear(uint start, uint length)
+        public readonly void Clear(uint startIndex, uint length)
         {
             Allocations.ThrowIfNull(array);
 
-            array->Items.Clear(start * (uint)sizeof(T), length * (uint)sizeof(T));
+            unchecked
+            {
+                array->items.Clear(startIndex * array->stride, length * array->stride);
+            }
         }
 
-        /// <summary>
-        /// Fills the array with the given <paramref name="value"/>.
-        /// </summary>
-        public readonly void Fill(T value)
+        public readonly ref T Get<T>(uint index) where T : unmanaged
         {
             Allocations.ThrowIfNull(array);
+            ThrowIfSizeMismatch<T>();
 
-            array->Items.AsSpan<T>(0, array->Length).Fill(value);
+            return ref array->items.ReadElement<T>(index);
         }
 
-        /// <summary>
-        /// Returns the array as a span.
-        /// </summary>
-        public readonly USpan<T> AsSpan()
+        public readonly void Set<T>(uint index, T value) where T : unmanaged
         {
             Allocations.ThrowIfNull(array);
+            ThrowIfSizeMismatch<T>();
 
-            return array->Items.AsSpan<T>(0, array->Length);
+            array->items.WriteElement(index, value);
         }
 
-        /// <summary>
-        /// Returns the array as a span starting at <paramref name="start"/> index.
-        /// </summary>
-        public readonly USpan<T> AsSpan(uint start)
+        readonly int IList.Add(object? value)
         {
-            Allocations.ThrowIfNull(array);
-
-            return array->Items.AsSpan<T>(start, array->Length - start);
+            throw new NotSupportedException();
         }
 
-        /// <summary>
-        /// Returns the array as a span starting at <paramref name="start"/> index
-        /// with the given <paramref name="length"/>.
-        /// </summary>
-        public readonly USpan<T> AsSpan(uint start, uint length)
+        readonly void IList.Clear()
         {
-            Allocations.ThrowIfNull(array);
-
-            return array->Items.AsSpan<T>(start, length);
+            Clear();
         }
 
-        /// <summary>
-        /// Copies the array to the given <paramref name="destination"/>.
-        /// </summary>
-        /// <returns>Amount of elements copied.</returns>
-        public readonly uint CopyTo(USpan<T> destination)
+        readonly bool IList.Contains(object? value)
         {
-            return AsSpan().CopyTo(destination);
+            throw new NotSupportedException();
         }
 
-        /// <summary>
-        /// Copies the given <paramref name="source"/> to this array.
-        /// </summary>
-        /// <returns>Amount of elements copied.</returns>
-        public readonly uint CopyFrom(USpan<T> source)
+        readonly int IList.IndexOf(object? value)
         {
-            return source.CopyTo(AsSpan());
+            throw new NotSupportedException();
         }
 
-        /// <inheritdoc/>
-        public readonly Span<T>.Enumerator GetEnumerator()
+        readonly void IList.Insert(int index, object? value)
         {
-            return AsSpan().GetEnumerator();
+            throw new NotSupportedException();
         }
 
-        readonly IEnumerator<T> IEnumerable<T>.GetEnumerator()
+        readonly void IList.Remove(object? value)
         {
-            return new Enumerator(array);
+            throw new NotSupportedException();
+        }
+
+        readonly void IList.RemoveAt(int index)
+        {
+            throw new NotSupportedException();
+        }
+
+        readonly void ICollection.CopyTo(System.Array array, int index)
+        {
+            throw new NotSupportedException();
         }
 
         readonly IEnumerator IEnumerable.GetEnumerator()
         {
-            return new Enumerator(array);
-        }
-
-        /// <inheritdoc/>
-        public override readonly bool Equals(object? obj)
-        {
-            return obj is Array<T> array && Equals(array);
-        }
-
-        /// <inheritdoc/>
-        public readonly bool Equals(Array<T> other)
-        {
-            if (IsDisposed && other.IsDisposed)
-            {
-                return true;
-            }
-
-            return array == other.array;
-        }
-
-        /// <inheritdoc/>
-        public override readonly int GetHashCode()
-        {
-            return ((nint)array).GetHashCode();
-        }
-
-        public struct Enumerator : IEnumerator<T>
-        {
-            private readonly Implementation* array;
-            private int index;
-
-            public readonly T Current => array->Items.Read<T>((uint)index * Stride);
-
-            readonly object IEnumerator.Current => Current;
-
-            public Enumerator(Implementation* array)
-            {
-                this.array = array;
-                index = -1;
-            }
-
-            public bool MoveNext()
-            {
-                index++;
-                return index < array->Length;
-            }
-
-            public void Reset()
-            {
-                index = -1;
-            }
-
-            readonly void IDisposable.Dispose()
-            {
-            }
-        }
-
-        public static bool operator ==(Array<T> left, Array<T> right)
-        {
-            return left.Equals(right);
-        }
-
-        public static bool operator !=(Array<T> left, Array<T> right)
-        {
-            return !(left == right);
+            throw new NotSupportedException();
         }
     }
 }
