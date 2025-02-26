@@ -19,7 +19,7 @@ namespace Collections
         /// <summary>
         /// Length of the array.
         /// <para>
-        /// Resizing the array to be bigger will not clear the new elements.
+        /// New elements will not be zeroed.
         /// </para>
         /// </summary>
         public readonly uint Length
@@ -159,12 +159,30 @@ namespace Collections
             }
         }
 
+        public readonly Generic.Array<T> AsArray<T>() where T : unmanaged
+        {
+            Allocations.ThrowIfNull(array);
+            ThrowIfSizeMismatch<T>();
+
+            return new(array);
+        }
+
         public readonly USpan<T> AsSpan<T>() where T : unmanaged
         {
             Allocations.ThrowIfNull(array);
             ThrowIfSizeMismatch<T>();
 
             return array->items.GetSpan<T>(array->length);
+        }
+
+        /// <summary>
+        /// Gets a span of all bytes containing the memory of the array.
+        /// </summary>
+        public readonly USpan<byte> AsSpan()
+        {
+            Allocations.ThrowIfNull(array);
+
+            return array->items.GetSpan(array->length * array->stride);
         }
 
         /// <summary>

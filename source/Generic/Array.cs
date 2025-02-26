@@ -48,6 +48,19 @@ namespace Collections.Generic
         }
 
         /// <summary>
+        /// The underlying allocation of the array containing all elements.
+        /// </summary>
+        public readonly Allocation Items
+        {
+            get
+            {
+                Allocations.ThrowIfNull(array);
+
+                return array->items;
+            }
+        }
+
+        /// <summary>
         /// Accesses the element at the specified index.
         /// </summary>
         public readonly ref T this[uint index]
@@ -76,7 +89,7 @@ namespace Collections.Generic
         }
 
         [DebuggerBrowsable(DebuggerBrowsableState.Collapsed)]
-        private readonly T[] Items => AsSpan().ToArray();
+        private readonly T[] Values => AsSpan().ToArray();
 
         /// <summary>
         /// Initializes an existing array from the given <paramref name="pointer"/>
@@ -150,6 +163,15 @@ namespace Collections.Generic
             }
         }
 
+        [Conditional("DEBUG")]
+        private readonly void ThrowIfSizeMismatch<X>() where X : unmanaged
+        {
+            if (sizeof(T) != sizeof(X))
+            {
+                throw new InvalidOperationException($"Size of {typeof(T)} does not match size of {typeof(X)}");
+            }
+        }
+
         /// <summary>
         /// Resets all elements in the array to <see langword="default"/> state.
         /// </summary>
@@ -198,6 +220,29 @@ namespace Collections.Generic
         }
 
         /// <summary>
+        /// Returns the array as a span of a different type <typeparamref name="X"/>.
+        /// </summary>
+        public readonly USpan<X> AsSpan<X>() where X : unmanaged
+        {
+            Allocations.ThrowIfNull(array);
+            ThrowIfSizeMismatch<T>();
+
+            return array->items.GetSpan<X>(array->length);
+        }
+
+        /// <summary>
+        /// Returns the remainder of the array from <paramref name="start"/>,
+        /// as a span of a different type <typeparamref name="X"/>.
+        /// </summary>
+        public readonly USpan<X> AsSpan<X>(uint start) where X : unmanaged
+        {
+            Allocations.ThrowIfNull(array);
+            ThrowIfSizeMismatch<T>();
+
+            return array->items.AsSpan<X>(start, array->length - start);
+        }
+
+        /// <summary>
         /// Returns the array as a span with the given <paramref name="length"/>.
         /// </summary>
         public readonly USpan<T> GetSpan(uint length)
@@ -208,7 +253,7 @@ namespace Collections.Generic
         }
 
         /// <summary>
-        /// Returns the array as a span starting at <paramref name="start"/> index.
+        /// Returns the remainder of the array from <paramref name="start"/> as a span.
         /// </summary>
         public readonly USpan<T> AsSpan(uint start)
         {
