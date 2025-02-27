@@ -65,6 +65,19 @@ namespace Collections.Generic
         public readonly nint Address => (nint)list;
 
         /// <summary>
+        /// The underlying memory allocation for this list.
+        /// </summary>
+        public readonly Allocation Items
+        {
+            get
+            {
+                Allocations.ThrowIfNull(list);
+
+                return list->items;
+            }
+        }
+
+        /// <summary>
         /// Accesses the element at the specified index.
         /// </summary>
         public readonly ref T this[uint index]
@@ -108,7 +121,7 @@ namespace Collections.Generic
         }
 
         [DebuggerBrowsable(DebuggerBrowsableState.Collapsed)]
-        private readonly T[] Items => AsSpan().ToArray();
+        private readonly T[] Values => AsSpan().ToArray();
 
         /// <summary>
         /// Initializes an existing list from the given <paramref name="pointer"/>.
