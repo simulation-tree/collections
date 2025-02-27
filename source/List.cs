@@ -188,7 +188,7 @@ namespace Collections
             Allocations.ThrowIfNull(list);
             ThrowIfSizeMismatch<T>();
 
-            return list->items.GetSpan<T>(list->count);
+            return new(list->items.Pointer, list->count);
         }
 
         /// <summary>

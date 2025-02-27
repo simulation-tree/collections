@@ -206,7 +206,7 @@ namespace Collections.Generic
         {
             Allocations.ThrowIfNull(array);
 
-            array->items.GetSpan<T>(array->length).Fill(value);
+            new USpan<T>(array->items.Pointer, array->length).Fill(value);
         }
 
         /// <summary>
@@ -216,7 +216,7 @@ namespace Collections.Generic
         {
             Allocations.ThrowIfNull(array);
 
-            return array->items.GetSpan<T>(array->length);
+            return new(array->items.Pointer, array->length);
         }
 
         /// <summary>
@@ -227,7 +227,7 @@ namespace Collections.Generic
             Allocations.ThrowIfNull(array);
             ThrowIfSizeMismatch<T>();
 
-            return array->items.GetSpan<X>(array->length);
+            return new(array->items.Pointer, array->length);
         }
 
         /// <summary>
@@ -249,7 +249,7 @@ namespace Collections.Generic
         {
             Allocations.ThrowIfNull(array);
 
-            return array->items.GetSpan<T>(length);
+            return new(array->items.Pointer, length);
         }
 
         /// <summary>

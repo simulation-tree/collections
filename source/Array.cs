@@ -172,7 +172,7 @@ namespace Collections
             Allocations.ThrowIfNull(array);
             ThrowIfSizeMismatch<T>();
 
-            return array->items.GetSpan<T>(array->length);
+            return new(array->items.Pointer, array->length);
         }
 
         /// <summary>
@@ -182,7 +182,7 @@ namespace Collections
         {
             Allocations.ThrowIfNull(array);
 
-            return array->items.GetSpan(array->length * array->stride);
+            return new(array->items.Pointer, array->length * array->stride);
         }
 
         /// <summary>

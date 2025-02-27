@@ -229,7 +229,7 @@ namespace Collections.Generic
         {
             Allocations.ThrowIfNull(list);
 
-            return list->items.GetSpan<T>(list->count);
+            return new(list->items.Pointer, list->count);
         }
 
         /// <summary>

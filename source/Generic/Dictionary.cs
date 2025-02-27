@@ -65,9 +65,9 @@ namespace Collections.Generic
                 uint hashCode = GetHash(key);
                 uint index = hashCode % capacity;
                 uint startIndex = index;
-                USpan<bool> occupied = dictionary->occupied.GetSpan<bool>(capacity);
-                USpan<K> keys = dictionary->keys.GetSpan<K>(capacity);
-                USpan<uint> keyHashCodes = dictionary->hashCodes.GetSpan<uint>(capacity);
+                USpan<bool> occupied = new(dictionary->occupied.Pointer, capacity);
+                USpan<K> keys = new(dictionary->keys.Pointer, capacity);
+                USpan<uint> keyHashCodes = new(dictionary->hashCodes.Pointer, capacity);
 
                 while (occupied[index])
                 {
@@ -306,13 +306,13 @@ namespace Collections.Generic
             dictionary->values = Allocation.Create(newCapacity * (uint)sizeof(V));
             dictionary->hashCodes = Allocation.Create(newCapacity * sizeof(uint));
             dictionary->occupied = Allocation.CreateZeroed(newCapacity);
-            USpan<K> oldKeysSpan = oldKeys.GetSpan<K>(oldCapacity);
-            USpan<V> oldValuesSpan = oldValues.GetSpan<V>(oldCapacity);
-            USpan<bool> oldOccupiedSpan = oldOccupied.GetSpan<bool>(oldCapacity);
-            USpan<bool> newOccupiedSpan = dictionary->occupied.GetSpan<bool>(newCapacity);
-            USpan<uint> newKeyHashCodesSpan = dictionary->hashCodes.GetSpan<uint>(newCapacity);
-            USpan<K> newKeysSpan = dictionary->keys.GetSpan<K>(newCapacity);
-            USpan<V> newValuesSpan = dictionary->values.GetSpan<V>(newCapacity);
+            USpan<K> oldKeysSpan = new(oldKeys.Pointer, oldCapacity);
+            USpan<V> oldValuesSpan = new(oldValues.Pointer, oldCapacity);
+            USpan<bool> oldOccupiedSpan = new(oldOccupied.Pointer, oldCapacity);
+            USpan<bool> newOccupiedSpan = new(dictionary->occupied.Pointer, newCapacity);
+            USpan<uint> newKeyHashCodesSpan = new(dictionary->hashCodes.Pointer, newCapacity);
+            USpan<K> newKeysSpan = new(dictionary->keys.Pointer, newCapacity);
+            USpan<V> newValuesSpan = new(dictionary->values.Pointer, newCapacity);
 
             for (uint i = 0; i < oldCapacity; i++)
             {
@@ -363,9 +363,9 @@ namespace Collections.Generic
             uint hashCode = GetHash(key);
             uint index = hashCode % capacity;
             uint startIndex = index;
-            USpan<bool> occupied = dictionary->occupied.GetSpan<bool>(capacity);
-            USpan<K> keys = dictionary->keys.GetSpan<K>(capacity);
-            USpan<uint> keyHashCodes = dictionary->hashCodes.GetSpan<uint>(capacity);
+            USpan<bool> occupied = new(dictionary->occupied.Pointer, capacity);
+            USpan<K> keys = new(dictionary->keys.Pointer, capacity);
+            USpan<uint> keyHashCodes = new(dictionary->hashCodes.Pointer, capacity);
 
             while (occupied[index])
             {
@@ -396,9 +396,9 @@ namespace Collections.Generic
             uint hashCode = GetHash(key);
             uint index = hashCode % capacity;
             uint startIndex = index;
-            USpan<bool> occupied = dictionary->occupied.GetSpan<bool>(capacity);
-            USpan<K> keys = dictionary->keys.GetSpan<K>(capacity);
-            USpan<uint> keyHashCodes = dictionary->hashCodes.GetSpan<uint>(capacity);
+            USpan<bool> occupied = new(dictionary->occupied.Pointer, capacity);
+            USpan<K> keys = new(dictionary->keys.Pointer, capacity);
+            USpan<uint> keyHashCodes = new(dictionary->hashCodes.Pointer, capacity);
 
             while (occupied[index])
             {
@@ -430,9 +430,9 @@ namespace Collections.Generic
             uint hashCode = GetHash(key);
             uint index = hashCode % dictionary->capacity;
             uint startIndex = index;
-            USpan<bool> occupied = dictionary->occupied.GetSpan<bool>(dictionary->capacity);
-            USpan<K> keys = dictionary->keys.GetSpan<K>(dictionary->capacity);
-            USpan<uint> keyHashCodes = dictionary->hashCodes.GetSpan<uint>(dictionary->capacity);
+            USpan<bool> occupied = new(dictionary->occupied.Pointer, dictionary->capacity);
+            USpan<K> keys = new(dictionary->keys.Pointer, dictionary->capacity);
+            USpan<uint> keyHashCodes = new(dictionary->hashCodes.Pointer, dictionary->capacity);
 
             while (occupied[index])
             {
@@ -471,9 +471,9 @@ namespace Collections.Generic
             uint hashCode = GetHash(key);
             uint index = hashCode % capacity;
             uint startIndex = index;
-            USpan<bool> occupied = dictionary->occupied.GetSpan<bool>(capacity);
-            USpan<uint> keyHashCodes = dictionary->hashCodes.GetSpan<uint>(capacity);
-            USpan<K> keys = dictionary->keys.GetSpan<K>(capacity);
+            USpan<bool> occupied = new(dictionary->occupied.Pointer, capacity);
+            USpan<uint> keyHashCodes = new(dictionary->hashCodes.Pointer, capacity);
+            USpan<K> keys = new(dictionary->keys.Pointer, capacity);
 
             while (occupied[index])
             {
@@ -519,7 +519,7 @@ namespace Collections.Generic
             uint hashCode = GetHash(key);
             uint index = hashCode % capacity;
             uint startIndex = index;
-            USpan<bool> occupied = dictionary->occupied.GetSpan<bool>(capacity);
+            USpan<bool> occupied = new(dictionary->occupied.Pointer, capacity);
             while (occupied[index])
             {
                 index = (index + 1) % capacity;
@@ -554,7 +554,7 @@ namespace Collections.Generic
             uint hashCode = GetHash(key);
             uint index = hashCode % capacity;
             uint startIndex = index;
-            USpan<bool> occupied = dictionary->occupied.GetSpan<bool>(capacity);
+            USpan<bool> occupied = new(dictionary->occupied.Pointer, capacity);
             while (occupied[index])
             {
                 index = (index + 1) % capacity;
@@ -584,9 +584,9 @@ namespace Collections.Generic
             uint hashCode = GetHash(key);
             uint index = hashCode % dictionary->capacity;
             uint startIndex = index;
-            USpan<bool> occupied = dictionary->occupied.GetSpan<bool>(dictionary->capacity);
-            USpan<K> keys = dictionary->keys.GetSpan<K>(dictionary->capacity);
-            USpan<uint> keyHashCodes = dictionary->hashCodes.GetSpan<uint>(dictionary->capacity);
+            USpan<bool> occupied = new(dictionary->occupied.Pointer, dictionary->capacity);
+            USpan<K> keys = new(dictionary->keys.Pointer, dictionary->capacity);
+            USpan<uint> keyHashCodes = new(dictionary->hashCodes.Pointer, dictionary->capacity);
 
             while (occupied[index])
             {
@@ -641,7 +641,7 @@ namespace Collections.Generic
             uint hashCode = GetHash(key);
             uint index = hashCode % capacity;
             uint startIndex = index;
-            USpan<bool> occupied = dictionary->occupied.GetSpan<bool>(capacity);
+            USpan<bool> occupied = new(dictionary->occupied.Pointer, capacity);
             while (occupied[index])
             {
                 index = (index + 1) % capacity;
@@ -670,9 +670,9 @@ namespace Collections.Generic
             uint hashCode = GetHash(key);
             uint index = hashCode % dictionary->capacity;
             uint startIndex = index;
-            USpan<bool> occupied = dictionary->occupied.GetSpan<bool>(dictionary->capacity);
-            USpan<K> keys = dictionary->keys.GetSpan<K>(dictionary->capacity);
-            USpan<uint> keyHashCodes = dictionary->hashCodes.GetSpan<uint>(dictionary->capacity);
+            USpan<bool> occupied = new(dictionary->occupied.Pointer, dictionary->capacity);
+            USpan<K> keys = new(dictionary->keys.Pointer, dictionary->capacity);
+            USpan<uint> keyHashCodes = new(dictionary->hashCodes.Pointer, dictionary->capacity);
 
             while (occupied[index])
             {
@@ -709,9 +709,9 @@ namespace Collections.Generic
             uint hashCode = GetHash(key);
             uint index = hashCode % dictionary->capacity;
             uint startIndex = index;
-            USpan<bool> occupied = dictionary->occupied.GetSpan<bool>(dictionary->capacity);
-            USpan<K> keys = dictionary->keys.GetSpan<K>(dictionary->capacity);
-            USpan<uint> keyHashCodes = dictionary->hashCodes.GetSpan<uint>(dictionary->capacity);
+            USpan<bool> occupied = new(dictionary->occupied.Pointer, dictionary->capacity);
+            USpan<K> keys = new(dictionary->keys.Pointer, dictionary->capacity);
+            USpan<uint> keyHashCodes = new(dictionary->hashCodes.Pointer, dictionary->capacity);
 
             while (occupied[index])
             {
@@ -746,9 +746,9 @@ namespace Collections.Generic
             uint hashCode = GetHash(key);
             uint index = hashCode % dictionary->capacity;
             uint startIndex = index;
-            USpan<bool> occupied = dictionary->occupied.GetSpan<bool>(dictionary->capacity);
-            USpan<K> keys = dictionary->keys.GetSpan<K>(dictionary->capacity);
-            USpan<uint> keyHashCodes = dictionary->hashCodes.GetSpan<uint>(dictionary->capacity);
+            USpan<bool> occupied = new(dictionary->occupied.Pointer, dictionary->capacity);
+            USpan<K> keys = new(dictionary->keys.Pointer, dictionary->capacity);
+            USpan<uint> keyHashCodes = new(dictionary->hashCodes.Pointer, dictionary->capacity);
 
             while (occupied[index])
             {
@@ -785,9 +785,9 @@ namespace Collections.Generic
             uint hashCode = GetHash(key);
             uint index = hashCode % dictionary->capacity;
             uint startIndex = index;
-            USpan<bool> occupied = dictionary->occupied.GetSpan<bool>(dictionary->capacity);
-            USpan<K> keys = dictionary->keys.GetSpan<K>(dictionary->capacity);
-            USpan<uint> keyHashCodes = dictionary->hashCodes.GetSpan<uint>(dictionary->capacity);
+            USpan<bool> occupied = new(dictionary->occupied.Pointer, dictionary->capacity);
+            USpan<K> keys = new(dictionary->keys.Pointer, dictionary->capacity);
+            USpan<uint> keyHashCodes = new(dictionary->hashCodes.Pointer, dictionary->capacity);
 
             while (occupied[index])
             {

@@ -106,7 +106,7 @@ namespace Collections.Generic
         {
             Allocations.ThrowIfNull(stack);
 
-            return stack->items.GetSpan<T>(stack->top);
+            return new(stack->items.Pointer, stack->top);
         }
 
         public readonly void Clear()
@@ -317,7 +317,7 @@ namespace Collections.Generic
                     {
                         Allocations.ThrowIfNull(stack);
 
-                        return stack->items.GetSpan<T>(stack->top)[(uint)index];
+                        return new USpan<T>(stack->items.Pointer, stack->top)[(uint)index];
                     }
                 }
             }
