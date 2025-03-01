@@ -69,6 +69,11 @@ namespace Collections
             }
         }
 
+        /// <summary>
+        /// The native pointer to the array.
+        /// </summary>
+        public readonly Pointer* Pointer => array;
+
         public readonly Allocation this[uint index]
         {
             get
@@ -183,6 +188,16 @@ namespace Collections
             Allocations.ThrowIfNull(array);
 
             return new(array->items.Pointer, array->length * array->stride);
+        }
+
+        /// <summary>
+        /// Gets a span of all bytes from <paramref name="byteStart"/>.
+        /// </summary>
+        public readonly USpan<byte> AsSpan(uint byteStart)
+        {
+            Allocations.ThrowIfNull(array);
+
+            return new((void*)((nint)array->items.Pointer + byteStart), (array->length * array->stride) - byteStart);
         }
 
         /// <summary>

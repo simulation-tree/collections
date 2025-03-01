@@ -74,6 +74,11 @@ namespace Collections.Generic
             }
         }
 
+        /// <summary>
+        /// The native pointer to the array.
+        /// </summary>
+        public readonly Pointer* Pointer => array;
+
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         readonly int IReadOnlyCollection<T>.Count => (int)Length;
 

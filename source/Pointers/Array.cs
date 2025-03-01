@@ -8,9 +8,8 @@ namespace Collections.Pointers
     public struct Array
     {
         public readonly uint stride;
-
-        internal uint length;
-        internal Allocation items;
+        public uint length;
+        public Allocation items;
 
         internal Array(uint stride, uint length, Allocation items)
         {
