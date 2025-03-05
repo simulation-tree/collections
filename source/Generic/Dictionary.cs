@@ -98,9 +98,9 @@ namespace Collections.Generic
                 uint capacity = Capacity;
                 for (uint i = 0; i < capacity; i++)
                 {
-                    if (TryGetPair(i, out KeyValuePair<K, V> pair))
+                    if (TryGetKeyAtIndex(i, out K key))
                     {
-                        yield return pair.key;
+                        yield return key;
                     }
                 }
             }
@@ -117,9 +117,9 @@ namespace Collections.Generic
                 uint capacity = Capacity;
                 for (uint i = 0; i < capacity; i++)
                 {
-                    if (TryGetPair(i, out KeyValuePair<K, V> pair))
+                    if (TryGetValueAtIndex(i, out V value))
                     {
-                        yield return pair.value;
+                        yield return value;
                     }
                 }
             }
@@ -158,13 +158,13 @@ namespace Collections.Generic
         }
 
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        readonly int ICollection<System.Collections.Generic.KeyValuePair<K, V>>.Count => (int)Count;
+        readonly int ICollection<KeyValuePair<K, V>>.Count => (int)Count;
 
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        readonly bool ICollection<System.Collections.Generic.KeyValuePair<K, V>>.IsReadOnly => false;
+        readonly bool ICollection<KeyValuePair<K, V>>.IsReadOnly => false;
 
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        readonly int IReadOnlyCollection<System.Collections.Generic.KeyValuePair<K, V>>.Count => (int)Count;
+        readonly int IReadOnlyCollection<KeyValuePair<K, V>>.Count => (int)Count;
 
         readonly V IReadOnlyDictionary<K, V>.this[K key] => this[key];
 
@@ -343,12 +343,39 @@ namespace Collections.Generic
             oldKeyHashCodes.Dispose();
         }
 
-        private readonly bool TryGetPair(uint index, out KeyValuePair<K, V> pair)
+        private readonly bool TryGetPairAtIndex(uint index, out K key, out V value)
         {
             MemoryAddress.ThrowIfDefault(dictionary);
             ThrowIfOutOfRange(index);
 
-            pair = new KeyValuePair<K, V>(dictionary->keys.ReadElement<K>(index), dictionary->values.ReadElement<V>(index));
+            key = dictionary->keys.ReadElement<K>(index);
+            value = dictionary->values.ReadElement<V>(index);
+            return dictionary->occupied.ReadElement<bool>(index);
+        }
+
+        private readonly bool ContainsAtIndex(uint index)
+        {
+            MemoryAddress.ThrowIfDefault(dictionary);
+            ThrowIfOutOfRange(index);
+
+            return dictionary->occupied.ReadElement<bool>(index);
+        }
+
+        private readonly bool TryGetKeyAtIndex(uint index, out K key)
+        {
+            MemoryAddress.ThrowIfDefault(dictionary);
+            ThrowIfOutOfRange(index);
+
+            key = dictionary->keys.ReadElement<K>(index);
+            return dictionary->occupied.ReadElement<bool>(index);
+        }
+
+        private readonly bool TryGetValueAtIndex(uint index, out V value)
+        {
+            MemoryAddress.ThrowIfDefault(dictionary);
+            ThrowIfOutOfRange(index);
+
+            value = dictionary->values.ReadElement<V>(index);
             return dictionary->occupied.ReadElement<bool>(index);
         }
 
@@ -832,17 +859,17 @@ namespace Collections.Generic
             return TryRemove(key);
         }
 
-        readonly void ICollection<System.Collections.Generic.KeyValuePair<K, V>>.Add(System.Collections.Generic.KeyValuePair<K, V> item)
+        readonly void ICollection<KeyValuePair<K, V>>.Add(KeyValuePair<K, V> item)
         {
             Add(item.Key, item.Value);
         }
 
-        readonly bool ICollection<System.Collections.Generic.KeyValuePair<K, V>>.Contains(System.Collections.Generic.KeyValuePair<K, V> item)
+        readonly bool ICollection<KeyValuePair<K, V>>.Contains(KeyValuePair<K, V> item)
         {
             return TryGetValue(item.Key, out V value) && EqualityComparer<V>.Default.Equals(value, item.Value);
         }
 
-        readonly void ICollection<System.Collections.Generic.KeyValuePair<K, V>>.CopyTo(System.Collections.Generic.KeyValuePair<K, V>[] array, int arrayIndex)
+        readonly void ICollection<KeyValuePair<K, V>>.CopyTo(KeyValuePair<K, V>[] array, int arrayIndex)
         {
             if (array is null)
             {
@@ -862,19 +889,19 @@ namespace Collections.Generic
             uint count = Capacity;
             for (uint i = 0; i < count; i++)
             {
-                if (TryGetPair(i, out KeyValuePair<K, V> pair))
+                if (TryGetPairAtIndex(i, out K key, out V value))
                 {
-                    array[arrayIndex++] = new(pair.key, pair.value);
+                    array[arrayIndex++] = new(key, value);
                 }
             }
         }
 
-        readonly bool ICollection<System.Collections.Generic.KeyValuePair<K, V>>.Remove(System.Collections.Generic.KeyValuePair<K, V> item)
+        readonly bool ICollection<KeyValuePair<K, V>>.Remove(KeyValuePair<K, V> item)
         {
             return TryRemove(item.Key);
         }
 
-        readonly IEnumerator<System.Collections.Generic.KeyValuePair<K, V>> IEnumerable<System.Collections.Generic.KeyValuePair<K, V>>.GetEnumerator()
+        readonly IEnumerator<KeyValuePair<K, V>> IEnumerable<KeyValuePair<K, V>>.GetEnumerator()
         {
             return new SystemEnumerator(this);
         }
@@ -932,8 +959,8 @@ namespace Collections.Generic
             {
                 get
                 {
-                    map.TryGetPair((uint)index, out KeyValuePair<K, V> pair);
-                    return pair;
+                    map.TryGetPairAtIndex((uint)index, out K key, out V value);
+                    return (key, value);
                 }
             }
 
@@ -950,7 +977,7 @@ namespace Collections.Generic
             {
                 while (++index < capacity)
                 {
-                    if (map.TryGetPair((uint)index, out _))
+                    if (map.TryGetKeyAtIndex((uint)index, out _))
                     {
                         return true;
                     }
@@ -969,18 +996,18 @@ namespace Collections.Generic
             }
         }
 
-        public struct SystemEnumerator : IEnumerator<System.Collections.Generic.KeyValuePair<K, V>>
+        public struct SystemEnumerator : IEnumerator<KeyValuePair<K, V>>
         {
             private readonly Dictionary<K, V> map;
             private readonly uint capacity;
             private int index;
 
-            public readonly System.Collections.Generic.KeyValuePair<K, V> Current
+            public readonly KeyValuePair<K, V> Current
             {
                 get
                 {
-                    map.TryGetPair((uint)index, out KeyValuePair<K, V> pair);
-                    return new(pair.key, pair.value);
+                    map.TryGetPairAtIndex((uint)index, out K key, out V value);
+                    return new(key, value);
                 }
             }
 
@@ -997,7 +1024,7 @@ namespace Collections.Generic
             {
                 while (++index < capacity)
                 {
-                    if (map.TryGetPair((uint)index, out _))
+                    if (map.ContainsAtIndex((uint)index))
                     {
                         return true;
                     }

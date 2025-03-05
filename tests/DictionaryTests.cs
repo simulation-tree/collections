@@ -289,7 +289,7 @@ namespace Collections.Tests
             using Dictionary<byte, uint> map = new();
             map.Add(0, 23);
 
-            using List<KeyValuePair<byte, uint>> pairs = new();
+            using List<(byte key, uint value)> pairs = new();
             foreach ((byte key, uint value) pair in map)
             {
                 pairs.Add(pair);
