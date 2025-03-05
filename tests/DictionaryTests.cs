@@ -187,8 +187,6 @@ namespace Collections.Tests
             Assert.That(map[1], Is.EqualTo(42));
             Assert.That(map[2], Is.EqualTo(69));
             map.Dispose();
-
-            Assert.That(Allocations.Count, Is.EqualTo(0));
         }
 
         [Test]

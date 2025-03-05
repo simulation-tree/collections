@@ -27,7 +27,7 @@ namespace Collections.Generic
         {
             get
             {
-                Allocations.ThrowIfNull(list);
+                MemoryAddress.ThrowIfDefault(list);
 
                 return list->count;
             }
@@ -40,18 +40,18 @@ namespace Collections.Generic
         {
             get
             {
-                Allocations.ThrowIfNull(list);
+                MemoryAddress.ThrowIfDefault(list);
 
                 return list->capacity;
             }
             set
             {
-                Allocations.ThrowIfNull(list);
+                MemoryAddress.ThrowIfDefault(list);
 
-                uint newCapacity = Allocations.GetNextPowerOf2(value);
+                uint newCapacity = value.GetNextPowerOf2();
                 ThrowIfLessThanCount(newCapacity);
 
-                Allocation newItems = Allocation.Create((uint)sizeof(T) * newCapacity);
+                MemoryAddress newItems = MemoryAddress.Allocate((uint)sizeof(T) * newCapacity);
                 list->items.CopyTo(newItems, (uint)sizeof(T) * list->count);
                 list->items.Dispose();
                 list->items = newItems;
@@ -67,11 +67,11 @@ namespace Collections.Generic
         /// <summary>
         /// The underlying memory allocation for this list.
         /// </summary>
-        public readonly Allocation Items
+        public readonly MemoryAddress Items
         {
             get
             {
-                Allocations.ThrowIfNull(list);
+                MemoryAddress.ThrowIfDefault(list);
 
                 return list->items;
             }
@@ -84,7 +84,7 @@ namespace Collections.Generic
         {
             get
             {
-                Allocations.ThrowIfNull(list);
+                MemoryAddress.ThrowIfDefault(list);
                 ThrowIfOutOfRange(index);
 
                 return ref list->items.ReadElement<T>(index);
@@ -106,14 +106,14 @@ namespace Collections.Generic
         {
             get
             {
-                Allocations.ThrowIfNull(list);
+                MemoryAddress.ThrowIfDefault(list);
                 ThrowIfOutOfRange((uint)index);
 
                 return list->items.ReadElement<T>((uint)index);
             }
             set
             {
-                Allocations.ThrowIfNull(list);
+                MemoryAddress.ThrowIfDefault(list);
                 ThrowIfOutOfRange((uint)index);
 
                 list->items.WriteElement((uint)index, value);
@@ -136,9 +136,9 @@ namespace Collections.Generic
         /// </summary>
         public List(uint initialCapacity = 4)
         {
-            initialCapacity = Allocations.GetNextPowerOf2(Math.Max(1, initialCapacity));
-            ref Pointer list = ref Allocations.Allocate<Pointer>();
-            list = new((uint)sizeof(T), 0, initialCapacity, Allocation.Create((uint)sizeof(T) * initialCapacity));
+            initialCapacity = Math.Max(1, initialCapacity).GetNextPowerOf2();
+            ref Pointer list = ref MemoryAddress.Allocate<Pointer>();
+            list = new((uint)sizeof(T), 0, initialCapacity, MemoryAddress.Allocate((uint)sizeof(T) * initialCapacity));
             fixed (Pointer* pointer = &list)
             {
                 this.list = pointer;
@@ -150,9 +150,9 @@ namespace Collections.Generic
         /// </summary>
         public List(USpan<T> span)
         {
-            uint capacity = Allocations.GetNextPowerOf2(Math.Max(1, span.Length));
-            ref Pointer list = ref Allocations.Allocate<Pointer>();
-            list = new((uint)sizeof(T), span.Length, capacity, Allocation.Create((uint)sizeof(T) * capacity));
+            uint initialCapacity = Math.Max(1, span.Length).GetNextPowerOf2();
+            ref Pointer list = ref MemoryAddress.Allocate<Pointer>();
+            list = new((uint)sizeof(T), span.Length, initialCapacity, MemoryAddress.Allocate((uint)sizeof(T) * initialCapacity));
             span.CopyTo(list.items, span.Length * (uint)sizeof(T));
             fixed (Pointer* pointer = &list)
             {
@@ -165,8 +165,8 @@ namespace Collections.Generic
         /// </summary>
         public List(IEnumerable<T> enumerable)
         {
-            ref Pointer list = ref Allocations.Allocate<Pointer>();
-            list = new((uint)sizeof(T), 0, 4, Allocation.Create((uint)sizeof(T) * 4));
+            ref Pointer list = ref MemoryAddress.Allocate<Pointer>();
+            list = new((uint)sizeof(T), 0, 4, MemoryAddress.Allocate((uint)sizeof(T) * 4));
             fixed (Pointer* pointer = &list)
             {
                 this.list = pointer;
@@ -184,8 +184,8 @@ namespace Collections.Generic
         /// </summary>
         public List()
         {
-            ref Pointer list = ref Allocations.Allocate<Pointer>();
-            list = new((uint)sizeof(T), 0, 4, Allocation.Create((uint)sizeof(T) * 4));
+            ref Pointer list = ref MemoryAddress.Allocate<Pointer>();
+            list = new((uint)sizeof(T), 0, 4, MemoryAddress.Allocate((uint)sizeof(T) * 4));
             fixed (Pointer* pointer = &list)
             {
                 this.list = pointer;
@@ -201,10 +201,10 @@ namespace Collections.Generic
         /// </summary>
         public void Dispose()
         {
-            Allocations.ThrowIfNull(list);
+            MemoryAddress.ThrowIfDefault(list);
 
             list->items.Dispose();
-            Allocations.Free(ref list);
+            MemoryAddress.Free(ref list);
         }
 
 
@@ -240,7 +240,7 @@ namespace Collections.Generic
         /// </summary>
         public readonly USpan<T> AsSpan()
         {
-            Allocations.ThrowIfNull(list);
+            MemoryAddress.ThrowIfDefault(list);
 
             return new(list->items.Pointer, list->count);
         }
@@ -250,7 +250,7 @@ namespace Collections.Generic
         /// </summary>
         public readonly USpan<T> AsSpan(uint start)
         {
-            Allocations.ThrowIfNull(list);
+            MemoryAddress.ThrowIfDefault(list);
             ThrowIfOutOfRange(start);
 
             return list->items.AsSpan<T>(start, list->count - start);
@@ -261,7 +261,7 @@ namespace Collections.Generic
         /// </summary>
         public readonly USpan<T> AsSpan(uint start, uint length)
         {
-            Allocations.ThrowIfNull(list);
+            MemoryAddress.ThrowIfDefault(list);
             ThrowIfOutOfRange(start + length);
 
             return list->items.AsSpan<T>(start, length);
@@ -276,7 +276,7 @@ namespace Collections.Generic
         /// <exception cref="IndexOutOfRangeException"/>
         public readonly void Insert(uint index, T item)
         {
-            Allocations.ThrowIfNull(list);
+            MemoryAddress.ThrowIfDefault(list);
             ThrowIfPastRange(index);
 
             uint count = list->count;
@@ -285,7 +285,7 @@ namespace Collections.Generic
                 list->capacity *= 2;
                 unchecked
                 {
-                    Allocation.Resize(ref list->items, (uint)sizeof(T) * list->capacity);
+                    MemoryAddress.Resize(ref list->items, (uint)sizeof(T) * list->capacity);
                 }
             }
 
@@ -303,7 +303,7 @@ namespace Collections.Generic
         /// </summary>
         public readonly void Add(T item)
         {
-            Allocations.ThrowIfNull(list);
+            MemoryAddress.ThrowIfDefault(list);
 
             uint count = list->count;
             if (count == list->capacity)
@@ -311,7 +311,7 @@ namespace Collections.Generic
                 list->capacity *= 2;
                 unchecked
                 {
-                    Allocation.Resize(ref list->items, (uint)sizeof(T) * list->capacity);
+                    MemoryAddress.Resize(ref list->items, (uint)sizeof(T) * list->capacity);
                 }
             }
 
@@ -324,7 +324,7 @@ namespace Collections.Generic
         /// </summary>
         public readonly void AddDefault()
         {
-            Allocations.ThrowIfNull(list);
+            MemoryAddress.ThrowIfDefault(list);
 
             uint count = list->count;
             if (count == list->capacity)
@@ -332,7 +332,7 @@ namespace Collections.Generic
                 list->capacity *= 2;
                 unchecked
                 {
-                    Allocation.Resize(ref list->items, (uint)sizeof(T) * list->capacity);
+                    MemoryAddress.Resize(ref list->items, (uint)sizeof(T) * list->capacity);
                 }
             }
 
@@ -345,15 +345,15 @@ namespace Collections.Generic
         /// </summary>
         public readonly void AddDefault(uint count)
         {
-            Allocations.ThrowIfNull(list);
+            MemoryAddress.ThrowIfDefault(list);
 
             uint newCount = list->count + count;
             if (newCount >= list->capacity)
             {
-                list->capacity = Allocations.GetNextPowerOf2(newCount);
+                list->capacity = newCount.GetNextPowerOf2();
                 unchecked
                 {
-                    Allocation.Resize(ref list->items, (uint)sizeof(T) * list->capacity);
+                    MemoryAddress.Resize(ref list->items, (uint)sizeof(T) * list->capacity);
                 }
             }
 
@@ -366,15 +366,15 @@ namespace Collections.Generic
         /// </summary>
         public readonly void AddRepeat(T item, uint count)
         {
-            Allocations.ThrowIfNull(list);
+            MemoryAddress.ThrowIfDefault(list);
 
             uint newCount = list->count + count;
             if (newCount >= list->capacity)
             {
-                list->capacity = Allocations.GetNextPowerOf2(newCount);
+                list->capacity = newCount.GetNextPowerOf2();
                 unchecked
                 {
-                    Allocation.Resize(ref list->items, (uint)sizeof(T) * list->capacity);
+                    MemoryAddress.Resize(ref list->items, (uint)sizeof(T) * list->capacity);
                 }
             }
 
@@ -388,13 +388,13 @@ namespace Collections.Generic
         /// </summary>
         public readonly void AddRange(void* pointer, uint count)
         {
-            Allocations.ThrowIfNull(list);
+            MemoryAddress.ThrowIfDefault(list);
 
             uint newCount = list->count + count;
             if (newCount >= list->capacity)
             {
-                list->capacity = Allocations.GetNextPowerOf2(newCount);
-                Allocation.Resize(ref list->items, (uint)sizeof(T) * list->capacity);
+                list->capacity = newCount.GetNextPowerOf2();
+                MemoryAddress.Resize(ref list->items, (uint)sizeof(T) * list->capacity);
             }
 
             USpan<T> destination = list->items.AsSpan<T>(list->count, count);
@@ -437,16 +437,16 @@ namespace Collections.Generic
         /// </summary>
         public readonly void AddRange(USpan<T> span)
         {
-            Allocations.ThrowIfNull(list);
+            MemoryAddress.ThrowIfDefault(list);
 
             uint addLength = span.Length;
             uint newCount = list->count + addLength;
             if (newCount >= list->capacity)
             {
-                list->capacity = Allocations.GetNextPowerOf2(newCount);
+                list->capacity = newCount.GetNextPowerOf2();
                 unchecked
                 {
-                    Allocation.Resize(ref list->items, (uint)sizeof(T) * list->capacity);
+                    MemoryAddress.Resize(ref list->items, (uint)sizeof(T) * list->capacity);
                 }
             }
 
@@ -465,7 +465,7 @@ namespace Collections.Generic
         /// <exception cref="IndexOutOfRangeException"></exception>"
         public readonly void RemoveAt(uint index)
         {
-            Allocations.ThrowIfNull(list);
+            MemoryAddress.ThrowIfDefault(list);
             ThrowIfOutOfRange(index);
 
             uint newCount = list->count - 1;
@@ -485,7 +485,7 @@ namespace Collections.Generic
         /// </summary>
         public readonly void RemoveAt(uint index, out T removed)
         {
-            Allocations.ThrowIfNull(list);
+            MemoryAddress.ThrowIfDefault(list);
             ThrowIfOutOfRange(index);
 
             removed = this[index];
@@ -510,7 +510,7 @@ namespace Collections.Generic
         /// <exception cref="IndexOutOfRangeException"></exception>"
         public readonly void RemoveAtBySwapping(uint index)
         {
-            Allocations.ThrowIfNull(list);
+            MemoryAddress.ThrowIfDefault(list);
             ThrowIfOutOfRange(index);
 
             uint newCount = list->count - 1;
@@ -526,7 +526,7 @@ namespace Collections.Generic
         /// </summary>
         public readonly void RemoveAtBySwapping(uint index, out T removed)
         {
-            Allocations.ThrowIfNull(list);
+            MemoryAddress.ThrowIfDefault(list);
             ThrowIfOutOfRange(index);
 
             removed = list->items.ReadElement<T>(index);
@@ -541,7 +541,7 @@ namespace Collections.Generic
         /// </summary>
         public readonly void Clear()
         {
-            Allocations.ThrowIfNull(list);
+            MemoryAddress.ThrowIfDefault(list);
 
             list->count = 0;
         }
@@ -559,8 +559,8 @@ namespace Collections.Generic
                 uint newCount = list->count + toAdd;
                 if (newCount >= list->capacity)
                 {
-                    list->capacity = Allocations.GetNextPowerOf2(newCount);
-                    Allocation.Resize(ref list->items, (uint)sizeof(T) * list->capacity);
+                    list->capacity = newCount.GetNextPowerOf2();
+                    MemoryAddress.Resize(ref list->items, (uint)sizeof(T) * list->capacity);
                 }
 
                 list->items.Clear(list->count * (uint)sizeof(T), toAdd * (uint)sizeof(T));

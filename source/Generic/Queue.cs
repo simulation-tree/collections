@@ -24,7 +24,7 @@ namespace Collections.Generic
         {
             get
             {
-                Allocations.ThrowIfNull(queue);
+                MemoryAddress.ThrowIfDefault(queue);
 
                 return queue->top - queue->rear;
             }
@@ -37,7 +37,7 @@ namespace Collections.Generic
         {
             get
             {
-                Allocations.ThrowIfNull(queue);
+                MemoryAddress.ThrowIfDefault(queue);
 
                 return queue->top == queue->rear;
             }
@@ -60,7 +60,7 @@ namespace Collections.Generic
         /// </summary>
         public Queue()
         {
-            ref Pointer queue = ref Allocations.Allocate<Pointer>();
+            ref Pointer queue = ref MemoryAddress.Allocate<Pointer>();
             queue = new((uint)sizeof(T), 4);
             fixed (Pointer* pointer = &queue)
             {
@@ -74,8 +74,8 @@ namespace Collections.Generic
         /// </summary>
         public Queue(uint initialCapacity = 4)
         {
-            initialCapacity = Allocations.GetNextPowerOf2(Math.Max(1, initialCapacity));
-            ref Pointer queue = ref Allocations.Allocate<Pointer>();
+            initialCapacity = Math.Max(1, initialCapacity).GetNextPowerOf2();
+            ref Pointer queue = ref MemoryAddress.Allocate<Pointer>();
             queue = new((uint)sizeof(T), initialCapacity);
             fixed (Pointer* pointer = &queue)
             {
@@ -93,15 +93,15 @@ namespace Collections.Generic
 
         public void Dispose()
         {
-            Allocations.ThrowIfNull(queue);
+            MemoryAddress.ThrowIfDefault(queue);
 
             queue->items.Dispose();
-            Allocations.Free(ref queue);
+            MemoryAddress.Free(ref queue);
         }
 
         public readonly USpan<T> AsSpan()
         {
-            Allocations.ThrowIfNull(queue);
+            MemoryAddress.ThrowIfDefault(queue);
 
             uint length = queue->top - queue->rear;
             return queue->items.AsSpan<T>(queue->rear, length);
@@ -109,7 +109,7 @@ namespace Collections.Generic
 
         public readonly void Clear()
         {
-            Allocations.ThrowIfNull(queue);
+            MemoryAddress.ThrowIfDefault(queue);
 
             queue->top = 0;
             queue->rear = 0;
@@ -117,14 +117,14 @@ namespace Collections.Generic
 
         public readonly void Clear(uint minimumCapacity)
         {
-            Allocations.ThrowIfNull(queue);
+            MemoryAddress.ThrowIfDefault(queue);
 
             if (queue->capacity < minimumCapacity)
             {
-                queue->capacity = Allocations.GetNextPowerOf2(minimumCapacity);
+                queue->capacity = minimumCapacity.GetNextPowerOf2();
                 unchecked
                 {
-                    Allocation.Resize(ref queue->items, queue->capacity * (uint)sizeof(T));
+                    MemoryAddress.Resize(ref queue->items, queue->capacity * (uint)sizeof(T));
                 }
             }
 
@@ -134,7 +134,7 @@ namespace Collections.Generic
 
         public readonly void Enqueue(T item)
         {
-            Allocations.ThrowIfNull(queue);
+            MemoryAddress.ThrowIfDefault(queue);
 
             uint top = queue->top;
             if (top == queue->capacity)
@@ -142,7 +142,7 @@ namespace Collections.Generic
                 queue->capacity *= 2;
                 unchecked
                 {
-                    Allocation.Resize(ref queue->items, queue->capacity * (uint)sizeof(T));
+                    MemoryAddress.Resize(ref queue->items, queue->capacity * (uint)sizeof(T));
                 }
             }
 
@@ -152,15 +152,15 @@ namespace Collections.Generic
 
         public readonly void EnqueueRange(USpan<T> items)
         {
-            Allocations.ThrowIfNull(queue);
+            MemoryAddress.ThrowIfDefault(queue);
 
             unchecked
             {
                 uint newTop = queue->top + items.Length;
                 if (newTop > queue->capacity)
                 {
-                    queue->capacity = Allocations.GetNextPowerOf2(newTop);
-                    Allocation.Resize(ref queue->items, queue->capacity * (uint)sizeof(T));
+                    queue->capacity = newTop.GetNextPowerOf2();
+                    MemoryAddress.Resize(ref queue->items, queue->capacity * (uint)sizeof(T));
                 }
 
                 queue->items.Write(queue->top * (uint)sizeof(T), items);
@@ -170,7 +170,7 @@ namespace Collections.Generic
 
         public readonly T Dequeue()
         {
-            Allocations.ThrowIfNull(queue);
+            MemoryAddress.ThrowIfDefault(queue);
 
             unchecked
             {
@@ -183,7 +183,7 @@ namespace Collections.Generic
 
         public readonly bool TryDequeue(out T value)
         {
-            Allocations.ThrowIfNull(queue);
+            MemoryAddress.ThrowIfDefault(queue);
             if (queue->top != queue->rear)
             {
                 unchecked
@@ -286,7 +286,7 @@ namespace Collections.Generic
                 {
                     unchecked
                     {
-                        Allocations.ThrowIfNull(queue);
+                        MemoryAddress.ThrowIfDefault(queue);
 
                         uint length = queue->top - queue->rear;
                         return queue->items.AsSpan<T>(queue->rear, length)[(uint)index];

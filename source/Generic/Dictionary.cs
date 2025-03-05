@@ -23,7 +23,7 @@ namespace Collections.Generic
         {
             get
             {
-                Allocations.ThrowIfNull(dictionary);
+                MemoryAddress.ThrowIfDefault(dictionary);
 
                 return dictionary->count;
             }
@@ -36,7 +36,7 @@ namespace Collections.Generic
         {
             get
             {
-                Allocations.ThrowIfNull(dictionary);
+                MemoryAddress.ThrowIfDefault(dictionary);
 
                 return dictionary->capacity;
             }
@@ -58,7 +58,7 @@ namespace Collections.Generic
         {
             get
             {
-                Allocations.ThrowIfNull(dictionary);
+                MemoryAddress.ThrowIfDefault(dictionary);
                 ThrowIfKeyIsMissing(key);
 
                 uint capacity = dictionary->capacity;
@@ -203,10 +203,10 @@ namespace Collections.Generic
         /// </summary>
         public Dictionary(uint initialCapacity = 4)
         {
-            uint capacity = Allocations.GetNextPowerOf2(Math.Max(1, initialCapacity));
+            uint capacity = Math.Max(1, initialCapacity).GetNextPowerOf2();
             uint keyStride = (uint)sizeof(K);
             uint valueStride = (uint)sizeof(V);
-            ref Pointer map = ref Allocations.Allocate<Pointer>();
+            ref Pointer map = ref MemoryAddress.Allocate<Pointer>();
             map = new(keyStride, valueStride, capacity);
             fixed (Pointer* pointer = &map)
             {
@@ -222,7 +222,7 @@ namespace Collections.Generic
         {
             uint keyStride = (uint)sizeof(K);
             uint valueStride = (uint)sizeof(V);
-            ref Pointer map = ref Allocations.Allocate<Pointer>();
+            ref Pointer map = ref MemoryAddress.Allocate<Pointer>();
             map = new(keyStride, valueStride, 4);
             fixed (Pointer* pointer = &map)
             {
@@ -239,13 +239,13 @@ namespace Collections.Generic
         /// </summary>
         public void Dispose()
         {
-            Allocations.ThrowIfNull(dictionary);
+            MemoryAddress.ThrowIfDefault(dictionary);
 
             dictionary->keys.Dispose();
             dictionary->hashCodes.Dispose();
             dictionary->values.Dispose();
             dictionary->occupied.Dispose();
-            Allocations.Free(ref dictionary);
+            MemoryAddress.Free(ref dictionary);
         }
 
         [Conditional("DEBUG")]
@@ -292,20 +292,20 @@ namespace Collections.Generic
 
         private readonly void Resize()
         {
-            Allocations.ThrowIfNull(dictionary);
+            MemoryAddress.ThrowIfDefault(dictionary);
 
             uint oldCapacity = dictionary->capacity;
             uint newCapacity = oldCapacity * 2;
             dictionary->capacity = newCapacity;
             uint count = 0;
-            Allocation oldKeys = dictionary->keys;
-            Allocation oldValues = dictionary->values;
-            Allocation oldOccupied = dictionary->occupied;
-            Allocation oldKeyHashCodes = dictionary->hashCodes;
-            dictionary->keys = Allocation.Create(newCapacity * (uint)sizeof(K));
-            dictionary->values = Allocation.Create(newCapacity * (uint)sizeof(V));
-            dictionary->hashCodes = Allocation.Create(newCapacity * sizeof(uint));
-            dictionary->occupied = Allocation.CreateZeroed(newCapacity);
+            MemoryAddress oldKeys = dictionary->keys;
+            MemoryAddress oldValues = dictionary->values;
+            MemoryAddress oldOccupied = dictionary->occupied;
+            MemoryAddress oldKeyHashCodes = dictionary->hashCodes;
+            dictionary->keys = MemoryAddress.Allocate(newCapacity * (uint)sizeof(K));
+            dictionary->values = MemoryAddress.Allocate(newCapacity * (uint)sizeof(V));
+            dictionary->hashCodes = MemoryAddress.Allocate(newCapacity * sizeof(uint));
+            dictionary->occupied = MemoryAddress.AllocateZeroed(newCapacity);
             USpan<K> oldKeysSpan = new(oldKeys.Pointer, oldCapacity);
             USpan<V> oldValuesSpan = new(oldValues.Pointer, oldCapacity);
             USpan<bool> oldOccupiedSpan = new(oldOccupied.Pointer, oldCapacity);
@@ -345,7 +345,7 @@ namespace Collections.Generic
 
         private readonly bool TryGetPair(uint index, out KeyValuePair<K, V> pair)
         {
-            Allocations.ThrowIfNull(dictionary);
+            MemoryAddress.ThrowIfDefault(dictionary);
             ThrowIfOutOfRange(index);
 
             pair = new KeyValuePair<K, V>(dictionary->keys.ReadElement<K>(index), dictionary->values.ReadElement<V>(index));
@@ -357,7 +357,7 @@ namespace Collections.Generic
         /// </summary>
         public readonly bool ContainsKey(K key)
         {
-            Allocations.ThrowIfNull(dictionary);
+            MemoryAddress.ThrowIfDefault(dictionary);
 
             uint capacity = dictionary->capacity;
             uint hashCode = GetHash(key);
@@ -390,7 +390,7 @@ namespace Collections.Generic
         /// <returns><c>true</c> if found.</returns>
         public readonly bool TryGetValue(K key, out V value)
         {
-            Allocations.ThrowIfNull(dictionary);
+            MemoryAddress.ThrowIfDefault(dictionary);
 
             uint capacity = dictionary->capacity;
             uint hashCode = GetHash(key);
@@ -425,7 +425,7 @@ namespace Collections.Generic
         /// <returns>Reference to the value if <paramref name="contains"/> is true.</returns>
         public readonly ref V TryGetValue(K key, out bool contains)
         {
-            Allocations.ThrowIfNull(dictionary);
+            MemoryAddress.ThrowIfDefault(dictionary);
 
             uint hashCode = GetHash(key);
             uint index = hashCode % dictionary->capacity;
@@ -459,7 +459,7 @@ namespace Collections.Generic
         /// <returns><c>true</c> if successful.</returns>
         public readonly bool TryAdd(K key, V value)
         {
-            Allocations.ThrowIfNull(dictionary);
+            MemoryAddress.ThrowIfDefault(dictionary);
 
             uint capacity = dictionary->capacity;
             if (dictionary->count == capacity)
@@ -505,7 +505,7 @@ namespace Collections.Generic
         /// </summary>
         public readonly void Add(K key, V value)
         {
-            Allocations.ThrowIfNull(dictionary);
+            MemoryAddress.ThrowIfDefault(dictionary);
             ThrowIfKeyAlreadyPresent(key);
 
             uint capacity = dictionary->capacity;
@@ -540,7 +540,7 @@ namespace Collections.Generic
         /// </summary>
         public readonly void Add(K key, ref V value)
         {
-            Allocations.ThrowIfNull(dictionary);
+            MemoryAddress.ThrowIfDefault(dictionary);
             ThrowIfKeyAlreadyPresent(key);
 
             uint capacity = dictionary->capacity;
@@ -578,7 +578,7 @@ namespace Collections.Generic
         /// <exception cref="KeyNotFoundException"></exception>
         public readonly void Set(K key, V value)
         {
-            Allocations.ThrowIfNull(dictionary);
+            MemoryAddress.ThrowIfDefault(dictionary);
             ThrowIfKeyIsMissing(key);
 
             uint hashCode = GetHash(key);
@@ -627,7 +627,7 @@ namespace Collections.Generic
         /// <returns>Reference to the added value.</returns>
         public readonly ref V Add(K key)
         {
-            Allocations.ThrowIfNull(dictionary);
+            MemoryAddress.ThrowIfDefault(dictionary);
             ThrowIfKeyAlreadyPresent(key);
 
             uint capacity = dictionary->capacity;
@@ -664,7 +664,7 @@ namespace Collections.Generic
         /// </summary>
         public readonly void Remove(K key)
         {
-            Allocations.ThrowIfNull(dictionary);
+            MemoryAddress.ThrowIfDefault(dictionary);
             ThrowIfKeyIsMissing(key);
 
             uint hashCode = GetHash(key);
@@ -703,7 +703,7 @@ namespace Collections.Generic
         /// </summary>
         public readonly void Remove(K key, out V removed)
         {
-            Allocations.ThrowIfNull(dictionary);
+            MemoryAddress.ThrowIfDefault(dictionary);
             ThrowIfKeyIsMissing(key);
 
             uint hashCode = GetHash(key);
@@ -741,7 +741,7 @@ namespace Collections.Generic
         /// <returns><c>true</c> if found and removed.</returns>
         public readonly bool TryRemove(K key, out V removed)
         {
-            Allocations.ThrowIfNull(dictionary);
+            MemoryAddress.ThrowIfDefault(dictionary);
 
             uint hashCode = GetHash(key);
             uint index = hashCode % dictionary->capacity;
@@ -780,7 +780,7 @@ namespace Collections.Generic
         /// <returns><c>true</c> if found and removed.</returns>
         public readonly bool TryRemove(K key)
         {
-            Allocations.ThrowIfNull(dictionary);
+            MemoryAddress.ThrowIfDefault(dictionary);
 
             uint hashCode = GetHash(key);
             uint index = hashCode % dictionary->capacity;
@@ -816,7 +816,7 @@ namespace Collections.Generic
         /// </summary>
         public readonly void Clear()
         {
-            Allocations.ThrowIfNull(dictionary);
+            MemoryAddress.ThrowIfDefault(dictionary);
 
             dictionary->occupied.Clear(dictionary->capacity);
             dictionary->count = 0;

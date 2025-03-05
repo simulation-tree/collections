@@ -22,7 +22,7 @@ namespace Collections
         {
             get
             {
-                Allocations.ThrowIfNull(list);
+                MemoryAddress.ThrowIfDefault(list);
 
                 return list->count;
             }
@@ -35,7 +35,7 @@ namespace Collections
         {
             get
             {
-                Allocations.ThrowIfNull(list);
+                MemoryAddress.ThrowIfDefault(list);
 
                 return list->stride;
             }
@@ -44,11 +44,11 @@ namespace Collections
         /// <summary>
         /// Underlying allocation of the list containing all elements.
         /// </summary>
-        public readonly Allocation Items
+        public readonly MemoryAddress Items
         {
             get
             {
-                Allocations.ThrowIfNull(list);
+                MemoryAddress.ThrowIfDefault(list);
 
                 return list->items;
             }
@@ -61,18 +61,18 @@ namespace Collections
         {
             get
             {
-                Allocations.ThrowIfNull(list);
+                MemoryAddress.ThrowIfDefault(list);
 
                 return list->capacity;
             }
             set
             {
-                Allocations.ThrowIfNull(list);
+                MemoryAddress.ThrowIfDefault(list);
 
-                uint newCapacity = Allocations.GetNextPowerOf2(value);
+                uint newCapacity = value.GetNextPowerOf2();
                 ThrowIfLessThanCount(newCapacity);
 
-                Allocation newItems = Allocation.Create(list->stride * newCapacity);
+                MemoryAddress newItems = MemoryAddress.Allocate(list->stride * newCapacity);
                 list->items.CopyTo(newItems, list->stride * list->count);
                 list->items.Dispose();
                 list->items = newItems;
@@ -88,14 +88,14 @@ namespace Collections
         /// <summary>
         /// Accesses the element at the specified index.
         /// </summary>
-        public readonly Allocation this[uint index]
+        public readonly MemoryAddress this[uint index]
         {
             get
             {
-                Allocations.ThrowIfNull(list);
+                MemoryAddress.ThrowIfDefault(list);
                 ThrowIfOutOfRange(index);
 
-                return new((void*)((nint)list->items + list->stride * index));
+                return new((void*)(list->items.Address + list->stride * index));
             }
         }
 
@@ -113,9 +113,9 @@ namespace Collections
         /// </summary>
         public List(uint initialCapacity, uint stride)
         {
-            initialCapacity = Allocations.GetNextPowerOf2(Math.Max(1, initialCapacity));
-            ref Pointer list = ref Allocations.Allocate<Pointer>();
-            list = new(stride, 0, initialCapacity, Allocation.Create(stride * initialCapacity));
+            initialCapacity = Math.Max(1, initialCapacity).GetNextPowerOf2();
+            ref Pointer list = ref MemoryAddress.Allocate<Pointer>();
+            list = new(stride, 0, initialCapacity, MemoryAddress.Allocate(stride * initialCapacity));
             fixed (Pointer* pointer = &list)
             {
                 this.list = pointer;
@@ -138,10 +138,10 @@ namespace Collections
         /// </para>
         public void Dispose()
         {
-            Allocations.ThrowIfNull(list);
+            MemoryAddress.ThrowIfDefault(list);
 
             list->items.Dispose();
-            Allocations.Free(ref list);
+            MemoryAddress.Free(ref list);
         }
 
         [Conditional("DEBUG")]
@@ -185,7 +185,7 @@ namespace Collections
         /// </summary>
         public readonly USpan<T> AsSpan<T>() where T : unmanaged
         {
-            Allocations.ThrowIfNull(list);
+            MemoryAddress.ThrowIfDefault(list);
             ThrowIfSizeMismatch<T>();
 
             return new(list->items.Pointer, list->count);
@@ -196,7 +196,7 @@ namespace Collections
         /// </summary>
         public readonly void Add<T>(T item) where T : unmanaged
         {
-            Allocations.ThrowIfNull(list);
+            MemoryAddress.ThrowIfDefault(list);
             ThrowIfSizeMismatch<T>();
 
             uint count = list->count;
@@ -205,7 +205,7 @@ namespace Collections
                 list->capacity *= 2;
                 unchecked
                 {
-                    Allocation.Resize(ref list->items, (uint)sizeof(T) * list->capacity);
+                    MemoryAddress.Resize(ref list->items, (uint)sizeof(T) * list->capacity);
                 }
             }
 
@@ -218,7 +218,7 @@ namespace Collections
         /// </summary>
         public readonly void AddDefault()
         {
-            Allocations.ThrowIfNull(list);
+            MemoryAddress.ThrowIfDefault(list);
 
             uint count = list->count;
             uint stride = list->stride;
@@ -227,7 +227,7 @@ namespace Collections
                 list->capacity *= 2;
                 unchecked
                 {
-                    Allocation.Resize(ref list->items, stride * list->capacity);
+                    MemoryAddress.Resize(ref list->items, stride * list->capacity);
                 }
             }
 
@@ -237,7 +237,7 @@ namespace Collections
 
         public readonly void Insert<T>(uint index, T item) where T : unmanaged
         {
-            Allocations.ThrowIfNull(list);
+            MemoryAddress.ThrowIfDefault(list);
             ThrowIfSizeMismatch<T>();
             ThrowIfPastRange(index);
 
@@ -247,7 +247,7 @@ namespace Collections
                 list->capacity *= 2;
                 unchecked
                 {
-                    Allocation.Resize(ref list->items, (uint)sizeof(T) * list->capacity);
+                    MemoryAddress.Resize(ref list->items, (uint)sizeof(T) * list->capacity);
                 }
             }
 
@@ -260,9 +260,9 @@ namespace Collections
             list->count = count + 1;
         }
 
-        public readonly void Insert(uint index, Allocation item)
+        public readonly void Insert(uint index, MemoryAddress item)
         {
-            Allocations.ThrowIfNull(list);
+            MemoryAddress.ThrowIfDefault(list);
             ThrowIfPastRange(index);
 
             uint count = list->count;
@@ -272,7 +272,7 @@ namespace Collections
                 list->capacity *= 2;
                 unchecked
                 {
-                    Allocation.Resize(ref list->items, stride * list->capacity);
+                    MemoryAddress.Resize(ref list->items, stride * list->capacity);
                 }
             }
 
@@ -281,13 +281,13 @@ namespace Collections
             USpan<byte> source = list->items.AsSpan(index * stride, remaining * stride);
             source.CopyTo(destination);
 
-            item.CopyTo((void*)((nint)list->items + index * stride), stride);
+            item.CopyTo((void*)(list->items.Address + index * stride), stride);
             list->count = count + 1;
         }
 
         public readonly void RemoveAt(uint index)
         {
-            Allocations.ThrowIfNull(list);
+            MemoryAddress.ThrowIfDefault(list);
             ThrowIfOutOfRange(index);
 
             uint newCount = list->count - 1;
@@ -302,7 +302,7 @@ namespace Collections
 
         public readonly void RemoveAtBySwapping(uint index)
         {
-            Allocations.ThrowIfNull(list);
+            MemoryAddress.ThrowIfDefault(list);
             ThrowIfOutOfRange(index);
 
             uint newCount = list->count - 1;
@@ -312,7 +312,7 @@ namespace Collections
 
         public readonly ref T Get<T>(uint index) where T : unmanaged
         {
-            Allocations.ThrowIfNull(list);
+            MemoryAddress.ThrowIfDefault(list);
             ThrowIfSizeMismatch<T>();
 
             return ref list->items.ReadElement<T>(index);
@@ -320,7 +320,7 @@ namespace Collections
 
         public readonly void Set<T>(uint index, T value) where T : unmanaged
         {
-            Allocations.ThrowIfNull(list);
+            MemoryAddress.ThrowIfDefault(list);
             ThrowIfSizeMismatch<T>();
 
             list->items.WriteElement(index, value);

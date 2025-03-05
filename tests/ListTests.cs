@@ -27,7 +27,7 @@ namespace Collections.Tests
         [Test]
         public void ListOfStrings()
         {
-            using List<FixedString> list = new(3);
+            using List<ASCIIText256> list = new(3);
             list.Add("Hello");
             list.Add(" ");
             list.Add("there...");
@@ -321,7 +321,6 @@ namespace Collections.Tests
             }
 
             nestedData.Dispose();
-            Assert.That(Allocations.Count, Is.EqualTo(0));
         }
 
         [Test]
@@ -375,7 +374,7 @@ namespace Collections.Tests
             b.Add(6);
             b.Add(7);
 
-            Allocation element = a[3]; //11
+            MemoryAddress element = a[3]; //11
             b.Insert(1, element);
 
             Assert.That(b.Count, Is.EqualTo(4));

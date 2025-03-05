@@ -9,9 +9,9 @@ namespace Collections.Pointers
     {
         public readonly uint stride;
         public uint length;
-        public Allocation items;
+        public MemoryAddress items;
 
-        internal Array(uint stride, uint length, Allocation items)
+        internal Array(uint stride, uint length, MemoryAddress items)
         {
             this.stride = stride;
             this.length = length;

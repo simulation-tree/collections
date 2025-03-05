@@ -9,7 +9,7 @@ namespace Collections.Pointers
         internal uint capacity;
         internal uint top;
         internal uint rear;
-        internal Allocation items;
+        internal MemoryAddress items;
 
         internal Queue(uint stride, uint capacity)
         {
@@ -18,7 +18,7 @@ namespace Collections.Pointers
 
             top = 0;
             rear = 0;
-            items = Allocation.Create(stride * capacity);
+            items = MemoryAddress.Allocate(stride * capacity);
         }
     }
 }

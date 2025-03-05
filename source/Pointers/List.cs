@@ -11,9 +11,9 @@ namespace Collections.Pointers
 
         internal uint count;
         internal uint capacity;
-        internal Allocation items;
+        internal MemoryAddress items;
 
-        internal List(uint stride, uint count, uint capacity, Allocation items)
+        internal List(uint stride, uint count, uint capacity, MemoryAddress items)
         {
             this.stride = stride;
             this.count = count;

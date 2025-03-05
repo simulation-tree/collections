@@ -26,18 +26,18 @@ namespace Collections
         {
             get
             {
-                Allocations.ThrowIfNull(array);
+                MemoryAddress.ThrowIfDefault(array);
 
                 return array->length;
             }
             set
             {
-                Allocations.ThrowIfNull(array);
+                MemoryAddress.ThrowIfDefault(array);
 
                 if (array->length != value)
                 {
                     uint oldLength = array->length;
-                    Allocation.Resize(ref array->items, array->stride * value);
+                    MemoryAddress.Resize(ref array->items, array->stride * value);
                     array->length = value;
                 }
             }
@@ -50,7 +50,7 @@ namespace Collections
         {
             get
             {
-                Allocations.ThrowIfNull(array);
+                MemoryAddress.ThrowIfDefault(array);
 
                 return array->stride;
             }
@@ -59,11 +59,11 @@ namespace Collections
         /// <summary>
         /// The underlying allocation of the array containing all elements.
         /// </summary>
-        public readonly Allocation Items
+        public readonly MemoryAddress Items
         {
             get
             {
-                Allocations.ThrowIfNull(array);
+                MemoryAddress.ThrowIfDefault(array);
 
                 return array->items;
             }
@@ -74,14 +74,14 @@ namespace Collections
         /// </summary>
         public readonly Pointer* Pointer => array;
 
-        public readonly Allocation this[uint index]
+        public readonly MemoryAddress this[uint index]
         {
             get
             {
-                Allocations.ThrowIfNull(array);
+                MemoryAddress.ThrowIfDefault(array);
                 ThrowIfOutOfRange(index);
 
-                return new((void*)((nint)array->items + array->stride * index));
+                return new((void*)(array->items.Address + array->stride * index));
             }
         }
 
@@ -116,8 +116,8 @@ namespace Collections
         /// </summary>
         public Array(uint length, uint stride)
         {
-            ref Pointer array = ref Allocations.Allocate<Pointer>();
-            array = new(stride, length, Allocation.CreateZeroed(stride * length));
+            ref Pointer array = ref MemoryAddress.Allocate<Pointer>();
+            array = new(stride, length, MemoryAddress.AllocateZeroed(stride * length));
             fixed (Pointer* pointer = &array)
             {
                 this.array = pointer;
@@ -140,10 +140,10 @@ namespace Collections
         /// </para>
         public void Dispose()
         {
-            Allocations.ThrowIfNull(array);
+            MemoryAddress.ThrowIfDefault(array);
 
             array->items.Dispose();
-            Allocations.Free(ref array);
+            MemoryAddress.Free(ref array);
         }
 
         [Conditional("DEBUG")]
@@ -166,7 +166,7 @@ namespace Collections
 
         public readonly Generic.Array<T> AsArray<T>() where T : unmanaged
         {
-            Allocations.ThrowIfNull(array);
+            MemoryAddress.ThrowIfDefault(array);
             ThrowIfSizeMismatch<T>();
 
             return new(array);
@@ -174,7 +174,7 @@ namespace Collections
 
         public readonly USpan<T> AsSpan<T>() where T : unmanaged
         {
-            Allocations.ThrowIfNull(array);
+            MemoryAddress.ThrowIfDefault(array);
             ThrowIfSizeMismatch<T>();
 
             return new(array->items.Pointer, array->length);
@@ -185,7 +185,7 @@ namespace Collections
         /// </summary>
         public readonly USpan<byte> AsSpan()
         {
-            Allocations.ThrowIfNull(array);
+            MemoryAddress.ThrowIfDefault(array);
 
             return new(array->items.Pointer, array->length * array->stride);
         }
@@ -195,7 +195,7 @@ namespace Collections
         /// </summary>
         public readonly USpan<byte> AsSpan(uint byteStart)
         {
-            Allocations.ThrowIfNull(array);
+            MemoryAddress.ThrowIfDefault(array);
 
             return new((void*)((nint)array->items.Pointer + byteStart), (array->length * array->stride) - byteStart);
         }
@@ -205,7 +205,7 @@ namespace Collections
         /// </summary>
         public readonly void Clear()
         {
-            Allocations.ThrowIfNull(array);
+            MemoryAddress.ThrowIfDefault(array);
 
             unchecked
             {
@@ -218,7 +218,7 @@ namespace Collections
         /// </summary>
         public readonly void Clear(uint startIndex, uint length)
         {
-            Allocations.ThrowIfNull(array);
+            MemoryAddress.ThrowIfDefault(array);
 
             unchecked
             {
@@ -228,7 +228,7 @@ namespace Collections
 
         public readonly ref T Get<T>(uint index) where T : unmanaged
         {
-            Allocations.ThrowIfNull(array);
+            MemoryAddress.ThrowIfDefault(array);
             ThrowIfSizeMismatch<T>();
 
             return ref array->items.ReadElement<T>(index);
@@ -236,7 +236,7 @@ namespace Collections
 
         public readonly void Set<T>(uint index, T value) where T : unmanaged
         {
-            Allocations.ThrowIfNull(array);
+            MemoryAddress.ThrowIfDefault(array);
             ThrowIfSizeMismatch<T>();
 
             array->items.WriteElement(index, value);

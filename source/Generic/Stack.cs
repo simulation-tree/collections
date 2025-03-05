@@ -27,7 +27,7 @@ namespace Collections.Generic
         {
             get
             {
-                Allocations.ThrowIfNull(stack);
+                MemoryAddress.ThrowIfDefault(stack);
 
                 return stack->top;
             }
@@ -40,7 +40,7 @@ namespace Collections.Generic
         {
             get
             {
-                Allocations.ThrowIfNull(stack);
+                MemoryAddress.ThrowIfDefault(stack);
 
                 return stack->top == 0;
             }
@@ -63,7 +63,7 @@ namespace Collections.Generic
         /// </summary>
         public Stack()
         {
-            ref Pointer stack = ref Allocations.Allocate<Pointer>();
+            ref Pointer stack = ref MemoryAddress.Allocate<Pointer>();
             stack = new((uint)sizeof(T), 4);
             fixed (Pointer* pointer = &stack)
             {
@@ -77,8 +77,8 @@ namespace Collections.Generic
         /// </summary>
         public Stack(uint initialCapacity = 4)
         {
-            ref Pointer stack = ref Allocations.Allocate<Pointer>();
-            initialCapacity = Allocations.GetNextPowerOf2(Math.Max(1, initialCapacity));
+            ref Pointer stack = ref MemoryAddress.Allocate<Pointer>();
+            initialCapacity = Math.Max(1, initialCapacity).GetNextPowerOf2();
             stack = new((uint)sizeof(T), initialCapacity);
             fixed (Pointer* pointer = &stack)
             {
@@ -96,36 +96,36 @@ namespace Collections.Generic
 
         public void Dispose()
         {
-            Allocations.ThrowIfNull(stack);
+            MemoryAddress.ThrowIfDefault(stack);
 
             stack->items.Dispose();
-            Allocations.Free(ref stack);
+            MemoryAddress.Free(ref stack);
         }
 
         public readonly USpan<T> AsSpan()
         {
-            Allocations.ThrowIfNull(stack);
+            MemoryAddress.ThrowIfDefault(stack);
 
             return new(stack->items.Pointer, stack->top);
         }
 
         public readonly void Clear()
         {
-            Allocations.ThrowIfNull(stack);
+            MemoryAddress.ThrowIfDefault(stack);
 
             stack->top = 0;
         }
 
         public readonly void Clear(uint minimumCapacity)
         {
-            Allocations.ThrowIfNull(stack);
+            MemoryAddress.ThrowIfDefault(stack);
 
             if (stack->capacity < minimumCapacity)
             {
-                stack->capacity = Allocations.GetNextPowerOf2(minimumCapacity);
+                stack->capacity = minimumCapacity.GetNextPowerOf2();
                 unchecked
                 {
-                    Allocation.Resize(ref stack->items, stack->capacity * (uint)sizeof(T));
+                    MemoryAddress.Resize(ref stack->items, stack->capacity * (uint)sizeof(T));
                 }
             }
 
@@ -134,7 +134,7 @@ namespace Collections.Generic
 
         public readonly void Push(T item)
         {
-            Allocations.ThrowIfNull(stack);
+            MemoryAddress.ThrowIfDefault(stack);
 
             uint top = stack->top;
             if (top == stack->capacity)
@@ -142,7 +142,7 @@ namespace Collections.Generic
                 stack->capacity *= 2;
                 unchecked
                 {
-                    Allocation.Resize(ref stack->items, stack->capacity * (uint)sizeof(T));
+                    MemoryAddress.Resize(ref stack->items, stack->capacity * (uint)sizeof(T));
                 }
             }
 
@@ -152,14 +152,14 @@ namespace Collections.Generic
 
         public readonly void PushRange(USpan<T> items)
         {
-            Allocations.ThrowIfNull(stack);
+            MemoryAddress.ThrowIfDefault(stack);
 
             if (stack->top + items.Length > stack->capacity)
             {
-                stack->capacity = Allocations.GetNextPowerOf2(stack->top + items.Length);
+                stack->capacity = stack->top + items.Length.GetNextPowerOf2();
                 unchecked
                 {
-                    Allocation.Resize(ref stack->items, stack->capacity * (uint)sizeof(T));
+                    MemoryAddress.Resize(ref stack->items, stack->capacity * (uint)sizeof(T));
                 }
             }
 
@@ -169,7 +169,7 @@ namespace Collections.Generic
 
         public readonly T Pop()
         {
-            Allocations.ThrowIfNull(stack);
+            MemoryAddress.ThrowIfDefault(stack);
             ThrowIfZero(stack->top);
 
             uint newTop = stack->top - 1;
@@ -179,7 +179,7 @@ namespace Collections.Generic
 
         public readonly bool TryPop(out T value)
         {
-            Allocations.ThrowIfNull(stack);
+            MemoryAddress.ThrowIfDefault(stack);
             if (stack->top > 0)
             {
                 uint newTop = stack->top - 1;
@@ -196,7 +196,7 @@ namespace Collections.Generic
 
         public readonly T Peek()
         {
-            Allocations.ThrowIfNull(stack);
+            MemoryAddress.ThrowIfDefault(stack);
             ThrowIfZero(stack->top);
 
             return stack->items.ReadElement<T>(stack->top - 1);
@@ -204,7 +204,7 @@ namespace Collections.Generic
 
         public readonly bool TryPeek(out T value)
         {
-            Allocations.ThrowIfNull(stack);
+            MemoryAddress.ThrowIfDefault(stack);
 
             if (stack->top > 0)
             {
@@ -315,7 +315,7 @@ namespace Collections.Generic
                 {
                     unchecked
                     {
-                        Allocations.ThrowIfNull(stack);
+                        MemoryAddress.ThrowIfDefault(stack);
 
                         return new USpan<T>(stack->items.Pointer, stack->top)[(uint)index];
                     }
