@@ -280,8 +280,7 @@ namespace Collections
             USpan<byte> destination = list->items.AsSpan((index + 1) * stride, remaining * stride);
             USpan<byte> source = list->items.AsSpan(index * stride, remaining * stride);
             source.CopyTo(destination);
-
-            item.CopyTo((void*)(list->items.Address + index * stride), stride);
+            item.CopyTo(list->items.Pointer + index * stride, stride);
             list->count = count + 1;
         }
 
