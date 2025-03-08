@@ -8,8 +8,8 @@
         <PackageId>Unmanaged.Collections</PackageId>
         <Title>Collections</Title>
         <Authors>popcron</Authors>
-        <Company>game-simulations</Company>
-        <RepositoryUrl>https://github.com/game-simulations/collections</RepositoryUrl>
+        <Company>simulation-tree</Company>
+        <RepositoryUrl>https://github.com/simulation-tree/collections</RepositoryUrl>
         <PackageReadmeFile>README.md</PackageReadmeFile>
         <Description>Native C# library implementing collections</Description>
         <GenerateDocumentationFile>True</GenerateDocumentationFile>

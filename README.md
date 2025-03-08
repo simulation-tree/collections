@@ -1,6 +1,6 @@
 # Collections
 
-[![Test](https://github.com/game-simulations/collections/actions/workflows/test.yml/badge.svg)](https://github.com/game-simulations/collections/actions/workflows/test.yml)
+[![Test](https://github.com/simulation-tree/collections/actions/workflows/test.yml/badge.svg)](https://github.com/simulation-tree/collections/actions/workflows/test.yml)
 
 Native C# library implementing collections.
 
