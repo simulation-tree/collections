@@ -1,5 +1,5 @@
 ﻿using Collections.Generic;
-using Unmanaged;
+using System;
 using Unmanaged.Tests;
 
 namespace Collections.Tests
@@ -41,7 +41,7 @@ namespace Collections.Tests
 
             Assert.That(queue.Count, Is.EqualTo(4));
 
-            USpan<char> span = queue.AsSpan();
+            Span<char> span = queue.AsSpan();
 
             Assert.That(span.Length, Is.EqualTo(4));
             Assert.That(span[0], Is.EqualTo('c'));

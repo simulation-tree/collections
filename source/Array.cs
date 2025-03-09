@@ -22,7 +22,7 @@ namespace Collections
         /// New elements will not be zeroed.
         /// </para>
         /// </summary>
-        public readonly uint Length
+        public readonly int Length
         {
             get
             {
@@ -36,7 +36,7 @@ namespace Collections
 
                 if (array->length != value)
                 {
-                    uint oldLength = array->length;
+                    int oldLength = array->length;
                     MemoryAddress.Resize(ref array->items, array->stride * value);
                     array->length = value;
                 }
@@ -46,7 +46,7 @@ namespace Collections
         /// <summary>
         /// Size of each element in the array.
         /// </summary>
-        public readonly uint Stride
+        public readonly int Stride
         {
             get
             {
@@ -81,13 +81,13 @@ namespace Collections
                 MemoryAddress.ThrowIfDefault(array);
                 ThrowIfOutOfRange(index);
 
-                return new((void*)(array->items.Address + array->stride * index));
+                return new(array->items.Pointer + array->stride * index);
             }
         }
 
         readonly bool IList.IsFixedSize => false;
         readonly bool IList.IsReadOnly => false;
-        readonly int ICollection.Count => (int)Length;
+        readonly int ICollection.Count => Length;
         readonly bool ICollection.IsSynchronized => false;
         readonly object ICollection.SyncRoot => false;
 
@@ -114,7 +114,7 @@ namespace Collections
         /// <summary>
         /// Creates a new array with the given <paramref name="length"/> and <paramref name="stride"/>.
         /// </summary>
-        public Array(uint length, uint stride)
+        public Array(int length, int stride)
         {
             ref Pointer array = ref MemoryAddress.Allocate<Pointer>();
             array = new(stride, length, MemoryAddress.AllocateZeroed(stride * length));
@@ -172,7 +172,7 @@ namespace Collections
             return new(array);
         }
 
-        public readonly USpan<T> AsSpan<T>() where T : unmanaged
+        public readonly Span<T> AsSpan<T>() where T : unmanaged
         {
             MemoryAddress.ThrowIfDefault(array);
             ThrowIfSizeMismatch<T>();
@@ -183,7 +183,7 @@ namespace Collections
         /// <summary>
         /// Gets a span of all bytes containing the memory of the array.
         /// </summary>
-        public readonly USpan<byte> AsSpan()
+        public readonly Span<byte> AsSpan()
         {
             MemoryAddress.ThrowIfDefault(array);
 
@@ -193,11 +193,11 @@ namespace Collections
         /// <summary>
         /// Gets a span of all bytes from <paramref name="byteStart"/>.
         /// </summary>
-        public readonly USpan<byte> AsSpan(uint byteStart)
+        public readonly Span<byte> AsSpan(int byteStart)
         {
             MemoryAddress.ThrowIfDefault(array);
 
-            return new((void*)((nint)array->items.Pointer + byteStart), (array->length * array->stride) - byteStart);
+            return new(array->items.Pointer + byteStart, (array->length * array->stride) - byteStart);
         }
 
         /// <summary>
@@ -207,26 +207,20 @@ namespace Collections
         {
             MemoryAddress.ThrowIfDefault(array);
 
-            unchecked
-            {
-                array->items.Clear(array->length * array->stride);
-            }
+            array->items.Clear(array->length * array->stride);
         }
 
         /// <summary>
         /// Resets a range of elements in the array to <see langword="default"/> state.
         /// </summary>
-        public readonly void Clear(uint startIndex, uint length)
+        public readonly void Clear(int startIndex, int length)
         {
             MemoryAddress.ThrowIfDefault(array);
 
-            unchecked
-            {
-                array->items.Clear(startIndex * array->stride, length * array->stride);
-            }
+            array->items.Clear(startIndex * array->stride, length * array->stride);
         }
 
-        public readonly ref T Get<T>(uint index) where T : unmanaged
+        public readonly ref T Get<T>(int index) where T : unmanaged
         {
             MemoryAddress.ThrowIfDefault(array);
             ThrowIfSizeMismatch<T>();
@@ -234,7 +228,7 @@ namespace Collections
             return ref array->items.ReadElement<T>(index);
         }
 
-        public readonly void Set<T>(uint index, T value) where T : unmanaged
+        public readonly void Set<T>(int index, T value) where T : unmanaged
         {
             MemoryAddress.ThrowIfDefault(array);
             ThrowIfSizeMismatch<T>();
@@ -245,11 +239,6 @@ namespace Collections
         readonly int IList.Add(object? value)
         {
             throw new NotSupportedException();
-        }
-
-        readonly void IList.Clear()
-        {
-            Clear();
         }
 
         readonly bool IList.Contains(object? value)

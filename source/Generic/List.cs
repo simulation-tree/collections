@@ -23,7 +23,7 @@ namespace Collections.Generic
         /// <summary>
         /// Amount of elements in the list.
         /// </summary>
-        public readonly uint Count
+        public readonly int Count
         {
             get
             {
@@ -36,7 +36,7 @@ namespace Collections.Generic
         /// <summary>
         /// Capacity of the list.
         /// </summary>
-        public readonly uint Capacity
+        public readonly int Capacity
         {
             get
             {
@@ -48,11 +48,11 @@ namespace Collections.Generic
             {
                 MemoryAddress.ThrowIfDefault(list);
 
-                uint newCapacity = value.GetNextPowerOf2();
+                int newCapacity = value.GetNextPowerOf2();
                 ThrowIfLessThanCount(newCapacity);
 
-                MemoryAddress newItems = MemoryAddress.Allocate((uint)sizeof(T) * newCapacity);
-                list->items.CopyTo(newItems, (uint)sizeof(T) * list->count);
+                MemoryAddress newItems = MemoryAddress.Allocate(sizeof(T) * newCapacity);
+                list->items.CopyTo(newItems, sizeof(T) * list->count);
                 list->items.Dispose();
                 list->items = newItems;
                 list->capacity = newCapacity;
@@ -80,7 +80,7 @@ namespace Collections.Generic
         /// <summary>
         /// Accesses the element at the specified index.
         /// </summary>
-        public readonly ref T this[uint index]
+        public readonly ref T this[int index]
         {
             get
             {
@@ -91,13 +91,7 @@ namespace Collections.Generic
             }
         }
 
-        readonly T IReadOnlyList<T>.this[int index] => list->items.ReadElement<T>((uint)index);
-
-        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        readonly int IReadOnlyCollection<T>.Count => (int)Count;
-
-        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        readonly int ICollection<T>.Count => (int)Count;
+        readonly T IReadOnlyList<T>.this[int index] => list->items.ReadElement<T>(index);
 
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         readonly bool ICollection<T>.IsReadOnly => false;
@@ -107,16 +101,16 @@ namespace Collections.Generic
             get
             {
                 MemoryAddress.ThrowIfDefault(list);
-                ThrowIfOutOfRange((uint)index);
+                ThrowIfOutOfRange(index);
 
-                return list->items.ReadElement<T>((uint)index);
+                return list->items.ReadElement<T>(index);
             }
             set
             {
                 MemoryAddress.ThrowIfDefault(list);
-                ThrowIfOutOfRange((uint)index);
+                ThrowIfOutOfRange(index);
 
-                list->items.WriteElement((uint)index, value);
+                list->items.WriteElement(index, value);
             }
         }
 
@@ -134,11 +128,11 @@ namespace Collections.Generic
         /// <summary>
         /// Creates a new list with the given <paramref name="initialCapacity"/>.
         /// </summary>
-        public List(uint initialCapacity = 4)
+        public List(int initialCapacity = 4)
         {
             initialCapacity = Math.Max(1, initialCapacity).GetNextPowerOf2();
             ref Pointer list = ref MemoryAddress.Allocate<Pointer>();
-            list = new((uint)sizeof(T), 0, initialCapacity, MemoryAddress.Allocate((uint)sizeof(T) * initialCapacity));
+            list = new(sizeof(T), 0, initialCapacity, MemoryAddress.Allocate(sizeof(T) * initialCapacity));
             fixed (Pointer* pointer = &list)
             {
                 this.list = pointer;
@@ -148,12 +142,13 @@ namespace Collections.Generic
         /// <summary>
         /// Creates a new list containing the given <paramref name="span"/>.
         /// </summary>
-        public List(USpan<T> span)
+        public List(ReadOnlySpan<T> span)
         {
-            uint initialCapacity = Math.Max(1, span.Length).GetNextPowerOf2();
+            int initialCapacity = Math.Max(1, span.Length).GetNextPowerOf2();
             ref Pointer list = ref MemoryAddress.Allocate<Pointer>();
-            list = new((uint)sizeof(T), span.Length, initialCapacity, MemoryAddress.Allocate((uint)sizeof(T) * initialCapacity));
-            span.CopyTo(list.items, span.Length * (uint)sizeof(T));
+            list = new(sizeof(T), span.Length, initialCapacity, MemoryAddress.Allocate(sizeof(T) * initialCapacity));
+            Span<T> destination = list.items.AsSpan<T>(0, span.Length);
+            span.CopyTo(destination);
             fixed (Pointer* pointer = &list)
             {
                 this.list = pointer;
@@ -166,7 +161,7 @@ namespace Collections.Generic
         public List(IEnumerable<T> enumerable)
         {
             ref Pointer list = ref MemoryAddress.Allocate<Pointer>();
-            list = new((uint)sizeof(T), 0, 4, MemoryAddress.Allocate((uint)sizeof(T) * 4));
+            list = new(sizeof(T), 0, 4, MemoryAddress.Allocate(sizeof(T) * 4));
             fixed (Pointer* pointer = &list)
             {
                 this.list = pointer;
@@ -185,7 +180,7 @@ namespace Collections.Generic
         public List()
         {
             ref Pointer list = ref MemoryAddress.Allocate<Pointer>();
-            list = new((uint)sizeof(T), 0, 4, MemoryAddress.Allocate((uint)sizeof(T) * 4));
+            list = new(sizeof(T), 0, 4, MemoryAddress.Allocate(sizeof(T) * 4));
             fixed (Pointer* pointer = &list)
             {
                 this.list = pointer;
@@ -209,7 +204,7 @@ namespace Collections.Generic
 
 
         [Conditional("DEBUG")]
-        private readonly void ThrowIfOutOfRange(uint index)
+        private readonly void ThrowIfOutOfRange(int index)
         {
             if (index >= list->count)
             {
@@ -218,7 +213,7 @@ namespace Collections.Generic
         }
 
         [Conditional("DEBUG")]
-        private readonly void ThrowIfLessThanCount(uint newCapacity)
+        private readonly void ThrowIfLessThanCount(int newCapacity)
         {
             if (newCapacity < list->count)
             {
@@ -227,7 +222,7 @@ namespace Collections.Generic
         }
 
         [Conditional("DEBUG")]
-        private readonly void ThrowIfPastRange(uint index)
+        private readonly void ThrowIfPastRange(int index)
         {
             if (index > list->count)
             {
@@ -238,7 +233,7 @@ namespace Collections.Generic
         /// <summary>
         /// Returns a span containing elements in the list.
         /// </summary>
-        public readonly USpan<T> AsSpan()
+        public readonly Span<T> AsSpan()
         {
             MemoryAddress.ThrowIfDefault(list);
 
@@ -248,7 +243,7 @@ namespace Collections.Generic
         /// <summary>
         /// Returns the remaining span starting from <paramref name="start"/>.
         /// </summary>
-        public readonly USpan<T> AsSpan(uint start)
+        public readonly Span<T> AsSpan(int start)
         {
             MemoryAddress.ThrowIfDefault(list);
             ThrowIfOutOfRange(start);
@@ -259,7 +254,7 @@ namespace Collections.Generic
         /// <summary>
         /// Returns a span of specified <paramref name="length"/> starting from <paramref name="start"/>.
         /// </summary>
-        public readonly USpan<T> AsSpan(uint start, uint length)
+        public readonly Span<T> AsSpan(int start, int length)
         {
             MemoryAddress.ThrowIfDefault(list);
             ThrowIfOutOfRange(start + length);
@@ -274,24 +269,21 @@ namespace Collections.Generic
         /// </para>
         /// </summary>
         /// <exception cref="IndexOutOfRangeException"/>
-        public readonly void Insert(uint index, T item)
+        public readonly void Insert(int index, T item)
         {
             MemoryAddress.ThrowIfDefault(list);
             ThrowIfPastRange(index);
 
-            uint count = list->count;
+            int count = list->count;
             if (count == list->capacity)
             {
                 list->capacity *= 2;
-                unchecked
-                {
-                    MemoryAddress.Resize(ref list->items, (uint)sizeof(T) * list->capacity);
-                }
+                MemoryAddress.Resize(ref list->items, sizeof(T) * list->capacity);
             }
 
-            uint remaining = count - index;
-            USpan<T> destination = list->items.AsSpan<T>(index + 1, remaining);
-            USpan<T> source = list->items.AsSpan<T>(index, remaining);
+            int remaining = count - index;
+            Span<T> destination = list->items.AsSpan<T>(index + 1, remaining);
+            Span<T> source = list->items.AsSpan<T>(index, remaining);
             source.CopyTo(destination);
 
             list->items.WriteElement(index, item);
@@ -305,14 +297,11 @@ namespace Collections.Generic
         {
             MemoryAddress.ThrowIfDefault(list);
 
-            uint count = list->count;
+            int count = list->count;
             if (count == list->capacity)
             {
                 list->capacity *= 2;
-                unchecked
-                {
-                    MemoryAddress.Resize(ref list->items, (uint)sizeof(T) * list->capacity);
-                }
+                MemoryAddress.Resize(ref list->items, sizeof(T) * list->capacity);
             }
 
             list->items.WriteElement(count, item);
@@ -326,14 +315,11 @@ namespace Collections.Generic
         {
             MemoryAddress.ThrowIfDefault(list);
 
-            uint count = list->count;
+            int count = list->count;
             if (count == list->capacity)
             {
                 list->capacity *= 2;
-                unchecked
-                {
-                    MemoryAddress.Resize(ref list->items, (uint)sizeof(T) * list->capacity);
-                }
+                MemoryAddress.Resize(ref list->items, sizeof(T) * list->capacity);
             }
 
             list->items.WriteElement<T>(count, default);
@@ -343,42 +329,36 @@ namespace Collections.Generic
         /// <summary>
         /// Adds a <see langword="default"/> value <paramref name="count"/> amount of times.
         /// </summary>
-        public readonly void AddDefault(uint count)
+        public readonly void AddDefault(int count)
         {
             MemoryAddress.ThrowIfDefault(list);
 
-            uint newCount = list->count + count;
+            int newCount = list->count + count;
             if (newCount >= list->capacity)
             {
                 list->capacity = newCount.GetNextPowerOf2();
-                unchecked
-                {
-                    MemoryAddress.Resize(ref list->items, (uint)sizeof(T) * list->capacity);
-                }
+                MemoryAddress.Resize(ref list->items, sizeof(T) * list->capacity);
             }
 
-            list->items.Clear(list->count * (uint)sizeof(T), count * (uint)sizeof(T));
+            list->items.Clear(list->count * sizeof(T), count * sizeof(T));
             list->count = newCount;
         }
 
         /// <summary>
         /// Adds a range of the specified <paramref name="item"/> to the list.
         /// </summary>
-        public readonly void AddRepeat(T item, uint count)
+        public readonly void AddRepeat(T item, int count)
         {
             MemoryAddress.ThrowIfDefault(list);
 
-            uint newCount = list->count + count;
+            int newCount = list->count + count;
             if (newCount >= list->capacity)
             {
                 list->capacity = newCount.GetNextPowerOf2();
-                unchecked
-                {
-                    MemoryAddress.Resize(ref list->items, (uint)sizeof(T) * list->capacity);
-                }
+                MemoryAddress.Resize(ref list->items, sizeof(T) * list->capacity);
             }
 
-            USpan<T> span = list->items.AsSpan<T>(list->count, count);
+            Span<T> span = list->items.AsSpan<T>(list->count, count);
             span.Fill(item);
             list->count = newCount;
         }
@@ -386,19 +366,19 @@ namespace Collections.Generic
         /// <summary>
         /// Adds the memory from <paramref name="pointer"/> to the list.
         /// </summary>
-        public readonly void AddRange(void* pointer, uint count)
+        public readonly void AddRange(void* pointer, int count)
         {
             MemoryAddress.ThrowIfDefault(list);
 
-            uint newCount = list->count + count;
+            int newCount = list->count + count;
             if (newCount >= list->capacity)
             {
                 list->capacity = newCount.GetNextPowerOf2();
-                MemoryAddress.Resize(ref list->items, (uint)sizeof(T) * list->capacity);
+                MemoryAddress.Resize(ref list->items, sizeof(T) * list->capacity);
             }
 
-            USpan<T> destination = list->items.AsSpan<T>(list->count, count);
-            USpan<T> source = new(pointer, count);
+            Span<T> destination = list->items.AsSpan<T>(list->count, count);
+            Span<T> source = new(pointer, count);
             source.CopyTo(destination);
             list->count = newCount;
         }
@@ -410,9 +390,9 @@ namespace Collections.Generic
         /// </para>
         /// </summary>
         /// <exception cref="IndexOutOfRangeException"></exception>
-        public readonly void InsertRange(uint index, USpan<T> span)
+        public readonly void InsertRange(int index, ReadOnlySpan<T> span)
         {
-            uint count = Count;
+            int count = Count;
             if (index > count)
             {
                 throw new IndexOutOfRangeException($"Index {index} is greater than the count {count}");
@@ -435,22 +415,19 @@ namespace Collections.Generic
         /// <summary>
         /// Adds the given span to the list.
         /// </summary>
-        public readonly void AddRange(USpan<T> span)
+        public readonly void AddRange(ReadOnlySpan<T> span)
         {
             MemoryAddress.ThrowIfDefault(list);
 
-            uint addLength = span.Length;
-            uint newCount = list->count + addLength;
+            int addLength = span.Length;
+            int newCount = list->count + addLength;
             if (newCount >= list->capacity)
             {
                 list->capacity = newCount.GetNextPowerOf2();
-                unchecked
-                {
-                    MemoryAddress.Resize(ref list->items, (uint)sizeof(T) * list->capacity);
-                }
+                MemoryAddress.Resize(ref list->items, sizeof(T) * list->capacity);
             }
 
-            USpan<T> destination = list->items.AsSpan<T>(list->count, addLength);
+            Span<T> destination = list->items.AsSpan<T>(list->count, addLength);
             span.CopyTo(destination);
             list->count = newCount;
         }
@@ -463,12 +440,12 @@ namespace Collections.Generic
         /// </summary>
         /// <returns>The removed element.</returns>
         /// <exception cref="IndexOutOfRangeException"></exception>"
-        public readonly void RemoveAt(uint index)
+        public readonly void RemoveAt(int index)
         {
             MemoryAddress.ThrowIfDefault(list);
             ThrowIfOutOfRange(index);
 
-            uint newCount = list->count - 1;
+            int newCount = list->count - 1;
             while (index < newCount)
             {
                 T nextElement = list->items.ReadElement<T>(index + 1);
@@ -483,13 +460,13 @@ namespace Collections.Generic
         /// Removes the element at the given <paramref name="index"/>, and
         /// provides access to the <paramref name="removed"/> value.
         /// </summary>
-        public readonly void RemoveAt(uint index, out T removed)
+        public readonly void RemoveAt(int index, out T removed)
         {
             MemoryAddress.ThrowIfDefault(list);
             ThrowIfOutOfRange(index);
 
-            removed = this[index];
-            uint newCount = list->count - 1;
+            removed = list->items.ReadElement<T>(index);
+            int newCount = list->count - 1;
             while (index < newCount)
             {
                 T nextElement = list->items.ReadElement<T>(index + 1);
@@ -508,12 +485,12 @@ namespace Collections.Generic
         /// </para>
         /// </summary>
         /// <exception cref="IndexOutOfRangeException"></exception>"
-        public readonly void RemoveAtBySwapping(uint index)
+        public readonly void RemoveAtBySwapping(int index)
         {
             MemoryAddress.ThrowIfDefault(list);
             ThrowIfOutOfRange(index);
 
-            uint newCount = list->count - 1;
+            int newCount = list->count - 1;
             T lastElement = list->items.ReadElement<T>(newCount);
             list->items.WriteElement(index, lastElement);
             list->count = newCount;
@@ -524,13 +501,13 @@ namespace Collections.Generic
         /// swapping it with the last element, and provides access to the 
         /// <paramref name="removed"/> value.
         /// </summary>
-        public readonly void RemoveAtBySwapping(uint index, out T removed)
+        public readonly void RemoveAtBySwapping(int index, out T removed)
         {
             MemoryAddress.ThrowIfDefault(list);
             ThrowIfOutOfRange(index);
 
             removed = list->items.ReadElement<T>(index);
-            uint newCount = list->count - 1;
+            int newCount = list->count - 1;
             T lastElement = list->items.ReadElement<T>(newCount);
             list->items.WriteElement(index, lastElement);
             list->count = newCount;
@@ -550,20 +527,20 @@ namespace Collections.Generic
         /// Ensures that the list has the given <paramref name="minimumCapacity"/>
         /// and clears it.
         /// </summary>
-        public readonly void Clear(uint minimumCapacity)
+        public readonly void Clear(int minimumCapacity)
         {
-            uint capacity = list->capacity;
+            int capacity = list->capacity;
             if (capacity < minimumCapacity)
             {
-                uint toAdd = minimumCapacity - capacity;
-                uint newCount = list->count + toAdd;
+                int toAdd = minimumCapacity - capacity;
+                int newCount = list->count + toAdd;
                 if (newCount >= list->capacity)
                 {
                     list->capacity = newCount.GetNextPowerOf2();
-                    MemoryAddress.Resize(ref list->items, (uint)sizeof(T) * list->capacity);
+                    MemoryAddress.Resize(ref list->items, sizeof(T) * list->capacity);
                 }
 
-                list->items.Clear(list->count * (uint)sizeof(T), toAdd * (uint)sizeof(T));
+                list->items.Clear(list->count * sizeof(T), toAdd * sizeof(T));
                 list->count = newCount;
             }
 
@@ -579,7 +556,7 @@ namespace Collections.Generic
         /// <summary>
         /// Copies the elements of the list to the given <paramref name="destination"/>.
         /// </summary>
-        public readonly void CopyTo(USpan<T> destination)
+        public readonly void CopyTo(Span<T> destination)
         {
             AsSpan().CopyTo(destination);
         }
@@ -619,34 +596,24 @@ namespace Collections.Generic
 
         readonly int IList<T>.IndexOf(T item)
         {
-            USpan<T> values = AsSpan();
+            Span<T> values = AsSpan();
             EqualityComparer<T> comparer = EqualityComparer<T>.Default;
-            for (uint i = 0; i < values.Length; i++)
+            for (int i = 0; i < values.Length; i++)
             {
                 if (comparer.Equals(values[i], item))
                 {
-                    return (int)i;
+                    return i;
                 }
             }
 
             return -1;
         }
 
-        readonly void IList<T>.Insert(int index, T item)
-        {
-            Insert((uint)index, item);
-        }
-
-        readonly void IList<T>.RemoveAt(int index)
-        {
-            RemoveAt((uint)index);
-        }
-
         readonly bool ICollection<T>.Contains(T item)
         {
-            USpan<T> values = AsSpan();
+            Span<T> values = AsSpan();
             EqualityComparer<T> comparer = EqualityComparer<T>.Default;
-            for (uint i = 0; i < values.Length; i++)
+            for (int i = 0; i < values.Length; i++)
             {
                 if (comparer.Equals(values[i], item))
                 {
@@ -664,9 +631,9 @@ namespace Collections.Generic
 
         readonly bool ICollection<T>.Remove(T item)
         {
-            USpan<T> values = AsSpan();
+            Span<T> values = AsSpan();
             EqualityComparer<T> comparer = EqualityComparer<T>.Default;
-            for (uint i = 0; i < values.Length; i++)
+            for (int i = 0; i < values.Length; i++)
             {
                 if (comparer.Equals(values[i], item))
                 {
@@ -683,16 +650,7 @@ namespace Collections.Generic
             private readonly Pointer* list;
             private int index;
 
-            public readonly T Current
-            {
-                get
-                {
-                    unchecked
-                    {
-                        return list->items.ReadElement<T>((uint)index);
-                    }
-                }
-            }
+            public readonly T Current => list->items.ReadElement<T>(index);
 
             readonly object IEnumerator.Current => Current;
 

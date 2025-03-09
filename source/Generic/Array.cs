@@ -26,7 +26,7 @@ namespace Collections.Generic
         /// Resizing the array to be bigger will not clear the new elements.
         /// </para>
         /// </summary>
-        public readonly uint Length
+        public readonly int Length
         {
             get
             {
@@ -40,8 +40,8 @@ namespace Collections.Generic
 
                 if (array->length != value)
                 {
-                    uint oldLength = array->length;
-                    MemoryAddress.Resize(ref array->items, (uint)sizeof(T) * value);
+                    int oldLength = array->length;
+                    MemoryAddress.Resize(ref array->items, sizeof(T) * value);
                     array->length = value;
                 }
             }
@@ -63,7 +63,7 @@ namespace Collections.Generic
         /// <summary>
         /// Accesses the element at the specified index.
         /// </summary>
-        public readonly ref T this[uint index]
+        public readonly ref T this[int index]
         {
             get
             {
@@ -80,16 +80,16 @@ namespace Collections.Generic
         public readonly Pointer* Pointer => array;
 
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        readonly int IReadOnlyCollection<T>.Count => (int)Length;
+        readonly int IReadOnlyCollection<T>.Count => Length;
 
         readonly T IReadOnlyList<T>.this[int index]
         {
             get
             {
                 MemoryAddress.ThrowIfDefault(array);
-                ThrowIfOutOfRange((uint)index);
+                ThrowIfOutOfRange(index);
 
-                return array->items.ReadElement<T>((uint)index);
+                return array->items.ReadElement<T>(index);
             }
         }
 
@@ -107,10 +107,10 @@ namespace Collections.Generic
         /// <summary>
         /// Creates a new array with the given <paramref name="length"/>.
         /// </summary>
-        public Array(uint length)
+        public Array(int length)
         {
             ref Pointer array = ref MemoryAddress.Allocate<Pointer>();
-            array = new((uint)sizeof(T), length, MemoryAddress.AllocateZeroed((uint)sizeof(T) * length));
+            array = new(sizeof(T), length, MemoryAddress.AllocateZeroed(sizeof(T) * length));
             fixed (Pointer* pointer = &array)
             {
                 this.array = pointer;
@@ -120,10 +120,10 @@ namespace Collections.Generic
         /// <summary>
         /// Creates a new array containing the given <paramref name="span"/>.
         /// </summary>
-        public Array(USpan<T> span)
+        public Array(ReadOnlySpan<T> span)
         {
             ref Pointer array = ref MemoryAddress.Allocate<Pointer>();
-            array = new((uint)sizeof(T), span.Length, MemoryAddress.Allocate(span));
+            array = new(sizeof(T), span.Length, MemoryAddress.Allocate(span));
             fixed (Pointer* pointer = &array)
             {
                 this.array = pointer;
@@ -137,7 +137,7 @@ namespace Collections.Generic
         public Array()
         {
             ref Pointer array = ref MemoryAddress.Allocate<Pointer>();
-            array = new((uint)sizeof(T), 0, MemoryAddress.AllocateEmpty());
+            array = new(sizeof(T), 0, MemoryAddress.AllocateEmpty());
             fixed (Pointer* pointer = &array)
             {
                 this.array = pointer;
@@ -160,7 +160,7 @@ namespace Collections.Generic
         }
 
         [Conditional("DEBUG")]
-        private readonly void ThrowIfOutOfRange(uint index)
+        private readonly void ThrowIfOutOfRange(int index)
         {
             if (index >= array->length)
             {
@@ -184,24 +184,18 @@ namespace Collections.Generic
         {
             MemoryAddress.ThrowIfDefault(array);
 
-            unchecked
-            {
-                array->items.Clear(array->length * (uint)sizeof(T));
-            }
+            array->items.Clear(array->length * sizeof(T));
         }
 
         /// <summary>
         /// Clears <paramref name="length"/> amount of elements from this array
         /// starting at <paramref name="start"/> index.
         /// </summary>
-        public readonly void Clear(uint start, uint length)
+        public readonly void Clear(int start, int length)
         {
             MemoryAddress.ThrowIfDefault(array);
 
-            unchecked
-            {
-                array->items.Clear(start * (uint)sizeof(T), length * (uint)sizeof(T));
-            }
+            array->items.Clear(start * sizeof(T), length * sizeof(T));
         }
 
         /// <summary>
@@ -211,13 +205,13 @@ namespace Collections.Generic
         {
             MemoryAddress.ThrowIfDefault(array);
 
-            new USpan<T>(array->items.Pointer, array->length).Fill(value);
+            new Span<T>(array->items.Pointer, array->length).Fill(value);
         }
 
         /// <summary>
         /// Returns the array as a span.
         /// </summary>
-        public readonly USpan<T> AsSpan()
+        public readonly Span<T> AsSpan()
         {
             MemoryAddress.ThrowIfDefault(array);
 
@@ -227,7 +221,7 @@ namespace Collections.Generic
         /// <summary>
         /// Returns the array as a span of a different type <typeparamref name="X"/>.
         /// </summary>
-        public readonly USpan<X> AsSpan<X>() where X : unmanaged
+        public readonly Span<X> AsSpan<X>() where X : unmanaged
         {
             MemoryAddress.ThrowIfDefault(array);
             ThrowIfSizeMismatch<T>();
@@ -239,7 +233,7 @@ namespace Collections.Generic
         /// Returns the remainder of the array from <paramref name="start"/>,
         /// as a span of a different type <typeparamref name="X"/>.
         /// </summary>
-        public readonly USpan<X> AsSpan<X>(uint start) where X : unmanaged
+        public readonly Span<X> AsSpan<X>(int start) where X : unmanaged
         {
             MemoryAddress.ThrowIfDefault(array);
             ThrowIfSizeMismatch<T>();
@@ -250,7 +244,7 @@ namespace Collections.Generic
         /// <summary>
         /// Returns the array as a span with the given <paramref name="length"/>.
         /// </summary>
-        public readonly USpan<T> GetSpan(uint length)
+        public readonly Span<T> GetSpan(int length)
         {
             MemoryAddress.ThrowIfDefault(array);
 
@@ -260,7 +254,7 @@ namespace Collections.Generic
         /// <summary>
         /// Returns the remainder of the array from <paramref name="start"/> as a span.
         /// </summary>
-        public readonly USpan<T> AsSpan(uint start)
+        public readonly Span<T> AsSpan(int start)
         {
             MemoryAddress.ThrowIfDefault(array);
 
@@ -271,7 +265,7 @@ namespace Collections.Generic
         /// Returns the array as a span starting at <paramref name="start"/> index
         /// with the given <paramref name="length"/>.
         /// </summary>
-        public readonly USpan<T> AsSpan(uint start, uint length)
+        public readonly Span<T> AsSpan(int start, int length)
         {
             MemoryAddress.ThrowIfDefault(array);
 
@@ -281,7 +275,7 @@ namespace Collections.Generic
         /// <summary>
         /// Copies the array to the given <paramref name="destination"/>.
         /// </summary>
-        public readonly void CopyTo(USpan<T> destination)
+        public readonly void CopyTo(Span<T> destination)
         {
             AsSpan().CopyTo(destination);
         }
@@ -289,7 +283,7 @@ namespace Collections.Generic
         /// <summary>
         /// Copies the given <paramref name="source"/> to this array.
         /// </summary>
-        public readonly void CopyFrom(USpan<T> source)
+        public readonly void CopyFrom(ReadOnlySpan<T> source)
         {
             source.CopyTo(AsSpan());
         }
@@ -338,17 +332,7 @@ namespace Collections.Generic
             private readonly Pointer* array;
             private int index;
 
-            public readonly T Current
-            {
-                get
-                {
-                    unchecked
-                    {
-                        return array->items.Read<T>((uint)index * (uint)sizeof(T));
-                    }
-                }
-            }
-
+            public readonly T Current => array->items.ReadElement<T>(index);
             readonly object IEnumerator.Current => Current;
 
             public Enumerator(Pointer* array)

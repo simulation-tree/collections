@@ -20,7 +20,7 @@ namespace Collections.Generic
         /// <summary>
         /// Amount of items in the queue.
         /// </summary>
-        public readonly uint Count
+        public readonly int Count
         {
             get
             {
@@ -44,13 +44,7 @@ namespace Collections.Generic
         }
 
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        int ICollection<T>.Count => (int)queue->top;
-
-        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         readonly bool ICollection<T>.IsReadOnly => false;
-
-        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        int IReadOnlyCollection<T>.Count => (int)queue->top;
 
         [DebuggerBrowsable(DebuggerBrowsableState.Collapsed)]
         private readonly T[] Items => AsSpan().ToArray();
@@ -61,7 +55,7 @@ namespace Collections.Generic
         public Queue()
         {
             ref Pointer queue = ref MemoryAddress.Allocate<Pointer>();
-            queue = new((uint)sizeof(T), 4);
+            queue = new(sizeof(T), 4);
             fixed (Pointer* pointer = &queue)
             {
                 this.queue = pointer;
@@ -72,11 +66,11 @@ namespace Collections.Generic
         /// <summary>
         /// Creates a queue with the given <paramref name="initialCapacity"/>.
         /// </summary>
-        public Queue(uint initialCapacity = 4)
+        public Queue(int initialCapacity = 4)
         {
             initialCapacity = Math.Max(1, initialCapacity).GetNextPowerOf2();
             ref Pointer queue = ref MemoryAddress.Allocate<Pointer>();
-            queue = new((uint)sizeof(T), initialCapacity);
+            queue = new(sizeof(T), initialCapacity);
             fixed (Pointer* pointer = &queue)
             {
                 this.queue = pointer;
@@ -99,11 +93,11 @@ namespace Collections.Generic
             MemoryAddress.Free(ref queue);
         }
 
-        public readonly USpan<T> AsSpan()
+        public readonly Span<T> AsSpan()
         {
             MemoryAddress.ThrowIfDefault(queue);
 
-            uint length = queue->top - queue->rear;
+            int length = queue->top - queue->rear;
             return queue->items.AsSpan<T>(queue->rear, length);
         }
 
@@ -115,17 +109,14 @@ namespace Collections.Generic
             queue->rear = 0;
         }
 
-        public readonly void Clear(uint minimumCapacity)
+        public readonly void Clear(int minimumCapacity)
         {
             MemoryAddress.ThrowIfDefault(queue);
 
             if (queue->capacity < minimumCapacity)
             {
                 queue->capacity = minimumCapacity.GetNextPowerOf2();
-                unchecked
-                {
-                    MemoryAddress.Resize(ref queue->items, queue->capacity * (uint)sizeof(T));
-                }
+                MemoryAddress.Resize(ref queue->items, queue->capacity * sizeof(T));
             }
 
             queue->top = 0;
@@ -136,49 +127,40 @@ namespace Collections.Generic
         {
             MemoryAddress.ThrowIfDefault(queue);
 
-            uint top = queue->top;
+            int top = queue->top;
             if (top == queue->capacity)
             {
                 queue->capacity *= 2;
-                unchecked
-                {
-                    MemoryAddress.Resize(ref queue->items, queue->capacity * (uint)sizeof(T));
-                }
+                MemoryAddress.Resize(ref queue->items, queue->capacity * sizeof(T));
             }
 
             queue->items.WriteElement(top, item);
             queue->top = top + 1;
         }
 
-        public readonly void EnqueueRange(USpan<T> items)
+        public readonly void EnqueueRange(Span<T> items)
         {
             MemoryAddress.ThrowIfDefault(queue);
 
-            unchecked
+            int newTop = queue->top + items.Length;
+            if (newTop > queue->capacity)
             {
-                uint newTop = queue->top + items.Length;
-                if (newTop > queue->capacity)
-                {
-                    queue->capacity = newTop.GetNextPowerOf2();
-                    MemoryAddress.Resize(ref queue->items, queue->capacity * (uint)sizeof(T));
-                }
-
-                queue->items.Write(queue->top * (uint)sizeof(T), items);
-                queue->top = newTop;
+                queue->capacity = newTop.GetNextPowerOf2();
+                MemoryAddress.Resize(ref queue->items, queue->capacity * sizeof(T));
             }
+
+            queue->items.Write(queue->top * sizeof(T), items);
+            queue->top = newTop;
         }
 
         public readonly T Dequeue()
         {
             MemoryAddress.ThrowIfDefault(queue);
 
-            unchecked
-            {
-                uint rear = queue->rear;
-                T item = queue->items.Read<T>(rear * (uint)sizeof(T));
-                queue->rear = rear + 1;
-                return item;
-            }
+            int rear = queue->rear;
+            T item = queue->items.Read<T>(rear * sizeof(T));
+            queue->rear = rear + 1;
+            return item;
         }
 
         public readonly bool TryDequeue(out T value)
@@ -186,13 +168,10 @@ namespace Collections.Generic
             MemoryAddress.ThrowIfDefault(queue);
             if (queue->top != queue->rear)
             {
-                unchecked
-                {
-                    uint rear = queue->rear;
-                    value = queue->items.Read<T>(rear * (uint)sizeof(T));
-                    queue->rear = rear + 1;
-                    return true;
-                }
+                int rear = queue->rear;
+                value = queue->items.Read<T>(rear * sizeof(T));
+                queue->rear = rear + 1;
+                return true;
             }
             else
             {
@@ -209,8 +188,8 @@ namespace Collections.Generic
         readonly bool ICollection<T>.Contains(T item)
         {
             EqualityComparer<T> comparer = EqualityComparer<T>.Default;
-            USpan<T> span = AsSpan();
-            for (uint i = 0; i < span.Length; i++)
+            Span<T> span = AsSpan();
+            for (int i = 0; i < span.Length; i++)
             {
                 if (comparer.Equals(span[i], item))
                 {
@@ -223,8 +202,8 @@ namespace Collections.Generic
 
         readonly void ICollection<T>.CopyTo(T[] array, int arrayIndex)
         {
-            USpan<T> span = AsSpan();
-            for (uint i = 0; i < span.Length; i++)
+            Span<T> span = AsSpan();
+            for (int i = 0; i < span.Length; i++)
             {
                 array[arrayIndex + i] = span[i];
             }
@@ -288,8 +267,8 @@ namespace Collections.Generic
                     {
                         MemoryAddress.ThrowIfDefault(queue);
 
-                        uint length = queue->top - queue->rear;
-                        return queue->items.AsSpan<T>(queue->rear, length)[(uint)index];
+                        int length = queue->top - queue->rear;
+                        return queue->items.AsSpan<T>(queue->rear, length)[index];
                     }
                 }
             }

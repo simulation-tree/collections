@@ -254,7 +254,8 @@ namespace Collections.Tests
             list.Add(2);
             list.Add(3);
             list.Add(4);
-            USpan<int> span = stackalloc int[4];
+
+            Span<int> span = stackalloc int[4];
             list.CopyTo(span);
             Assert.That(span[0], Is.EqualTo(1));
             Assert.That(span[1], Is.EqualTo(2));
@@ -271,7 +272,7 @@ namespace Collections.Tests
             data.Add(3);
             data.Add(4);
 
-            USpan<byte> span = data.AsSpan().Reinterpret<byte>();
+            Span<byte> span = data.AsSpan().Reinterpret<int, byte>();
             Assert.That(span.Length, Is.EqualTo(sizeof(int) * 4));
             int value1 = BitConverter.ToInt32(span.Slice(0, 4));
             int value2 = BitConverter.ToInt32(span.Slice(4, 4));
@@ -289,10 +290,10 @@ namespace Collections.Tests
         [Test]
         public void ListFromSpan()
         {
-            USpan<char> word = ['H', 'e', 'l', 'l', 'o'];
+            Span<char> word = ['H', 'e', 'l', 'l', 'o'];
             List<char> list = new(word);
             Assert.That(list.Count, Is.EqualTo(5));
-            USpan<char> otherSpan = list.AsSpan();
+            Span<char> otherSpan = list.AsSpan();
             Assert.That(otherSpan[0], Is.EqualTo('H'));
             Assert.That(otherSpan[1], Is.EqualTo('e'));
             Assert.That(otherSpan[2], Is.EqualTo('l'));
@@ -305,14 +306,14 @@ namespace Collections.Tests
         public void ListInsideArray()
         {
             Array<List<byte>> nestedData = new(8);
-            for (uint i = 0; i < 8; i++)
+            for (int i = 0; i < 8; i++)
             {
                 ref List<byte> list = ref nestedData[i];
                 list = new();
                 list.Add((byte)i);
             }
 
-            for (uint i = 0; i < 8; i++)
+            for (int i = 0; i < 8; i++)
             {
                 List<byte> list = nestedData[i];
                 Assert.That(list[0], Is.EqualTo((byte)i));
@@ -341,7 +342,7 @@ namespace Collections.Tests
         [Test]
         public void CreateListFromEmptySpan()
         {
-            USpan<int> empty = default;
+            Span<int> empty = default;
             List<int> list = new(empty);
             Assert.That(list.Count, Is.EqualTo(0));
             list.Add(32);
@@ -378,7 +379,7 @@ namespace Collections.Tests
             b.Insert(1, element);
 
             Assert.That(b.Count, Is.EqualTo(4));
-            USpan<int> span = b.AsSpan<int>();
+            Span<int> span = b.AsSpan<int>();
             Assert.That(span[0], Is.EqualTo(5));
             Assert.That(span[1], Is.EqualTo(11));
             Assert.That(span[2], Is.EqualTo(6));

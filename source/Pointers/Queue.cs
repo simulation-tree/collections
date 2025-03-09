@@ -4,14 +4,14 @@ namespace Collections.Pointers
 {
     public struct Queue
     {
-        public readonly uint stride;
+        public readonly int stride;
 
-        internal uint capacity;
-        internal uint top;
-        internal uint rear;
+        internal int capacity;
+        internal int top;
+        internal int rear;
         internal MemoryAddress items;
 
-        internal Queue(uint stride, uint capacity)
+        internal Queue(int stride, int capacity)
         {
             this.stride = stride;
             this.capacity = capacity;

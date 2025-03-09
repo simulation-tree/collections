@@ -7,11 +7,11 @@ namespace Collections.Pointers
     /// </summary>
     public struct Array
     {
-        public readonly uint stride;
-        public uint length;
+        public readonly int stride;
+        public int length;
         public MemoryAddress items;
 
-        internal Array(uint stride, uint length, MemoryAddress items)
+        internal Array(int stride, int length, MemoryAddress items)
         {
             this.stride = stride;
             this.length = length;

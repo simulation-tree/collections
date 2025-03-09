@@ -1,6 +1,5 @@
 ﻿using Collections.Generic;
 using System;
-using Unmanaged;
 
 namespace Collections
 {
@@ -11,62 +10,41 @@ namespace Collections
         /// </summary>
         public unsafe static bool Contains<T>(this List<T> list, T value) where T : unmanaged, IEquatable<T>
         {
-            unchecked
-            {
-                return new Span<T>(list.Items.Pointer, (int)list.Count).Contains(value);
-            }
+            return new Span<T>(list.Items.Pointer, list.Count).Contains(value);
         }
 
         /// <summary>
         /// Retrieves the index for the first occurrence of <paramref name="value"/>.
-        /// <para>
-        /// Will be <see cref="uint.MaxValue"/> if not found.
-        /// </para>
         /// </summary>
-        public unsafe static uint IndexOf<T>(this List<T> list, T value) where T : unmanaged, IEquatable<T>
+        public unsafe static int IndexOf<T>(this List<T> list, T value) where T : unmanaged, IEquatable<T>
         {
-            unchecked
-            {
-                return (uint)new Span<T>(list.Items.Pointer, (int)list.Count).IndexOf(value);
-            }
+            return new Span<T>(list.Items.Pointer, list.Count).IndexOf(value);
         }
 
         /// <summary>
         /// Retrieves the index for the last occurrence of <paramref name="value"/>.
-        /// <para>
-        /// Will be <see cref="uint.MaxValue"/> if not found.
-        /// </para>
         /// </summary>
-        public unsafe static uint LastIndexOf<T>(this List<T> list, T value) where T : unmanaged, IEquatable<T>
+        public unsafe static int LastIndexOf<T>(this List<T> list, T value) where T : unmanaged, IEquatable<T>
         {
-            unchecked
-            {
-                return (uint)new Span<T>(list.Items.Pointer, (int)list.Count).LastIndexOf(value);
-            }
+            return new Span<T>(list.Items.Pointer, list.Count).LastIndexOf(value);
         }
 
         /// <summary>
         /// Tries to retrieve the index for the first occurrence of <paramref name="value"/>.
         /// </summary>
-        public unsafe static bool TryIndexOf<T>(this List<T> list, T value, out uint index) where T : unmanaged, IEquatable<T>
+        public unsafe static bool TryIndexOf<T>(this List<T> list, T value, out int index) where T : unmanaged, IEquatable<T>
         {
-            unchecked
-            {
-                index = (uint)new Span<T>(list.Items.Pointer, (int)list.Count).IndexOf(value);
-                return index != uint.MaxValue;
-            }
+            index = new Span<T>(list.Items.Pointer, list.Count).IndexOf(value);
+            return index != -1;
         }
 
         /// <summary>
         /// Tries to retrieve the index for the last occurrence of <paramref name="value"/>.
         /// </summary>
-        public unsafe static bool TryLastIndexOf<T>(this List<T> list, T value, out uint index) where T : unmanaged, IEquatable<T>
+        public unsafe static bool TryLastIndexOf<T>(this List<T> list, T value, out int index) where T : unmanaged, IEquatable<T>
         {
-            unchecked
-            {
-                index = (uint)new Span<T>(list.Items.Pointer, (int)list.Count).LastIndexOf(value);
-                return index != uint.MaxValue;
-            }
+            index = new Span<T>(list.Items.Pointer, list.Count).LastIndexOf(value);
+            return index != -1;
         }
 
         /// <summary>
@@ -90,7 +68,7 @@ namespace Collections
         /// <returns><c>true</c> if it was removed.</returns>
         public static bool TryRemove<T>(this List<T> list, T value) where T : unmanaged, IEquatable<T>
         {
-            bool contains = list.TryIndexOf(value, out uint index);
+            bool contains = list.TryIndexOf(value, out int index);
             if (contains)
             {
                 list.RemoveAt(index);
@@ -106,7 +84,7 @@ namespace Collections
         /// <returns><c>true</c> if it was removed.</returns>
         public static bool TryRemoveBySwapping<T>(this List<T> list, T value) where T : unmanaged, IEquatable<T>
         {
-            bool contains = list.TryIndexOf(value, out uint index);
+            bool contains = list.TryIndexOf(value, out int index);
             if (contains)
             {
                 list.RemoveAtBySwapping(index);

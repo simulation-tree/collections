@@ -7,13 +7,13 @@ namespace Collections.Pointers
     /// </summary>
     public struct List
     {
-        public readonly uint stride;
+        public readonly int stride;
 
-        internal uint count;
-        internal uint capacity;
+        internal int count;
+        internal int capacity;
         internal MemoryAddress items;
 
-        internal List(uint stride, uint count, uint capacity, MemoryAddress items)
+        internal List(int stride, int count, int capacity, MemoryAddress items)
         {
             this.stride = stride;
             this.count = count;

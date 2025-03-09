@@ -23,7 +23,7 @@ namespace Collections.Generic
         /// <summary>
         /// Amount of items in the stack.
         /// </summary>
-        public readonly uint Count
+        public readonly int Count
         {
             get
             {
@@ -47,13 +47,7 @@ namespace Collections.Generic
         }
 
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        int ICollection<T>.Count => (int)stack->top;
-
-        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         readonly bool ICollection<T>.IsReadOnly => false;
-
-        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        int IReadOnlyCollection<T>.Count => (int)stack->top;
 
         [DebuggerBrowsable(DebuggerBrowsableState.Collapsed)]
         private readonly T[] Items => AsSpan().ToArray();
@@ -64,7 +58,7 @@ namespace Collections.Generic
         public Stack()
         {
             ref Pointer stack = ref MemoryAddress.Allocate<Pointer>();
-            stack = new((uint)sizeof(T), 4);
+            stack = new(sizeof(T), 4);
             fixed (Pointer* pointer = &stack)
             {
                 this.stack = pointer;
@@ -75,11 +69,11 @@ namespace Collections.Generic
         /// <summary>
         /// Creates a stack with the given <paramref name="initialCapacity"/>.
         /// </summary>
-        public Stack(uint initialCapacity = 4)
+        public Stack(int initialCapacity = 4)
         {
             ref Pointer stack = ref MemoryAddress.Allocate<Pointer>();
             initialCapacity = Math.Max(1, initialCapacity).GetNextPowerOf2();
-            stack = new((uint)sizeof(T), initialCapacity);
+            stack = new(sizeof(T), initialCapacity);
             fixed (Pointer* pointer = &stack)
             {
                 this.stack = pointer;
@@ -102,7 +96,7 @@ namespace Collections.Generic
             MemoryAddress.Free(ref stack);
         }
 
-        public readonly USpan<T> AsSpan()
+        public readonly Span<T> AsSpan()
         {
             MemoryAddress.ThrowIfDefault(stack);
 
@@ -116,17 +110,14 @@ namespace Collections.Generic
             stack->top = 0;
         }
 
-        public readonly void Clear(uint minimumCapacity)
+        public readonly void Clear(int minimumCapacity)
         {
             MemoryAddress.ThrowIfDefault(stack);
 
             if (stack->capacity < minimumCapacity)
             {
                 stack->capacity = minimumCapacity.GetNextPowerOf2();
-                unchecked
-                {
-                    MemoryAddress.Resize(ref stack->items, stack->capacity * (uint)sizeof(T));
-                }
+                MemoryAddress.Resize(ref stack->items, stack->capacity * sizeof(T));
             }
 
             stack->top = 0;
@@ -136,34 +127,28 @@ namespace Collections.Generic
         {
             MemoryAddress.ThrowIfDefault(stack);
 
-            uint top = stack->top;
+            int top = stack->top;
             if (top == stack->capacity)
             {
                 stack->capacity *= 2;
-                unchecked
-                {
-                    MemoryAddress.Resize(ref stack->items, stack->capacity * (uint)sizeof(T));
-                }
+                MemoryAddress.Resize(ref stack->items, stack->capacity * sizeof(T));
             }
 
             stack->items.WriteElement(top, item);
             stack->top = top + 1;
         }
 
-        public readonly void PushRange(USpan<T> items)
+        public readonly void PushRange(ReadOnlySpan<T> items)
         {
             MemoryAddress.ThrowIfDefault(stack);
 
             if (stack->top + items.Length > stack->capacity)
             {
                 stack->capacity = stack->top + items.Length.GetNextPowerOf2();
-                unchecked
-                {
-                    MemoryAddress.Resize(ref stack->items, stack->capacity * (uint)sizeof(T));
-                }
+                MemoryAddress.Resize(ref stack->items, stack->capacity * sizeof(T));
             }
 
-            stack->items.Write(stack->top * (uint)sizeof(T), items);
+            stack->items.Write(stack->top * sizeof(T), items);
             stack->top += items.Length;
         }
 
@@ -172,7 +157,7 @@ namespace Collections.Generic
             MemoryAddress.ThrowIfDefault(stack);
             ThrowIfZero(stack->top);
 
-            uint newTop = stack->top - 1;
+            int newTop = stack->top - 1;
             stack->top = newTop;
             return stack->items.ReadElement<T>(newTop);
         }
@@ -182,7 +167,7 @@ namespace Collections.Generic
             MemoryAddress.ThrowIfDefault(stack);
             if (stack->top > 0)
             {
-                uint newTop = stack->top - 1;
+                int newTop = stack->top - 1;
                 stack->top = newTop;
                 value = stack->items.ReadElement<T>(newTop);
                 return true;
@@ -226,8 +211,8 @@ namespace Collections.Generic
         readonly bool ICollection<T>.Contains(T item)
         {
             EqualityComparer<T> comparer = EqualityComparer<T>.Default;
-            USpan<T> span = AsSpan();
-            for (uint i = 0; i < span.Length; i++)
+            Span<T> span = AsSpan();
+            for (int i = 0; i < span.Length; i++)
             {
                 if (comparer.Equals(span[i], item))
                 {
@@ -240,13 +225,10 @@ namespace Collections.Generic
 
         readonly void ICollection<T>.CopyTo(T[] array, int arrayIndex)
         {
-            USpan<T> span = AsSpan();
-            unchecked
+            Span<T> span = AsSpan();
+            for (int i = 0; i < span.Length; i++)
             {
-                for (uint i = 0; i < span.Length; i++)
-                {
-                    array[arrayIndex + i] = span[i];
-                }
+                array[arrayIndex + i] = span[i];
             }
         }
 
@@ -286,7 +268,7 @@ namespace Collections.Generic
         }
 
         [Conditional("DEBUG")]
-        private static void ThrowIfZero(uint value)
+        private static void ThrowIfZero(int value)
         {
             if (value == 0)
             {
@@ -313,12 +295,9 @@ namespace Collections.Generic
             {
                 get
                 {
-                    unchecked
-                    {
-                        MemoryAddress.ThrowIfDefault(stack);
+                    MemoryAddress.ThrowIfDefault(stack);
 
-                        return new USpan<T>(stack->items.Pointer, stack->top)[(uint)index];
-                    }
+                    return new Span<T>(stack->items.Pointer, stack->top)[index];
                 }
             }
 

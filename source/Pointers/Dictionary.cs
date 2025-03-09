@@ -4,17 +4,17 @@ namespace Collections.Pointers
 {
     public struct Dictionary
     {
-        public readonly uint keyStride;
-        public readonly uint valueStride;
+        public readonly int keyStride;
+        public readonly int valueStride;
 
-        internal uint count;
-        internal uint capacity;
+        internal int count;
+        internal int capacity;
         internal MemoryAddress keys;
         internal MemoryAddress hashCodes;
         internal MemoryAddress values;
         internal MemoryAddress occupied;
 
-        internal Dictionary(uint keyStride, uint valueStride, uint capacity)
+        internal Dictionary(int keyStride, int valueStride, int capacity)
         {
             this.keyStride = keyStride;
             this.valueStride = valueStride;

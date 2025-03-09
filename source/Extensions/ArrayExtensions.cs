@@ -1,6 +1,5 @@
 ﻿using Collections.Generic;
 using System;
-using Unmanaged;
 
 namespace Collections
 {
@@ -11,10 +10,7 @@ namespace Collections
         /// </summary>
         public unsafe static bool Contains<T>(this Array<T> array, T value) where T : unmanaged, IEquatable<T>
         {
-            unchecked
-            {
-                return new Span<T>(array.Items.Pointer, (int)array.Length).Contains(value);
-            }
+            return new Span<T>(array.Items.Pointer, array.Length).Contains(value);
         }
 
         /// <summary>
@@ -23,12 +19,9 @@ namespace Collections
         /// Will be <see cref="uint.MaxValue"/> if not found.
         /// </para>
         /// </summary>
-        public unsafe static uint IndexOf<T>(this Array<T> array, T value) where T : unmanaged, IEquatable<T>
+        public unsafe static int IndexOf<T>(this Array<T> array, T value) where T : unmanaged, IEquatable<T>
         {
-            unchecked
-            {
-                return (uint)new Span<T>(array.Items.Pointer, (int)array.Length).IndexOf(value);
-            }
+            return new Span<T>(array.Items.Pointer, array.Length).IndexOf(value);
         }
 
         /// <summary>
@@ -37,36 +30,27 @@ namespace Collections
         /// Will be <see cref="uint.MaxValue"/> if not found.
         /// </para>
         /// </summary>
-        public unsafe static uint LastIndexOf<T>(this Array<T> array, T value) where T : unmanaged, IEquatable<T>
+        public unsafe static int LastIndexOf<T>(this Array<T> array, T value) where T : unmanaged, IEquatable<T>
         {
-            unchecked
-            {
-                return (uint)new Span<T>(array.Items.Pointer, (int)array.Length).LastIndexOf(value);
-            }
+            return new Span<T>(array.Items.Pointer, array.Length).LastIndexOf(value);
         }
 
         /// <summary>
         /// Tries to retrieve the index for the first occurrence of <paramref name="value"/>.
         /// </summary>
-        public unsafe static bool TryIndexOf<T>(this Array<T> array, T value, out uint index) where T : unmanaged, IEquatable<T>
+        public unsafe static bool TryIndexOf<T>(this Array<T> array, T value, out int index) where T : unmanaged, IEquatable<T>
         {
-            unchecked
-            {
-                index = (uint)new Span<T>(array.Items.Pointer, (int)array.Length).IndexOf(value);
-                return index != uint.MaxValue;
-            }
+            index = new Span<T>(array.Items.Pointer, array.Length).IndexOf(value);
+            return index != -1;
         }
 
         /// <summary>
         /// Tries to retrieve the index for the last occurrence of <paramref name="value"/>.
         /// </summary>
-        public unsafe static bool TryLastIndexOf<T>(this Array<T> array, T value, out uint index) where T : unmanaged, IEquatable<T>
+        public unsafe static bool TryLastIndexOf<T>(this Array<T> array, T value, out int index) where T : unmanaged, IEquatable<T>
         {
-            unchecked
-            {
-                index = (uint)new Span<T>(array.Items.Pointer, (int)array.Length).LastIndexOf(value);
-                return index != uint.MaxValue;
-            }
+            index = new Span<T>(array.Items.Pointer, array.Length).LastIndexOf(value);
+            return index != -1;
         }
     }
 }

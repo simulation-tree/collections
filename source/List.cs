@@ -18,7 +18,7 @@ namespace Collections
         /// <summary>
         /// Amount of elements in the list.
         /// </summary>
-        public readonly uint Count
+        public readonly int Count
         {
             get
             {
@@ -31,7 +31,7 @@ namespace Collections
         /// <summary>
         /// Size of each element in the list.
         /// </summary>
-        public readonly uint Stride
+        public readonly int Stride
         {
             get
             {
@@ -57,7 +57,7 @@ namespace Collections
         /// <summary>
         /// Capacity of the list.
         /// </summary>
-        public readonly uint Capacity
+        public readonly int Capacity
         {
             get
             {
@@ -69,7 +69,7 @@ namespace Collections
             {
                 MemoryAddress.ThrowIfDefault(list);
 
-                uint newCapacity = value.GetNextPowerOf2();
+                int newCapacity = value.GetNextPowerOf2();
                 ThrowIfLessThanCount(newCapacity);
 
                 MemoryAddress newItems = MemoryAddress.Allocate(list->stride * newCapacity);
@@ -88,14 +88,14 @@ namespace Collections
         /// <summary>
         /// Accesses the element at the specified index.
         /// </summary>
-        public readonly MemoryAddress this[uint index]
+        public readonly MemoryAddress this[int index]
         {
             get
             {
                 MemoryAddress.ThrowIfDefault(list);
                 ThrowIfOutOfRange(index);
 
-                return new((void*)(list->items.Address + list->stride * index));
+                return new(list->items.Pointer + list->stride * index);
             }
         }
 
@@ -111,7 +111,7 @@ namespace Collections
         /// Creates a new list with the given <paramref name="initialCapacity"/> and <paramref name="stride"/>
         /// for each element.
         /// </summary>
-        public List(uint initialCapacity, uint stride)
+        public List(int initialCapacity, int stride)
         {
             initialCapacity = Math.Max(1, initialCapacity).GetNextPowerOf2();
             ref Pointer list = ref MemoryAddress.Allocate<Pointer>();
@@ -145,7 +145,7 @@ namespace Collections
         }
 
         [Conditional("DEBUG")]
-        private readonly void ThrowIfOutOfRange(uint index)
+        private readonly void ThrowIfOutOfRange(int index)
         {
             if (index >= list->count)
             {
@@ -154,7 +154,7 @@ namespace Collections
         }
 
         [Conditional("DEBUG")]
-        private readonly void ThrowIfPastRange(uint index)
+        private readonly void ThrowIfPastRange(int index)
         {
             if (index > list->count)
             {
@@ -163,7 +163,7 @@ namespace Collections
         }
 
         [Conditional("DEBUG")]
-        private readonly void ThrowIfLessThanCount(uint newCapacity)
+        private readonly void ThrowIfLessThanCount(int newCapacity)
         {
             if (newCapacity < list->count)
             {
@@ -183,7 +183,7 @@ namespace Collections
         /// <summary>
         /// Retrieves a span of the elements in the list.
         /// </summary>
-        public readonly USpan<T> AsSpan<T>() where T : unmanaged
+        public readonly Span<T> AsSpan<T>() where T : unmanaged
         {
             MemoryAddress.ThrowIfDefault(list);
             ThrowIfSizeMismatch<T>();
@@ -199,14 +199,11 @@ namespace Collections
             MemoryAddress.ThrowIfDefault(list);
             ThrowIfSizeMismatch<T>();
 
-            uint count = list->count;
+            int count = list->count;
             if (count == list->capacity)
             {
                 list->capacity *= 2;
-                unchecked
-                {
-                    MemoryAddress.Resize(ref list->items, (uint)sizeof(T) * list->capacity);
-                }
+                MemoryAddress.Resize(ref list->items, sizeof(T) * list->capacity);
             }
 
             list->items.WriteElement(count, item);
@@ -220,76 +217,67 @@ namespace Collections
         {
             MemoryAddress.ThrowIfDefault(list);
 
-            uint count = list->count;
-            uint stride = list->stride;
+            int count = list->count;
+            int stride = list->stride;
             if (count == list->capacity)
             {
                 list->capacity *= 2;
-                unchecked
-                {
-                    MemoryAddress.Resize(ref list->items, stride * list->capacity);
-                }
+                MemoryAddress.Resize(ref list->items, stride * list->capacity);
             }
 
             list->items.Clear(list->count * stride, stride);
             list->count = count + 1;
         }
 
-        public readonly void Insert<T>(uint index, T item) where T : unmanaged
+        public readonly void Insert<T>(int index, T item) where T : unmanaged
         {
             MemoryAddress.ThrowIfDefault(list);
             ThrowIfSizeMismatch<T>();
             ThrowIfPastRange(index);
 
-            uint count = list->count;
+            int count = list->count;
             if (count == list->capacity)
             {
                 list->capacity *= 2;
-                unchecked
-                {
-                    MemoryAddress.Resize(ref list->items, (uint)sizeof(T) * list->capacity);
-                }
+                MemoryAddress.Resize(ref list->items, sizeof(T) * list->capacity);
             }
 
-            uint remaining = count - index;
-            USpan<T> destination = list->items.AsSpan<T>(index + 1, remaining);
-            USpan<T> source = list->items.AsSpan<T>(index, remaining);
+            int remaining = count - index;
+            Span<T> destination = list->items.AsSpan<T>(index + 1, remaining);
+            Span<T> source = list->items.AsSpan<T>(index, remaining);
             source.CopyTo(destination);
 
             list->items.WriteElement(index, item);
             list->count = count + 1;
         }
 
-        public readonly void Insert(uint index, MemoryAddress item)
+        public readonly void Insert(int index, MemoryAddress item)
         {
             MemoryAddress.ThrowIfDefault(list);
             ThrowIfPastRange(index);
 
-            uint count = list->count;
-            uint stride = list->stride;
+            int count = list->count;
+            int stride = list->stride;
             if (count == list->capacity)
             {
                 list->capacity *= 2;
-                unchecked
-                {
-                    MemoryAddress.Resize(ref list->items, stride * list->capacity);
-                }
+                MemoryAddress.Resize(ref list->items, stride * list->capacity);
             }
 
-            uint remaining = count - index;
-            USpan<byte> destination = list->items.AsSpan((index + 1) * stride, remaining * stride);
-            USpan<byte> source = list->items.AsSpan(index * stride, remaining * stride);
+            int remaining = count - index;
+            Span<byte> destination = list->items.AsSpan((index + 1) * stride, remaining * stride);
+            Span<byte> source = list->items.AsSpan(index * stride, remaining * stride);
             source.CopyTo(destination);
             item.CopyTo(list->items.Pointer + index * stride, stride);
             list->count = count + 1;
         }
 
-        public readonly void RemoveAt(uint index)
+        public readonly void RemoveAt(int index)
         {
             MemoryAddress.ThrowIfDefault(list);
             ThrowIfOutOfRange(index);
 
-            uint newCount = list->count - 1;
+            int newCount = list->count - 1;
             while (index < newCount)
             {
                 list->items.CopyTo(list->items, list->stride * (index + 1), list->stride * index, list->stride);
@@ -299,17 +287,17 @@ namespace Collections
             list->count = newCount;
         }
 
-        public readonly void RemoveAtBySwapping(uint index)
+        public readonly void RemoveAtBySwapping(int index)
         {
             MemoryAddress.ThrowIfDefault(list);
             ThrowIfOutOfRange(index);
 
-            uint newCount = list->count - 1;
+            int newCount = list->count - 1;
             list->items.CopyTo(list->items, list->stride * newCount, list->stride * index, list->stride);
             list->count = newCount;
         }
 
-        public readonly ref T Get<T>(uint index) where T : unmanaged
+        public readonly ref T Get<T>(int index) where T : unmanaged
         {
             MemoryAddress.ThrowIfDefault(list);
             ThrowIfSizeMismatch<T>();
@@ -317,7 +305,7 @@ namespace Collections
             return ref list->items.ReadElement<T>(index);
         }
 
-        public readonly void Set<T>(uint index, T value) where T : unmanaged
+        public readonly void Set<T>(int index, T value) where T : unmanaged
         {
             MemoryAddress.ThrowIfDefault(list);
             ThrowIfSizeMismatch<T>();

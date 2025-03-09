@@ -4,13 +4,13 @@ namespace Collections.Pointers
 {
     public struct Stack
     {
-        public readonly uint stride;
+        public readonly int stride;
 
-        internal uint capacity;
-        internal uint top;
+        internal int capacity;
+        internal int top;
         internal MemoryAddress items;
 
-        internal Stack(uint stride, uint capacity)
+        internal Stack(int stride, int capacity)
         {
             this.stride = stride;
             this.capacity = capacity;
