@@ -147,7 +147,7 @@ namespace Collections.Generic
             int initialCapacity = Math.Max(1, span.Length).GetNextPowerOf2();
             ref Pointer list = ref MemoryAddress.Allocate<Pointer>();
             list = new(sizeof(T), span.Length, initialCapacity, MemoryAddress.Allocate(sizeof(T) * initialCapacity));
-            Span<T> destination = list.items.AsSpan<T>(0, span.Length);
+            Span<T> destination = list.items.GetSpan<T>(span.Length);
             span.CopyTo(destination);
             fixed (Pointer* pointer = &list)
             {
