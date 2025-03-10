@@ -1,4 +1,5 @@
 ﻿using Collections.Generic;
+using System;
 using System.Diagnostics;
 using Unmanaged.Tests;
 
@@ -18,7 +19,7 @@ namespace Collections.Tests
         [Test]
         public void ContainsInEmptyArray()
         {
-            System.Span<int> span = stackalloc int[32];
+            Span<int> span = stackalloc int[32];
             using Array<int> emptyArray = new(span.Slice(0, 0));
             Assert.That(emptyArray.Contains(0), Is.False);
         }
@@ -33,7 +34,7 @@ namespace Collections.Tests
         [Test]
         public void CreatingArrayFromSpan()
         {
-            System.Span<int> span = stackalloc int[] { 1, 2, 3, 4, 5, 6, 7, 8 };
+            Span<int> span = stackalloc int[] { 1, 2, 3, 4, 5, 6, 7, 8 };
             using Array<int> array = new(span);
             Assert.That(array.Length, Is.EqualTo(8));
         }
