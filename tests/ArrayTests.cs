@@ -1,6 +1,5 @@
 ﻿using Collections.Generic;
 using System;
-using System.Diagnostics;
 using Unmanaged.Tests;
 
 namespace Collections.Tests
@@ -98,16 +97,16 @@ namespace Collections.Tests
 
             Benchmark systemResult = new(() =>
             {
-                for (uint i = 0; i < systemArray.Length; i++)
+                for (int i = 0; i < systemArray.Length; i++)
                 {
-                    systemArray[i] = i * 8;
+                    systemArray[i] = (uint)i * 8;
                 }
 
                 System.Array.Clear(systemArray, 0, systemArray.Length);
 
-                for (uint i = 0; i < 256; i++)
+                for (int i = 0; i < 256; i++)
                 {
-                    systemArray[systemArray.Length - 1] = i;
+                    systemArray[systemArray.Length - 1] = (uint)i;
                 }
 
                 System.Array.Clear(systemArray, 0, systemArray.Length);
@@ -115,17 +114,17 @@ namespace Collections.Tests
 
             Benchmark customResult = new(() =>
             {
-                USpan<uint> span = array.AsSpan();
-                for (uint i = 0; i < span.Length; i++)
+                Span<uint> span = array.AsSpan();
+                for (int i = 0; i < span.Length; i++)
                 {
-                    span[i] = i * 8;
+                    span[i] = (uint)i * 8;
                 }
 
                 span.Clear();
 
-                for (uint i = 0; i < 256; i++)
+                for (int i = 0; i < 256; i++)
                 {
-                    span[span.Length - 1] = i;
+                    span[span.Length - 1] = (uint)i;
                 }
 
                 span.Clear();
