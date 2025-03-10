@@ -1,7 +1,6 @@
-﻿using Collections.Generic;
-using System;
+﻿using System;
 
-namespace Collections
+namespace Collections.Generic
 {
     public static class ListExtensions
     {
