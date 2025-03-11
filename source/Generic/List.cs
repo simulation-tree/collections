@@ -490,10 +490,8 @@ namespace Collections.Generic
             MemoryAddress.ThrowIfDefault(list);
             ThrowIfOutOfRange(index);
 
-            int newCount = list->count - 1;
-            T lastElement = list->items.ReadElement<T>(newCount);
+            T lastElement = list->items.ReadElement<T>(--list->count);
             list->items.WriteElement(index, lastElement);
-            list->count = newCount;
         }
 
         /// <summary>
@@ -507,10 +505,8 @@ namespace Collections.Generic
             ThrowIfOutOfRange(index);
 
             removed = list->items.ReadElement<T>(index);
-            int newCount = list->count - 1;
-            T lastElement = list->items.ReadElement<T>(newCount);
+            T lastElement = list->items.ReadElement<T>(--list->count);
             list->items.WriteElement(index, lastElement);
-            list->count = newCount;
         }
 
         /// <summary>

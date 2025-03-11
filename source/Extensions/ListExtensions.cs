@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 
 namespace Collections.Generic
 {
@@ -90,6 +91,41 @@ namespace Collections.Generic
             }
 
             return contains;
+        }
+
+        /// <summary>
+        /// Removes the given <paramref name="value"/>.
+        /// </summary>
+        /// <returns>The index of the removed element.</returns>
+        public static int Remove<T>(this List<T> list, T value) where T : unmanaged, IEquatable<T>
+        {
+            int index = list.IndexOf(value);
+            ThrowIfNotFound(index, value);
+
+            list.RemoveAt(index);
+            return index;
+        }
+
+        /// <summary>
+        /// Removes the given <paramref name="value"/> by swapping it with the last item.
+        /// </summary>
+        /// <returns>The index of the removed element.</returns>
+        public static int RemoveBySwapping<T>(this List<T> list, T value) where T : unmanaged, IEquatable<T>
+        {
+            int index = list.IndexOf(value);
+            ThrowIfNotFound(index, value);
+
+            list.RemoveAtBySwapping(index);
+            return index;
+        }
+
+        [Conditional("DEBUG")]
+        private static void ThrowIfNotFound<T>(int index, T value)
+        {
+            if (index == -1)
+            {
+                throw new ArgumentException($"Value {value} not found in list.");
+            }
         }
     }
 }
