@@ -403,6 +403,42 @@ namespace Collections.Tests
             Assert.That(b.Get<int>(0), Is.EqualTo(32));
         }
 
+        [Test]
+        public void CopyListToAnotherList()
+        {
+            using List a = new(0, sizeof(int));
+            using List b = new(0, sizeof(int));
+            a.Add(1);
+            a.Add(2);
+            a.Add(3);
+            a.Add(4);
+            a.Add(5);
+
+            Assert.That(a.Count, Is.EqualTo(5));
+            Assert.That(b.Count, Is.EqualTo(0));
+
+            b.CopyFrom(a);
+
+            Assert.That(b.Count, Is.EqualTo(a.Count));
+            Assert.That(b.Capacity, Is.EqualTo(a.Capacity));
+            Assert.That(b.Get<int>(0), Is.EqualTo(1));
+            Assert.That(b.Get<int>(1), Is.EqualTo(2));
+            Assert.That(b.Get<int>(2), Is.EqualTo(3));
+            Assert.That(b.Get<int>(3), Is.EqualTo(4));
+            Assert.That(b.Get<int>(4), Is.EqualTo(5));
+
+            a.Clear();
+            a.Add(6);
+
+            Assert.That(a.Count, Is.EqualTo(1));
+            Assert.That(b.Count, Is.EqualTo(5));
+
+            b.CopyFrom(a);
+
+            Assert.That(b.Count, Is.EqualTo(1));
+            Assert.That(b.Get<int>(0), Is.EqualTo(6));
+        }
+
 #if !DEBUG
         [Test]
         public void BenchmarkAgainstSystem()

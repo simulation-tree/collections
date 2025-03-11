@@ -8,10 +8,9 @@ namespace Collections.Pointers
     public struct List
     {
         public readonly int stride;
-
-        internal int count;
-        internal int capacity;
-        internal MemoryAddress items;
+        public int count;
+        public int capacity;
+        public MemoryAddress items;
 
         internal List(int stride, int count, int capacity, MemoryAddress items)
         {

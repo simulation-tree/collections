@@ -55,6 +55,11 @@ namespace Collections
         }
 
         /// <summary>
+        /// The underlying pointer of the list.
+        /// </summary>
+        public readonly Pointer* Pointer => list;
+
+        /// <summary>
         /// Capacity of the list.
         /// </summary>
         public readonly int Capacity
@@ -176,7 +181,16 @@ namespace Collections
         {
             if (list->stride != sizeof(T))
             {
-                throw new InvalidOperationException($"Size mismatch. Expected stride of {sizeof(T)} but got {list->stride}");
+                throw new InvalidOperationException($"Size mismatch. Expected stride of {list->stride} but got {sizeof(T)}");
+            }
+        }
+
+        [Conditional("DEBUG")]
+        private readonly void ThrowIfSizeMismatch(int stride)
+        {
+            if (list->stride != stride)
+            {
+                throw new InvalidOperationException($"Size mismatch. Expected stride of {list->stride} but got {stride}");
             }
         }
 
@@ -229,6 +243,47 @@ namespace Collections
             list->count = count + 1;
         }
 
+        /// <summary>
+        /// Adds a range of <see langword="default"/> value.
+        /// </summary>
+        public readonly void AddDefault(int count)
+        {
+            MemoryAddress.ThrowIfDefault(list);
+
+            int newCount = list->count + count;
+            int stride = list->stride;
+            if (newCount >= list->capacity)
+            {
+                list->capacity = newCount.GetNextPowerOf2();
+                MemoryAddress.Resize(ref list->items, stride * list->capacity);
+            }
+
+            list->items.Clear(list->count * stride, stride * count);
+            list->count = newCount;
+        }
+
+        /// <summary>
+        /// Adds a new element from the given <paramref name="bytes"/>.
+        /// </summary>
+        public readonly void Add(ReadOnlySpan<byte> bytes)
+        {
+            MemoryAddress.ThrowIfDefault(list);
+
+            int count = list->count;
+            int stride = list->stride;
+            if (count == list->capacity)
+            {
+                list->capacity *= 2;
+                MemoryAddress.Resize(ref list->items, stride * list->capacity);
+            }
+
+            list->items.Write(count * stride, bytes);
+            list->count = count + 1;
+        }
+
+        /// <summary>
+        /// Inserts the given <paramref name="item"/> at the specified <paramref name="index"/>.
+        /// </summary>
         public readonly void Insert<T>(int index, T item) where T : unmanaged
         {
             MemoryAddress.ThrowIfDefault(list);
@@ -272,6 +327,13 @@ namespace Collections
             list->count = count + 1;
         }
 
+        public readonly void Clear()
+        {
+            MemoryAddress.ThrowIfDefault(list);
+
+            list->count = 0;
+        }
+
         public readonly void RemoveAt(int index)
         {
             MemoryAddress.ThrowIfDefault(list);
@@ -311,6 +373,38 @@ namespace Collections
             ThrowIfSizeMismatch<T>();
 
             list->items.WriteElement(index, value);
+        }
+
+        public readonly void CopyFrom(List source)
+        {
+            MemoryAddress.ThrowIfDefault(list);
+            MemoryAddress.ThrowIfDefault(source.list);
+            ThrowIfSizeMismatch(source.list->stride);
+
+            int count = source.list->count;
+            if (list->capacity < count)
+            {
+                list->capacity = count.GetNextPowerOf2();
+                MemoryAddress.Resize(ref list->items, list->stride * list->capacity);
+            }
+
+            list->items.CopyFrom(source.list->items, list->stride * count);
+            list->count = count;
+        }
+
+        public readonly void CopyFrom(ReadOnlySpan<byte> bytes)
+        {
+            MemoryAddress.ThrowIfDefault(list);
+            
+            int count = bytes.Length / list->stride;
+            if (list->capacity < count)
+            {
+                list->capacity = count.GetNextPowerOf2();
+                MemoryAddress.Resize(ref list->items, list->stride * list->capacity);
+            }
+
+            list->items.Write(0, bytes);
+            list->count = count;
         }
     }
 }

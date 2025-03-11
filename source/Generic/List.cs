@@ -65,6 +65,11 @@ namespace Collections.Generic
         public readonly nint Address => (nint)list;
 
         /// <summary>
+        /// The underlying pointer for this list.
+        /// </summary>
+        public readonly Pointer* Pointer => list;
+
+        /// <summary>
         /// The underlying memory allocation for this list.
         /// </summary>
         public readonly MemoryAddress Items
@@ -306,6 +311,26 @@ namespace Collections.Generic
 
             list->items.WriteElement(count, item);
             list->count = count + 1;
+        }
+
+        /// <summary>
+        /// Adds an empty element to the list and returns it by reference.
+        /// </summary>
+        public readonly ref T Add()
+        {
+            MemoryAddress.ThrowIfDefault(list);
+
+            int count = list->count;
+            if (count == list->capacity)
+            {
+                list->capacity *= 2;
+                MemoryAddress.Resize(ref list->items, sizeof(T) * list->capacity);
+            }
+
+            ref T added = ref list->items.ReadElement<T>(count);
+            added = default;
+            list->count = count + 1;
+            return ref added;
         }
 
         /// <summary>
@@ -555,6 +580,25 @@ namespace Collections.Generic
         public readonly void CopyTo(Span<T> destination)
         {
             AsSpan().CopyTo(destination);
+        }
+
+        /// <summary>
+        /// Copies the elements from <paramref name="source"/> into this list,
+        /// and updates count to match.
+        /// </summary>
+        public readonly void CopyFrom(ReadOnlySpan<T> source)
+        {
+            MemoryAddress.ThrowIfDefault(list);
+
+            int count = source.Length;
+            if (count >= list->capacity)
+            {
+                list->capacity = count.GetNextPowerOf2();
+                MemoryAddress.Resize(ref list->items, sizeof(T) * list->capacity);
+            }
+
+            source.CopyTo(list->items.GetSpan<T>(count));
+            list->count = count;
         }
 
         /// <inheritdoc/>
