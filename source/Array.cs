@@ -74,7 +74,7 @@ namespace Collections
         /// </summary>
         public readonly Pointer* Pointer => array;
 
-        public readonly MemoryAddress this[uint index]
+        public readonly MemoryAddress this[int index]
         {
             get
             {
@@ -147,7 +147,7 @@ namespace Collections
         }
 
         [Conditional("DEBUG")]
-        private readonly void ThrowIfOutOfRange(uint index)
+        private readonly void ThrowIfOutOfRange(int index)
         {
             if (index >= array->length)
             {
