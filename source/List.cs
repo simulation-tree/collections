@@ -244,6 +244,47 @@ namespace Collections
         }
 
         /// <summary>
+        /// Adds a <see langword="default"/> value and retrieves its <see cref="MemoryAddress"/>.
+        /// </summary>
+        public readonly void AddDefault(out MemoryAddress newElement)
+        {
+            MemoryAddress.ThrowIfDefault(list);
+
+            int newCount = list->count + 1;
+            int stride = list->stride;
+            if (newCount > list->capacity)
+            {
+                list->capacity *= 2;
+                MemoryAddress.Resize(ref list->items, stride * list->capacity);
+            }
+
+            int bytePosition = list->count * stride;
+            list->items.Clear(bytePosition, stride);
+            list->count = newCount;
+            newElement = new(list->items.Pointer + bytePosition);
+        }
+
+        /// <summary>
+        /// Adds a new uninitialized value and retrieves its <see cref="MemoryAddress"/>.
+        /// </summary>
+        public readonly void AddUninitialized(out MemoryAddress newElement)
+        {
+            MemoryAddress.ThrowIfDefault(list);
+
+            int newCount = list->count + 1;
+            int stride = list->stride;
+            if (newCount > list->capacity)
+            {
+                list->capacity *= 2;
+                MemoryAddress.Resize(ref list->items, stride * list->capacity);
+            }
+
+            int bytePosition = list->count * stride;
+            list->count = newCount;
+            newElement = new(list->items.Pointer + bytePosition);
+        }
+
+        /// <summary>
         /// Adds a range of <see langword="default"/> value.
         /// </summary>
         public readonly void AddDefault(int count)
@@ -395,7 +436,7 @@ namespace Collections
         public readonly void CopyFrom(ReadOnlySpan<byte> bytes)
         {
             MemoryAddress.ThrowIfDefault(list);
-            
+
             int count = bytes.Length / list->stride;
             if (list->capacity < count)
             {

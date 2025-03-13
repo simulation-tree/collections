@@ -251,7 +251,7 @@ namespace Collections.Generic
         public readonly Span<T> AsSpan(int start)
         {
             MemoryAddress.ThrowIfDefault(list);
-            ThrowIfOutOfRange(start);
+            ThrowIfPastRange(start);
 
             return list->items.AsSpan<T>(start, list->count - start);
         }
@@ -262,7 +262,7 @@ namespace Collections.Generic
         public readonly Span<T> AsSpan(int start, int length)
         {
             MemoryAddress.ThrowIfDefault(list);
-            ThrowIfOutOfRange(start + length);
+            ThrowIfPastRange(start + length);
 
             return list->items.AsSpan<T>(start, length);
         }
