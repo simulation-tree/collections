@@ -225,6 +225,25 @@ namespace Collections
         }
 
         /// <summary>
+        /// Adds the memory from the given <paramref name="item"/>.
+        /// </summary>
+        public readonly void Add(MemoryAddress item)
+        {
+            MemoryAddress.ThrowIfDefault(list);
+
+            int count = list->count;
+            int stride = list->stride;
+            if (count == list->capacity)
+            {
+                list->capacity *= 2;
+                MemoryAddress.Resize(ref list->items, stride * list->capacity);
+            }
+
+            item.CopyTo(list->items.Pointer + count * stride, stride);
+            list->count = count + 1;
+        }
+
+        /// <summary>
         /// Adds a <see langword="default"/> value.
         /// </summary>
         public readonly void AddDefault()

@@ -77,3 +77,23 @@ while (queue.TryDequeue(out int item))
     Console.WriteLine(item);
 }
 ```
+
+### Hash sets
+
+```cs
+using HashSet<int> hashSet = new();
+hashSet.TryAdd(1);
+hashSet.TryAdd(3);
+hashSet.TryAdd(3);
+hashSet.TryAdd(7);
+
+foreach (int item in hashSet)
+{
+    Console.WriteLine(item);
+}
+
+if (hashSet.TryGetValue(7, out int actualValue))
+{
+    Console.WriteLine(actualValue);
+}
+```

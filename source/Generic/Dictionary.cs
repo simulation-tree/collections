@@ -61,7 +61,7 @@ namespace Collections.Generic
                 ThrowIfKeyIsMissing(key);
 
                 int capacity = dictionary->capacity;
-                int hashCode = GetHashCode(key);
+                int hashCode = SharedFunctions.GetHashCode(key);
                 int index = hashCode % capacity;
                 int startIndex = index;
                 Span<bool> occupied = new(dictionary->occupied.Pointer, capacity);
@@ -298,7 +298,7 @@ namespace Collections.Generic
                 {
                     K key = oldKeysSpan[i];
                     V value = oldValuesSpan[i];
-                    int hashCode = GetHashCode(key);
+                    int hashCode = SharedFunctions.GetHashCode(key);
                     int index = hashCode % newCapacity;
                     int startIndex = index;
                     while (newOccupiedSpan[index])
@@ -329,6 +329,14 @@ namespace Collections.Generic
             key = dictionary->keys.ReadElement<K>(index);
             value = dictionary->values.ReadElement<V>(index);
             return dictionary->occupied.ReadElement<bool>(index);
+        }
+
+        private readonly (K key, V value) GetPairAtIndex(int index)
+        {
+            MemoryAddress.ThrowIfDefault(dictionary);
+            ThrowIfOutOfRange(index);
+
+            return (dictionary->keys.ReadElement<K>(index), dictionary->values.ReadElement<V>(index));
         }
 
         private readonly bool ContainsAtIndex(int index)
@@ -365,7 +373,7 @@ namespace Collections.Generic
             MemoryAddress.ThrowIfDefault(dictionary);
 
             int capacity = dictionary->capacity;
-            int hashCode = GetHashCode(key);
+            int hashCode = SharedFunctions.GetHashCode(key);
             int index = hashCode % capacity;
             int startIndex = index;
             Span<bool> occupied = new(dictionary->occupied.Pointer, capacity);
@@ -389,14 +397,6 @@ namespace Collections.Generic
             return false;
         }
 
-        private const int Mask = 0x7FFFFFFF;
-
-        private static int GetHashCode<T>(T value) where T : unmanaged
-        {
-            int hash = value.GetHashCode();
-            return hash & Mask;
-        }
-
         /// <summary>
         /// Attempts to get the value associated with the specified <paramref name="key"/>.
         /// </summary>
@@ -406,7 +406,7 @@ namespace Collections.Generic
             MemoryAddress.ThrowIfDefault(dictionary);
 
             int capacity = dictionary->capacity;
-            int hashCode = GetHashCode(key);
+            int hashCode = SharedFunctions.GetHashCode(key);
             int index = hashCode % capacity;
             int startIndex = index;
             Span<bool> occupied = new(dictionary->occupied.Pointer, capacity);
@@ -440,7 +440,7 @@ namespace Collections.Generic
         {
             MemoryAddress.ThrowIfDefault(dictionary);
 
-            int hashCode = GetHashCode(key);
+            int hashCode = SharedFunctions.GetHashCode(key);
             int index = hashCode % dictionary->capacity;
             int startIndex = index;
             Span<bool> occupied = new(dictionary->occupied.Pointer, dictionary->capacity);
@@ -481,7 +481,7 @@ namespace Collections.Generic
                 capacity = dictionary->capacity;
             }
 
-            int hashCode =  GetHashCode(key);
+            int hashCode = SharedFunctions.GetHashCode(key);
             int index = hashCode % capacity;
             int startIndex = index;
             Span<bool> occupied = new(dictionary->occupied.Pointer, capacity);
@@ -522,14 +522,14 @@ namespace Collections.Generic
             ThrowIfKeyAlreadyPresent(key);
 
             int capacity = dictionary->capacity;
-            int count = dictionary->count;
-            if (count == capacity)
+            int newCount = dictionary->count + 1;
+            if (newCount > capacity)
             {
                 Resize();
                 capacity = dictionary->capacity;
             }
 
-            int hashCode = GetHashCode(key);
+            int hashCode = SharedFunctions.GetHashCode(key);
             int index = hashCode % capacity;
             int startIndex = index;
             Span<bool> occupied = new(dictionary->occupied.Pointer, capacity);
@@ -542,7 +542,7 @@ namespace Collections.Generic
             dictionary->keys.WriteElement(index, key);
             dictionary->values.WriteElement(index, value);
             dictionary->hashCodes.WriteElement(index, hashCode);
-            dictionary->count = count + 1;
+            dictionary->count = newCount;
         }
 
         /// <summary>
@@ -564,7 +564,7 @@ namespace Collections.Generic
                 capacity = dictionary->capacity;
             }
 
-            int hashCode = GetHashCode(key);
+            int hashCode = SharedFunctions.GetHashCode(key);
             int index = hashCode % capacity;
             int startIndex = index;
             Span<bool> occupied = new(dictionary->occupied.Pointer, capacity);
@@ -594,7 +594,7 @@ namespace Collections.Generic
             MemoryAddress.ThrowIfDefault(dictionary);
             ThrowIfKeyIsMissing(key);
 
-            int hashCode = GetHashCode(key);
+            int hashCode = SharedFunctions.GetHashCode(key);
             int index = hashCode % dictionary->capacity;
             int startIndex = index;
             Span<bool> occupied = new(dictionary->occupied.Pointer, dictionary->capacity);
@@ -651,7 +651,7 @@ namespace Collections.Generic
                 capacity = dictionary->capacity;
             }
 
-            int hashCode = GetHashCode(key);
+            int hashCode = SharedFunctions.GetHashCode(key);
             int index = hashCode % capacity;
             int startIndex = index;
             Span<bool> occupied = new(dictionary->occupied.Pointer, capacity);
@@ -680,7 +680,7 @@ namespace Collections.Generic
             MemoryAddress.ThrowIfDefault(dictionary);
             ThrowIfKeyIsMissing(key);
 
-            int hashCode = GetHashCode(key);
+            int hashCode = SharedFunctions.GetHashCode(key);
             int index = hashCode % dictionary->capacity;
             int startIndex = index;
             Span<bool> occupied = new(dictionary->occupied.Pointer, dictionary->capacity);
@@ -719,7 +719,7 @@ namespace Collections.Generic
             MemoryAddress.ThrowIfDefault(dictionary);
             ThrowIfKeyIsMissing(key);
 
-            int hashCode = GetHashCode(key);
+            int hashCode = SharedFunctions.GetHashCode(key);
             int index = hashCode % dictionary->capacity;
             int startIndex = index;
             Span<bool> occupied = new(dictionary->occupied.Pointer, dictionary->capacity);
@@ -756,7 +756,7 @@ namespace Collections.Generic
         {
             MemoryAddress.ThrowIfDefault(dictionary);
 
-            int hashCode = GetHashCode(key);
+            int hashCode = SharedFunctions.GetHashCode(key);
             int index = hashCode % dictionary->capacity;
             int startIndex = index;
             Span<bool> occupied = new(dictionary->occupied.Pointer, dictionary->capacity);
@@ -795,7 +795,7 @@ namespace Collections.Generic
         {
             MemoryAddress.ThrowIfDefault(dictionary);
 
-            int hashCode = GetHashCode(key);
+            int hashCode = SharedFunctions.GetHashCode(key);
             int index = hashCode % dictionary->capacity;
             int startIndex = index;
             Span<bool> occupied = new(dictionary->occupied.Pointer, dictionary->capacity);
@@ -855,7 +855,7 @@ namespace Collections.Generic
             return TryGetValue(item.Key, out V value) && EqualityComparer<V>.Default.Equals(value, item.Value);
         }
 
-        readonly void ICollection<KeyValuePair<K, V>>.CopyTo(KeyValuePair<K, V>[] array, int arrayIndex)
+        public readonly void CopyTo(KeyValuePair<K, V>[] array, int arrayIndex)
         {
             if (array is null)
             {
@@ -941,14 +941,7 @@ namespace Collections.Generic
             private readonly int capacity;
             private int index;
 
-            public readonly (K key, V value) Current
-            {
-                get
-                {
-                    map.TryGetPairAtIndex(index, out K key, out V value);
-                    return (key, value);
-                }
-            }
+            public readonly (K key, V value) Current => map.GetPairAtIndex(index);
 
             readonly object IEnumerator.Current => Current;
 
@@ -992,8 +985,8 @@ namespace Collections.Generic
             {
                 get
                 {
-                    map.TryGetPairAtIndex(index, out K key, out V value);
-                    return new(key, value);
+                    (K key, V value) pair = map.GetPairAtIndex(index);
+                    return new(pair.key, pair.value);
                 }
             }
 
