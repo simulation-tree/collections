@@ -40,7 +40,6 @@ namespace Collections.Generic
 
                 if (array->length != value)
                 {
-                    int oldLength = array->length;
                     MemoryAddress.Resize(ref array->items, sizeof(T) * value);
                     array->length = value;
                 }
@@ -184,7 +183,7 @@ namespace Collections.Generic
         {
             MemoryAddress.ThrowIfDefault(array);
 
-            array->items.Clear(array->length * sizeof(T));
+            new Span<T>(array->items.Pointer, array->length).Clear();
         }
 
         /// <summary>
@@ -277,7 +276,7 @@ namespace Collections.Generic
         /// </summary>
         public readonly void CopyTo(Span<T> destination)
         {
-            AsSpan().CopyTo(destination);
+            new Span<T>(array->items.Pointer, array->length).CopyTo(destination);
         }
 
         /// <summary>
@@ -285,13 +284,13 @@ namespace Collections.Generic
         /// </summary>
         public readonly void CopyFrom(ReadOnlySpan<T> source)
         {
-            source.CopyTo(AsSpan());
+            source.CopyTo(new(array->items.Pointer, array->length));
         }
 
         /// <inheritdoc/>
         public readonly Span<T>.Enumerator GetEnumerator()
         {
-            return AsSpan().GetEnumerator();
+            return new Span<T>(array->items.Pointer, array->length).GetEnumerator();
         }
 
         readonly IEnumerator<T> IEnumerable<T>.GetEnumerator()

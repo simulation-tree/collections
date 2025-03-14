@@ -51,10 +51,7 @@ namespace Collections.Generic
                 int newCapacity = value.GetNextPowerOf2();
                 ThrowIfLessThanCount(newCapacity);
 
-                MemoryAddress newItems = MemoryAddress.Allocate(sizeof(T) * newCapacity);
-                list->items.CopyTo(newItems, sizeof(T) * list->count);
-                list->items.Dispose();
-                list->items = newItems;
+                MemoryAddress.Resize(ref list->items, sizeof(T) * newCapacity);
                 list->capacity = newCapacity;
             }
         }
@@ -314,7 +311,8 @@ namespace Collections.Generic
         }
 
         /// <summary>
-        /// Adds an empty element to the list and returns it by reference.
+        /// Adds a <see langword="default"/> element to the end of the list,
+        /// and returns it by reference.
         /// </summary>
         public readonly ref T Add()
         {
@@ -334,7 +332,7 @@ namespace Collections.Generic
         }
 
         /// <summary>
-        /// Adds a <see langword="default"/> value.
+        /// Adds a <see langword="default"/> value to the end of the list.
         /// </summary>
         public readonly void AddDefault()
         {
@@ -383,8 +381,7 @@ namespace Collections.Generic
                 MemoryAddress.Resize(ref list->items, sizeof(T) * list->capacity);
             }
 
-            Span<T> span = list->items.AsSpan<T>(list->count, count);
-            span.Fill(item);
+            list->items.AsSpan<T>(list->count, count).Fill(item);
             list->count = newCount;
         }
 
@@ -444,16 +441,14 @@ namespace Collections.Generic
         {
             MemoryAddress.ThrowIfDefault(list);
 
-            int addLength = span.Length;
-            int newCount = list->count + addLength;
+            int newCount = list->count + span.Length;
             if (newCount >= list->capacity)
             {
                 list->capacity = newCount.GetNextPowerOf2();
                 MemoryAddress.Resize(ref list->items, sizeof(T) * list->capacity);
             }
 
-            Span<T> destination = list->items.AsSpan<T>(list->count, addLength);
-            span.CopyTo(destination);
+            span.CopyTo(list->items.AsSpan<T>(list->count, span.Length));
             list->count = newCount;
         }
 
@@ -529,9 +524,9 @@ namespace Collections.Generic
             MemoryAddress.ThrowIfDefault(list);
             ThrowIfOutOfRange(index);
 
-            removed = list->items.ReadElement<T>(index);
-            T lastElement = list->items.ReadElement<T>(--list->count);
-            list->items.WriteElement(index, lastElement);
+            ref T reference = ref list->items.ReadElement<T>(index);
+            removed = reference;
+            reference = list->items.ReadElement<T>(--list->count);
         }
 
         /// <summary>

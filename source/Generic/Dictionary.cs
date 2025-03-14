@@ -268,12 +268,11 @@ namespace Collections.Generic
             }
         }
 
-        private readonly void Resize()
+        private readonly void Resize(int newCapacity)
         {
             MemoryAddress.ThrowIfDefault(dictionary);
 
             int oldCapacity = dictionary->capacity;
-            int newCapacity = oldCapacity * 2;
             dictionary->capacity = newCapacity;
             int count = 0;
             MemoryAddress oldKeys = dictionary->keys;
@@ -477,8 +476,8 @@ namespace Collections.Generic
             int capacity = dictionary->capacity;
             if (dictionary->count == capacity)
             {
-                Resize();
-                capacity = dictionary->capacity;
+                capacity *= 2;
+                Resize(capacity);
             }
 
             int hashCode = SharedFunctions.GetHashCode(key);
@@ -525,8 +524,8 @@ namespace Collections.Generic
             int newCount = dictionary->count + 1;
             if (newCount > capacity)
             {
-                Resize();
-                capacity = dictionary->capacity;
+                capacity *= 2;
+                Resize(capacity);
             }
 
             int hashCode = SharedFunctions.GetHashCode(key);
@@ -560,8 +559,8 @@ namespace Collections.Generic
             int count = dictionary->count;
             if (count == capacity)
             {
-                Resize();
-                capacity = dictionary->capacity;
+                capacity *= 2;
+                Resize(capacity);
             }
 
             int hashCode = SharedFunctions.GetHashCode(key);
@@ -647,8 +646,8 @@ namespace Collections.Generic
             int count = dictionary->count;
             if (count == capacity)
             {
-                Resize();
-                capacity = dictionary->capacity;
+                capacity *= 2;
+                Resize(capacity);
             }
 
             int hashCode = SharedFunctions.GetHashCode(key);
@@ -680,12 +679,13 @@ namespace Collections.Generic
             MemoryAddress.ThrowIfDefault(dictionary);
             ThrowIfKeyIsMissing(key);
 
+            int capacity = dictionary->capacity;
             int hashCode = SharedFunctions.GetHashCode(key);
-            int index = hashCode % dictionary->capacity;
+            int index = hashCode % capacity;
             int startIndex = index;
-            Span<bool> occupied = new(dictionary->occupied.Pointer, dictionary->capacity);
-            Span<K> keys = new(dictionary->keys.Pointer, dictionary->capacity);
-            Span<int> keyHashCodes = new(dictionary->hashCodes.Pointer, dictionary->capacity);
+            Span<bool> occupied = new(dictionary->occupied.Pointer, capacity);
+            Span<K> keys = new(dictionary->keys.Pointer, capacity);
+            Span<int> keyHashCodes = new(dictionary->hashCodes.Pointer, capacity);
 
             while (occupied[index])
             {
@@ -699,7 +699,7 @@ namespace Collections.Generic
                     return;
                 }
 
-                index = (index + 1) % dictionary->capacity;
+                index = (index + 1) % capacity;
                 if (index == startIndex)
                 {
                     break;
@@ -719,12 +719,13 @@ namespace Collections.Generic
             MemoryAddress.ThrowIfDefault(dictionary);
             ThrowIfKeyIsMissing(key);
 
+            int capacity = dictionary->capacity;
             int hashCode = SharedFunctions.GetHashCode(key);
-            int index = hashCode % dictionary->capacity;
+            int index = hashCode % capacity;
             int startIndex = index;
-            Span<bool> occupied = new(dictionary->occupied.Pointer, dictionary->capacity);
-            Span<K> keys = new(dictionary->keys.Pointer, dictionary->capacity);
-            Span<int> keyHashCodes = new(dictionary->hashCodes.Pointer, dictionary->capacity);
+            Span<bool> occupied = new(dictionary->occupied.Pointer, capacity);
+            Span<K> keys = new(dictionary->keys.Pointer, capacity);
+            Span<int> keyHashCodes = new(dictionary->hashCodes.Pointer, capacity);
 
             while (occupied[index])
             {
@@ -738,7 +739,7 @@ namespace Collections.Generic
                     return;
                 }
 
-                index = (index + 1) % dictionary->capacity;
+                index = (index + 1) % capacity;
                 if (index == startIndex)
                 {
                     break;
@@ -756,12 +757,13 @@ namespace Collections.Generic
         {
             MemoryAddress.ThrowIfDefault(dictionary);
 
+            int capacity = dictionary->capacity;
             int hashCode = SharedFunctions.GetHashCode(key);
-            int index = hashCode % dictionary->capacity;
+            int index = hashCode % capacity;
             int startIndex = index;
-            Span<bool> occupied = new(dictionary->occupied.Pointer, dictionary->capacity);
-            Span<K> keys = new(dictionary->keys.Pointer, dictionary->capacity);
-            Span<int> keyHashCodes = new(dictionary->hashCodes.Pointer, dictionary->capacity);
+            Span<bool> occupied = new(dictionary->occupied.Pointer, capacity);
+            Span<K> keys = new(dictionary->keys.Pointer, capacity);
+            Span<int> keyHashCodes = new(dictionary->hashCodes.Pointer, capacity);
 
             while (occupied[index])
             {
@@ -776,7 +778,7 @@ namespace Collections.Generic
                     return true;
                 }
 
-                index = (index + 1) % dictionary->capacity;
+                index = (index + 1) % capacity;
                 if (index == startIndex)
                 {
                     break;
@@ -795,12 +797,13 @@ namespace Collections.Generic
         {
             MemoryAddress.ThrowIfDefault(dictionary);
 
+            int capacity = dictionary->capacity;
             int hashCode = SharedFunctions.GetHashCode(key);
-            int index = hashCode % dictionary->capacity;
+            int index = hashCode % capacity;
             int startIndex = index;
-            Span<bool> occupied = new(dictionary->occupied.Pointer, dictionary->capacity);
-            Span<K> keys = new(dictionary->keys.Pointer, dictionary->capacity);
-            Span<int> keyHashCodes = new(dictionary->hashCodes.Pointer, dictionary->capacity);
+            Span<bool> occupied = new(dictionary->occupied.Pointer, capacity);
+            Span<K> keys = new(dictionary->keys.Pointer, capacity);
+            Span<int> keyHashCodes = new(dictionary->hashCodes.Pointer, capacity);
 
             while (occupied[index])
             {
@@ -814,7 +817,7 @@ namespace Collections.Generic
                     return true;
                 }
 
-                index = (index + 1) % dictionary->capacity;
+                index = (index + 1) % capacity;
                 if (index == startIndex)
                 {
                     break;

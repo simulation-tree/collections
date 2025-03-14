@@ -112,6 +112,27 @@ namespace Collections.Tests
         }
 
         [Test]
+        public void RemoveAndRetrieveValue()
+        {
+            using List<int> list = new();
+            list.Add(1);
+            list.Add(2); //removed
+            list.Add(3);
+            list.Add(4);
+            list.RemoveAtBySwapping(1, out int removed);
+            Assert.That(list.Count, Is.EqualTo(3));
+            Assert.That(removed, Is.EqualTo(2));
+            Assert.That(list[0], Is.EqualTo(1));
+            Assert.That(list[1], Is.EqualTo(4));
+            Assert.That(list[2], Is.EqualTo(3));
+            list.RemoveAtBySwapping(1, out removed);
+            Assert.That(list.Count, Is.EqualTo(2));
+            Assert.That(removed, Is.EqualTo(4));
+            Assert.That(list[0], Is.EqualTo(1));
+            Assert.That(list[1], Is.EqualTo(3));
+        }
+
+        [Test]
         public void InsertIntoList()
         {
             using List<int> list = new();
