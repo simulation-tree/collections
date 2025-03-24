@@ -36,7 +36,6 @@ namespace Collections
 
                 if (array->length != value)
                 {
-                    int oldLength = array->length;
                     MemoryAddress.Resize(ref array->items, array->stride * value);
                     array->length = value;
                 }
