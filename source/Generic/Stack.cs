@@ -1,9 +1,9 @@
-﻿using System;
+﻿using Collections.Pointers;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using Unmanaged;
-using Pointer = Collections.Pointers.Stack;
 
 namespace Collections.Generic
 {
@@ -13,7 +13,7 @@ namespace Collections.Generic
     public unsafe struct Stack<T> : IDisposable, IReadOnlyCollection<T>, ICollection<T>, IEquatable<Stack<T>> where T : unmanaged
     {
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        private Pointer* stack;
+        private StackPointer* stack;
 
         /// <summary>
         /// Checks if this stack has been disposed.
@@ -57,27 +57,23 @@ namespace Collections.Generic
         /// </summary>
         public Stack()
         {
-            ref Pointer stack = ref MemoryAddress.Allocate<Pointer>();
-            stack = new(sizeof(T), 4);
-            fixed (Pointer* pointer = &stack)
-            {
-                this.stack = pointer;
-            }
+            stack = MemoryAddress.AllocatePointer<StackPointer>();
+            stack->items = MemoryAddress.AllocateZeroed(sizeof(T) * 4);
+            stack->capacity = 4;
+            stack->stride = sizeof(T);
         }
 #endif
 
         /// <summary>
         /// Creates a stack with the given <paramref name="initialCapacity"/>.
         /// </summary>
-        public Stack(int initialCapacity = 4)
+        public Stack(int initialCapacity)
         {
-            ref Pointer stack = ref MemoryAddress.Allocate<Pointer>();
             initialCapacity = Math.Max(1, initialCapacity).GetNextPowerOf2();
-            stack = new(sizeof(T), initialCapacity);
-            fixed (Pointer* pointer = &stack)
-            {
-                this.stack = pointer;
-            }
+            stack = MemoryAddress.AllocatePointer<StackPointer>();
+            stack->items = MemoryAddress.AllocateZeroed(sizeof(T) * initialCapacity);
+            stack->capacity = initialCapacity;
+            stack->stride = sizeof(T);
         }
 
         /// <summary>
@@ -85,7 +81,7 @@ namespace Collections.Generic
         /// </summary>
         public Stack(void* pointer)
         {
-            stack = (Pointer*)pointer;
+            stack = (StackPointer*)pointer;
         }
 
         public void Dispose()
@@ -288,7 +284,7 @@ namespace Collections.Generic
 
         public struct Enumerator : IEnumerator<T>
         {
-            private readonly Pointer* stack;
+            private readonly StackPointer* stack;
             private int index;
 
             public readonly T Current
@@ -303,7 +299,7 @@ namespace Collections.Generic
 
             readonly object IEnumerator.Current => Current;
 
-            public Enumerator(Pointer* stack)
+            public Enumerator(StackPointer* stack)
             {
                 this.stack = stack;
                 index = -1;

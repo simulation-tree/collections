@@ -1,9 +1,9 @@
-﻿using System;
+﻿using Collections.Pointers;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using Unmanaged;
-using Pointer = Collections.Pointers.Array;
 
 namespace Collections.Generic
 {
@@ -13,7 +13,7 @@ namespace Collections.Generic
     public unsafe struct Array<T> : IDisposable, IReadOnlyList<T>, IEquatable<Array<T>> where T : unmanaged
     {
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        private Pointer* array;
+        private ArrayPointer* array;
 
         /// <summary>
         /// Checks if the array has been disposed.
@@ -74,9 +74,23 @@ namespace Collections.Generic
         }
 
         /// <summary>
+        /// Accesses the element at the specified index.
+        /// </summary>
+        public readonly ref T this[uint index]
+        {
+            get
+            {
+                MemoryAddress.ThrowIfDefault(array);
+                ThrowIfOutOfRange(index);
+
+                return ref array->items.ReadElement<T>(index);
+            }
+        }
+
+        /// <summary>
         /// The native pointer to the array.
         /// </summary>
-        public readonly Pointer* Pointer => array;
+        public readonly ArrayPointer* Pointer => array;
 
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         readonly int IReadOnlyCollection<T>.Count => Length;
@@ -98,7 +112,7 @@ namespace Collections.Generic
         /// <summary>
         /// Initializes an existing array from the given <paramref name="pointer"/>
         /// </summary>
-        public Array(Pointer* pointer)
+        public Array(ArrayPointer* pointer)
         {
             array = pointer;
         }
@@ -108,12 +122,10 @@ namespace Collections.Generic
         /// </summary>
         public Array(int length)
         {
-            ref Pointer array = ref MemoryAddress.Allocate<Pointer>();
-            array = new(sizeof(T), length, MemoryAddress.AllocateZeroed(sizeof(T) * length));
-            fixed (Pointer* pointer = &array)
-            {
-                this.array = pointer;
-            }
+            array = MemoryAddress.AllocatePointer<ArrayPointer>();
+            array->items = MemoryAddress.AllocateZeroed(sizeof(T) * length);
+            array->length = length;
+            array->stride = sizeof(T);
         }
 
         /// <summary>
@@ -121,12 +133,10 @@ namespace Collections.Generic
         /// </summary>
         public Array(ReadOnlySpan<T> span)
         {
-            ref Pointer array = ref MemoryAddress.Allocate<Pointer>();
-            array = new(sizeof(T), span.Length, MemoryAddress.Allocate(span));
-            fixed (Pointer* pointer = &array)
-            {
-                this.array = pointer;
-            }
+            array = MemoryAddress.AllocatePointer<ArrayPointer>();
+            array->items = MemoryAddress.Allocate(span);
+            array->length = span.Length;
+            array->stride = sizeof(T);
         }
 
 #if NET
@@ -135,12 +145,10 @@ namespace Collections.Generic
         /// </summary>
         public Array()
         {
-            ref Pointer array = ref MemoryAddress.Allocate<Pointer>();
-            array = new(sizeof(T), 0, MemoryAddress.AllocateEmpty());
-            fixed (Pointer* pointer = &array)
-            {
-                this.array = pointer;
-            }
+            array = MemoryAddress.AllocatePointer<ArrayPointer>();
+            array->items = MemoryAddress.AllocateEmpty();
+            array->length = 0;
+            array->stride = sizeof(T);
         }
 #endif
 
@@ -160,6 +168,15 @@ namespace Collections.Generic
 
         [Conditional("DEBUG")]
         private readonly void ThrowIfOutOfRange(int index)
+        {
+            if (index >= array->length || index < 0)
+            {
+                throw new IndexOutOfRangeException($"Index {index} is out of range for array of length {array->length}");
+            }
+        }
+
+        [Conditional("DEBUG")]
+        private readonly void ThrowIfOutOfRange(uint index)
         {
             if (index >= array->length)
             {
@@ -328,13 +345,13 @@ namespace Collections.Generic
 
         public struct Enumerator : IEnumerator<T>
         {
-            private readonly Pointer* array;
+            private readonly ArrayPointer* array;
             private int index;
 
             public readonly T Current => array->items.ReadElement<T>(index);
             readonly object IEnumerator.Current => Current;
 
-            public Enumerator(Pointer* array)
+            public Enumerator(ArrayPointer* array)
             {
                 this.array = array;
                 index = -1;

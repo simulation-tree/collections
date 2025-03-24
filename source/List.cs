@@ -1,14 +1,14 @@
-﻿using System;
+﻿using Collections.Pointers;
+using System;
 using System.Diagnostics;
 using Unmanaged;
-using Pointer = Collections.Pointers.List;
 
 namespace Collections
 {
     public unsafe struct List : IDisposable
     {
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        private Pointer* list;
+        private ListPointer* list;
 
         /// <summary>
         /// Checks if the list has been disposed.
@@ -57,7 +57,7 @@ namespace Collections
         /// <summary>
         /// The underlying pointer of the list.
         /// </summary>
-        public readonly Pointer* Pointer => list;
+        public readonly ListPointer* Pointer => list;
 
         /// <summary>
         /// Capacity of the list.
@@ -107,7 +107,7 @@ namespace Collections
         /// <summary>
         /// Initializes an existing list from the given <paramref name="pointer"/>
         /// </summary>
-        public List(Pointer* pointer)
+        public List(ListPointer* pointer)
         {
             list = pointer;
         }
@@ -119,12 +119,11 @@ namespace Collections
         public List(int initialCapacity, int stride)
         {
             initialCapacity = Math.Max(1, initialCapacity).GetNextPowerOf2();
-            ref Pointer list = ref MemoryAddress.Allocate<Pointer>();
-            list = new(stride, 0, initialCapacity, MemoryAddress.Allocate(stride * initialCapacity));
-            fixed (Pointer* pointer = &list)
-            {
-                this.list = pointer;
-            }
+            list = MemoryAddress.AllocatePointer<ListPointer>();
+            list->stride = stride;
+            list->count = 0;
+            list->capacity = initialCapacity;
+            list->items = MemoryAddress.Allocate(stride * initialCapacity);
         }
 
 #if NET

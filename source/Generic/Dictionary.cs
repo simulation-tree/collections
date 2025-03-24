@@ -1,9 +1,9 @@
-﻿using System;
+﻿using Collections.Pointers;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using Unmanaged;
-using Pointer = Collections.Pointers.Dictionary;
 
 namespace Collections.Generic
 {
@@ -13,7 +13,7 @@ namespace Collections.Generic
     public unsafe struct Dictionary<K, V> : IDisposable, IReadOnlyDictionary<K, V>, IDictionary<K, V>, IEquatable<Dictionary<K, V>> where K : unmanaged, IEquatable<K> where V : unmanaged
     {
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        private Pointer* dictionary;
+        private DictionaryPointer* dictionary;
 
         /// <summary>
         /// Number of key-value pairs in the dictionary.
@@ -186,7 +186,7 @@ namespace Collections.Generic
         /// <summary>
         /// Initializes an existing dictionary from the given <paramref name="pointer"/>.
         /// </summary>
-        public Dictionary(Pointer* pointer)
+        public Dictionary(DictionaryPointer* pointer)
         {
             dictionary = pointer;
         }
@@ -194,17 +194,18 @@ namespace Collections.Generic
         /// <summary>
         /// Creates a new dictionary with the given <paramref name="initialCapacity"/>.
         /// </summary>
-        public Dictionary(int initialCapacity = 4)
+        public Dictionary(int initialCapacity)
         {
-            int capacity = Math.Max(1, initialCapacity).GetNextPowerOf2();
-            int keyStride = sizeof(K);
-            int valueStride = sizeof(V);
-            ref Pointer map = ref MemoryAddress.Allocate<Pointer>();
-            map = new(keyStride, valueStride, capacity);
-            fixed (Pointer* pointer = &map)
-            {
-                dictionary = pointer;
-            }
+            initialCapacity = Math.Max(1, initialCapacity).GetNextPowerOf2();
+            dictionary = MemoryAddress.AllocatePointer<DictionaryPointer>();
+            dictionary->keys = MemoryAddress.Allocate(initialCapacity * sizeof(K));
+            dictionary->hashCodes = MemoryAddress.Allocate(initialCapacity * sizeof(int));
+            dictionary->values = MemoryAddress.Allocate(initialCapacity * sizeof(V));
+            dictionary->occupied = MemoryAddress.AllocateZeroed(initialCapacity);
+            dictionary->capacity = initialCapacity;
+            dictionary->count = 0;
+            dictionary->keyStride = sizeof(K);
+            dictionary->valueStride = sizeof(V);
         }
 
 #if NET
@@ -213,14 +214,15 @@ namespace Collections.Generic
         /// </summary>
         public Dictionary()
         {
-            int keyStride = sizeof(K);
-            int valueStride = sizeof(V);
-            ref Pointer map = ref MemoryAddress.Allocate<Pointer>();
-            map = new(keyStride, valueStride, 4);
-            fixed (Pointer* pointer = &map)
-            {
-                dictionary = pointer;
-            }
+            dictionary = MemoryAddress.AllocatePointer<DictionaryPointer>();
+            dictionary->keys = MemoryAddress.Allocate(4 * sizeof(K));
+            dictionary->hashCodes = MemoryAddress.Allocate(4 * sizeof(int));
+            dictionary->values = MemoryAddress.Allocate(4 * sizeof(V));
+            dictionary->occupied = MemoryAddress.AllocateZeroed(4);
+            dictionary->capacity = 4;
+            dictionary->count = 0;
+            dictionary->keyStride = sizeof(K);
+            dictionary->valueStride = sizeof(V);
         }
 #endif
 

@@ -1,16 +1,16 @@
-﻿using System;
+﻿using Collections.Pointers;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using Unmanaged;
-using Pointer = Collections.Pointers.Queue;
 
 namespace Collections.Generic
 {
     public unsafe struct Queue<T> : IDisposable, IReadOnlyCollection<T>, ICollection<T>, IEquatable<Queue<T>> where T : unmanaged
     {
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        private Pointer* queue;
+        private QueuePointer* queue;
 
         /// <summary>
         /// Checks if this queue has been disposed.
@@ -54,27 +54,27 @@ namespace Collections.Generic
         /// </summary>
         public Queue()
         {
-            ref Pointer queue = ref MemoryAddress.Allocate<Pointer>();
-            queue = new(sizeof(T), 4);
-            fixed (Pointer* pointer = &queue)
-            {
-                this.queue = pointer;
-            }
+            queue = MemoryAddress.AllocatePointer<QueuePointer>();
+            queue->items = MemoryAddress.AllocateZeroed(sizeof(T) * 4);
+            queue->capacity = 4;
+            queue->stride = sizeof(T);
+            queue->top = 0;
+            queue->rear = 0;
         }
 #endif
 
         /// <summary>
         /// Creates a queue with the given <paramref name="initialCapacity"/>.
         /// </summary>
-        public Queue(int initialCapacity = 4)
+        public Queue(int initialCapacity)
         {
             initialCapacity = Math.Max(1, initialCapacity).GetNextPowerOf2();
-            ref Pointer queue = ref MemoryAddress.Allocate<Pointer>();
-            queue = new(sizeof(T), initialCapacity);
-            fixed (Pointer* pointer = &queue)
-            {
-                this.queue = pointer;
-            }
+            queue = MemoryAddress.AllocatePointer<QueuePointer>();
+            queue->items = MemoryAddress.AllocateZeroed(initialCapacity * sizeof(T));
+            queue->capacity = initialCapacity;
+            queue->stride = sizeof(T);
+            queue->top = 0;
+            queue->rear = 0;
         }
 
         /// <summary>
@@ -82,7 +82,7 @@ namespace Collections.Generic
         /// </summary>
         public Queue(void* pointer)
         {
-            queue = (Pointer*)pointer;
+            queue = (QueuePointer*)pointer;
         }
 
         public void Dispose()
@@ -256,7 +256,7 @@ namespace Collections.Generic
 
         public struct Enumerator : IEnumerator<T>
         {
-            private readonly Pointer* queue;
+            private readonly QueuePointer* queue;
             private int index;
 
             public readonly T Current
@@ -275,7 +275,7 @@ namespace Collections.Generic
 
             readonly object IEnumerator.Current => Current;
 
-            public Enumerator(Pointer* queue)
+            public Enumerator(QueuePointer* queue)
             {
                 this.queue = queue;
                 index = -1;

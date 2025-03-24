@@ -1,15 +1,15 @@
-﻿using System;
+﻿using Collections.Pointers;
+using System;
 using System.Collections;
 using System.Diagnostics;
 using Unmanaged;
-using Pointer = Collections.Pointers.Array;
 
 namespace Collections
 {
     public unsafe struct Array : IDisposable, IList
     {
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        private Pointer* array;
+        private ArrayPointer* array;
 
         /// <summary>
         /// Checks if the array has been disposed.
@@ -72,7 +72,7 @@ namespace Collections
         /// <summary>
         /// The native pointer to the array.
         /// </summary>
-        public readonly Pointer* Pointer => array;
+        public readonly ArrayPointer* Pointer => array;
 
         public readonly MemoryAddress this[int index]
         {
@@ -106,7 +106,7 @@ namespace Collections
         /// <summary>
         /// Initializes an existing array from the given <paramref name="pointer"/>
         /// </summary>
-        public Array(Pointer* pointer)
+        public Array(ArrayPointer* pointer)
         {
             array = pointer;
         }
@@ -116,12 +116,10 @@ namespace Collections
         /// </summary>
         public Array(int length, int stride)
         {
-            ref Pointer array = ref MemoryAddress.Allocate<Pointer>();
-            array = new(stride, length, MemoryAddress.AllocateZeroed(stride * length));
-            fixed (Pointer* pointer = &array)
-            {
-                this.array = pointer;
-            }
+            array = MemoryAddress.AllocatePointer<ArrayPointer>();
+            array->stride = stride;
+            array->length = length;
+            array->items = MemoryAddress.AllocateZeroed(stride * length);
         }
 
 #if NET

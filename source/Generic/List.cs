@@ -1,9 +1,9 @@
-﻿using System;
+﻿using Collections.Pointers;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using Unmanaged;
-using Pointer = Collections.Pointers.List;
 
 namespace Collections.Generic
 {
@@ -13,7 +13,7 @@ namespace Collections.Generic
     public unsafe struct List<T> : IDisposable, IReadOnlyList<T>, IList<T>, IEquatable<List<T>> where T : unmanaged
     {
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        private Pointer* list;
+        private ListPointer* list;
 
         /// <summary>
         /// Checks if the list has been disposed.
@@ -64,7 +64,7 @@ namespace Collections.Generic
         /// <summary>
         /// The underlying pointer for this list.
         /// </summary>
-        public readonly Pointer* Pointer => list;
+        public readonly ListPointer* Pointer => list;
 
         /// <summary>
         /// The underlying memory allocation for this list.
@@ -83,6 +83,20 @@ namespace Collections.Generic
         /// Accesses the element at the specified index.
         /// </summary>
         public readonly ref T this[int index]
+        {
+            get
+            {
+                MemoryAddress.ThrowIfDefault(list);
+                ThrowIfOutOfRange(index);
+
+                return ref list->items.ReadElement<T>(index);
+            }
+        }
+
+        /// <summary>
+        /// Accesses the element at the specified index.
+        /// </summary>
+        public readonly ref T this[uint index]
         {
             get
             {
@@ -124,21 +138,20 @@ namespace Collections.Generic
         /// </summary>
         public List(void* pointer)
         {
-            list = (Pointer*)pointer;
+            list = (ListPointer*)pointer;
         }
 
         /// <summary>
         /// Creates a new list with the given <paramref name="initialCapacity"/>.
         /// </summary>
-        public List(int initialCapacity = 4)
+        public List(int initialCapacity)
         {
             initialCapacity = Math.Max(1, initialCapacity).GetNextPowerOf2();
-            ref Pointer list = ref MemoryAddress.Allocate<Pointer>();
-            list = new(sizeof(T), 0, initialCapacity, MemoryAddress.Allocate(sizeof(T) * initialCapacity));
-            fixed (Pointer* pointer = &list)
-            {
-                this.list = pointer;
-            }
+            list = MemoryAddress.AllocatePointer<ListPointer>();
+            list->stride = sizeof(T);
+            list->count = 0;
+            list->capacity = initialCapacity;
+            list->items = MemoryAddress.Allocate(sizeof(T) * initialCapacity);
         }
 
         /// <summary>
@@ -147,14 +160,12 @@ namespace Collections.Generic
         public List(ReadOnlySpan<T> span)
         {
             int initialCapacity = Math.Max(1, span.Length).GetNextPowerOf2();
-            ref Pointer list = ref MemoryAddress.Allocate<Pointer>();
-            list = new(sizeof(T), span.Length, initialCapacity, MemoryAddress.Allocate(sizeof(T) * initialCapacity));
-            Span<T> destination = list.items.GetSpan<T>(span.Length);
-            span.CopyTo(destination);
-            fixed (Pointer* pointer = &list)
-            {
-                this.list = pointer;
-            }
+            list = MemoryAddress.AllocatePointer<ListPointer>();
+            list->stride = sizeof(T);
+            list->count = span.Length;
+            list->capacity = initialCapacity;
+            list->items = MemoryAddress.Allocate(sizeof(T) * initialCapacity);
+            span.CopyTo(list->items.GetSpan<T>(span.Length));
         }
 
         /// <summary>
@@ -162,13 +173,11 @@ namespace Collections.Generic
         /// </summary>
         public List(IEnumerable<T> enumerable)
         {
-            ref Pointer list = ref MemoryAddress.Allocate<Pointer>();
-            list = new(sizeof(T), 0, 4, MemoryAddress.Allocate(sizeof(T) * 4));
-            fixed (Pointer* pointer = &list)
-            {
-                this.list = pointer;
-            }
-
+            list = MemoryAddress.AllocatePointer<ListPointer>();
+            list->stride = sizeof(T);
+            list->count = 0;
+            list->capacity = 4;
+            list->items = MemoryAddress.Allocate(sizeof(T) * 4);
             foreach (T item in enumerable)
             {
                 Add(item);
@@ -181,12 +190,11 @@ namespace Collections.Generic
         /// </summary>
         public List()
         {
-            ref Pointer list = ref MemoryAddress.Allocate<Pointer>();
-            list = new(sizeof(T), 0, 4, MemoryAddress.Allocate(sizeof(T) * 4));
-            fixed (Pointer* pointer = &list)
-            {
-                this.list = pointer;
-            }
+            list = MemoryAddress.AllocatePointer<ListPointer>();
+            list->stride = sizeof(T);
+            list->count = 0;
+            list->capacity = 4;
+            list->items = MemoryAddress.Allocate(sizeof(T) * 4);
         }
 #endif
 
@@ -204,9 +212,17 @@ namespace Collections.Generic
             MemoryAddress.Free(ref list);
         }
 
-
         [Conditional("DEBUG")]
         private readonly void ThrowIfOutOfRange(int index)
+        {
+            if (index >= list->count || index < 0)
+            {
+                throw new IndexOutOfRangeException($"Trying to access index {index} outside of list count {list->count}");
+            }
+        }
+
+        [Conditional("DEBUG")]
+        private readonly void ThrowIfOutOfRange(uint index)
         {
             if (index >= list->count)
             {
@@ -262,6 +278,17 @@ namespace Collections.Generic
             ThrowIfPastRange(start + length);
 
             return list->items.AsSpan<T>(start, length);
+        }
+
+        /// <summary>
+        /// Returns a span of the specified <paramref name="range"/>.
+        /// </summary>
+        public readonly Span<T> AsSpan(Range range)
+        {
+            MemoryAddress.ThrowIfDefault(list);
+            ThrowIfPastRange(range.End.Value);
+
+            return list->items.AsSpan<T>(range.Start.Value, range.End.Value - range.Start.Value);
         }
 
         /// <summary>
@@ -682,14 +709,14 @@ namespace Collections.Generic
 
         public struct Enumerator : IEnumerator<T>
         {
-            private readonly Pointer* list;
+            private readonly ListPointer* list;
             private int index;
 
             public readonly T Current => list->items.ReadElement<T>(index);
 
             readonly object IEnumerator.Current => Current;
 
-            public Enumerator(Pointer* list)
+            public Enumerator(ListPointer* list)
             {
                 this.list = list;
                 index = -1;

@@ -1,16 +1,16 @@
-﻿using System;
+﻿using Collections.Pointers;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using Unmanaged;
-using Pointer = Collections.Pointers.HashSet;
 
 namespace Collections.Generic
 {
     public unsafe struct HashSet<T> : IDisposable, ICollection<T>, IReadOnlyCollection<T>, IEquatable<HashSet<T>> where T : unmanaged, IEquatable<T>
     {
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        private Pointer* hashSet;
+        private HashSetPointer* hashSet;
 
         /// <summary>
         /// Number of values in the hash set.
@@ -65,7 +65,7 @@ namespace Collections.Generic
         /// <summary>
         /// Initializes an existing hash set from the given <paramref name="pointer"/>.
         /// </summary>
-        public HashSet(Pointer* pointer)
+        public HashSet(HashSetPointer* pointer)
         {
             hashSet = pointer;
         }
@@ -73,16 +73,16 @@ namespace Collections.Generic
         /// <summary>
         /// Creates a new hash set with the given <paramref name="initialCapacity"/>.
         /// </summary>
-        public HashSet(int initialCapacity = 4)
+        public HashSet(int initialCapacity)
         {
-            int capacity = Math.Max(1, initialCapacity).GetNextPowerOf2();
-            int valueStride = sizeof(T);
-            ref Pointer map = ref MemoryAddress.Allocate<Pointer>();
-            map = new(valueStride, capacity);
-            fixed (Pointer* pointer = &map)
-            {
-                hashSet = pointer;
-            }
+            initialCapacity = Math.Max(1, initialCapacity).GetNextPowerOf2();
+            hashSet = MemoryAddress.AllocatePointer<HashSetPointer>();
+            hashSet->values = MemoryAddress.Allocate(initialCapacity * sizeof(T));
+            hashSet->hashCodes = MemoryAddress.Allocate(initialCapacity * sizeof(int));
+            hashSet->occupied = MemoryAddress.AllocateZeroed(initialCapacity);
+            hashSet->capacity = initialCapacity;
+            hashSet->count = 0;
+            hashSet->stride = sizeof(T);
         }
 
 #if NET
@@ -91,13 +91,13 @@ namespace Collections.Generic
         /// </summary>
         public HashSet()
         {
-            int valueStride = sizeof(T);
-            ref Pointer map = ref MemoryAddress.Allocate<Pointer>();
-            map = new(valueStride, 4);
-            fixed (Pointer* pointer = &map)
-            {
-                hashSet = pointer;
-            }
+            hashSet = MemoryAddress.AllocatePointer<HashSetPointer>();
+            hashSet->values = MemoryAddress.Allocate(4 * sizeof(T));
+            hashSet->hashCodes = MemoryAddress.Allocate(4 * sizeof(int));
+            hashSet->occupied = MemoryAddress.AllocateZeroed(4);
+            hashSet->capacity = 4;
+            hashSet->count = 0;
+            hashSet->stride = sizeof(T);
         }
 #endif
 
@@ -357,7 +357,7 @@ namespace Collections.Generic
                     occupied[index] = false;
                     values[index] = default;
                     hashCodes[index] = 0;
-                    hashSet->values.Clear(index * hashSet->valueStride, hashSet->valueStride);
+                    hashSet->values.Clear(index * hashSet->stride, hashSet->stride);
                     hashSet->count--;
                     return;
                 }
@@ -391,7 +391,7 @@ namespace Collections.Generic
                     occupied[index] = false;
                     values[index] = default;
                     hashCodes[index] = 0;
-                    hashSet->values.Clear(index * hashSet->valueStride, hashSet->valueStride);
+                    hashSet->values.Clear(index * hashSet->stride, hashSet->stride);
                     hashSet->count--;
                     return true;
                 }
