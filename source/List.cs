@@ -399,22 +399,48 @@ namespace Collections
             ThrowIfOutOfRange(index);
 
             int newCount = list->count - 1;
+            int stride = list->stride;
             while (index < newCount)
             {
-                list->items.CopyTo(list->items, list->stride * (index + 1), list->stride * index, list->stride);
+                list->items.CopyTo(list->items, stride * (index + 1), stride * index, stride);
                 index++;
             }
 
             list->count = newCount;
         }
 
+        /// <summary>
+        /// Removes the element at <paramref name="index"/> by swapping it with the last element.
+        /// </summary>
         public readonly void RemoveAtBySwapping(int index)
         {
             MemoryAddress.ThrowIfDefault(list);
             ThrowIfOutOfRange(index);
 
+            int stride = list->stride;
             int newCount = list->count - 1;
-            list->items.CopyTo(list->items, list->stride * newCount, list->stride * index, list->stride);
+            new Span<byte>(list->items.Pointer + stride * newCount, stride).CopyTo(new(list->items.Pointer + stride * index, stride));
+            list->count = newCount;
+        }
+
+        /// <summary>
+        /// Removes and retrieves the bytes of the the removed element at <paramref name="index"/>.
+        /// Done by swapping it with the last element.
+        /// <para>
+        /// Length of <paramref name="removed"/> is expected to be the same as the stride of the list.
+        /// </para>
+        /// </summary>
+        public readonly void RemoveAtBySwapping(int index, Span<byte> removed)
+        {
+            MemoryAddress.ThrowIfDefault(list);
+            ThrowIfOutOfRange(index);
+            ThrowIfSizeMismatch(removed.Length);
+
+            int stride = list->stride;
+            int newCount = list->count - 1;
+            Span<byte> destination = new(list->items.Pointer + stride * index, stride);
+            destination.CopyTo(removed);
+            new Span<byte>(list->items.Pointer + stride * newCount, stride).CopyTo(destination);
             list->count = newCount;
         }
 
