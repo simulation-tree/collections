@@ -48,6 +48,7 @@ namespace Collections.Generic
 
         [DebuggerBrowsable(DebuggerBrowsableState.Collapsed)]
         private readonly T[] Items => AsSpan().ToArray();
+
 #if NET
         /// <summary>
         /// Creates an empty queue
@@ -55,7 +56,7 @@ namespace Collections.Generic
         public Queue()
         {
             queue = MemoryAddress.AllocatePointer<QueuePointer>();
-            queue->items = MemoryAddress.AllocateZeroed(sizeof(T) * 4);
+            queue->items = MemoryAddress.Allocate(sizeof(T) * 4);
             queue->capacity = 4;
             queue->stride = sizeof(T);
             queue->top = 0;
@@ -70,7 +71,7 @@ namespace Collections.Generic
         {
             initialCapacity = Math.Max(1, initialCapacity).GetNextPowerOf2();
             queue = MemoryAddress.AllocatePointer<QueuePointer>();
-            queue->items = MemoryAddress.AllocateZeroed(initialCapacity * sizeof(T));
+            queue->items = MemoryAddress.Allocate(initialCapacity * sizeof(T));
             queue->capacity = initialCapacity;
             queue->stride = sizeof(T);
             queue->top = 0;

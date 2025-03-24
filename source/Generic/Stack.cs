@@ -51,6 +51,7 @@ namespace Collections.Generic
 
         [DebuggerBrowsable(DebuggerBrowsableState.Collapsed)]
         private readonly T[] Items => AsSpan().ToArray();
+
 #if NET
         /// <summary>
         /// Creates an empty stack
@@ -58,9 +59,10 @@ namespace Collections.Generic
         public Stack()
         {
             stack = MemoryAddress.AllocatePointer<StackPointer>();
-            stack->items = MemoryAddress.AllocateZeroed(sizeof(T) * 4);
+            stack->items = MemoryAddress.Allocate(sizeof(T) * 4);
             stack->capacity = 4;
             stack->stride = sizeof(T);
+            stack->top = 0;
         }
 #endif
 
@@ -71,9 +73,10 @@ namespace Collections.Generic
         {
             initialCapacity = Math.Max(1, initialCapacity).GetNextPowerOf2();
             stack = MemoryAddress.AllocatePointer<StackPointer>();
-            stack->items = MemoryAddress.AllocateZeroed(sizeof(T) * initialCapacity);
+            stack->items = MemoryAddress.Allocate(sizeof(T) * initialCapacity);
             stack->capacity = initialCapacity;
             stack->stride = sizeof(T);
+            stack->top = 0;
         }
 
         /// <summary>
