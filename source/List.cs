@@ -193,6 +193,24 @@ namespace Collections
             }
         }
 
+        [Conditional("DEBUG")]
+        private readonly void ThrowIfGreaterThanStride(int length)
+        {
+            if (length > list->stride)
+            {
+                throw new InvalidOperationException($"Length {length} is greater than the stride {list->stride}");
+            }
+        }
+
+        [Conditional("DEBUG")]
+        private readonly void ThrowIfLessThanStride(int length)
+        {
+            if (length < list->stride)
+            {
+                throw new InvalidOperationException($"Length {length} is less than the stride {list->stride}");
+            }
+        }
+
         /// <summary>
         /// Retrieves a span of the elements in the list.
         /// </summary>
@@ -327,6 +345,7 @@ namespace Collections
         public readonly void Add(ReadOnlySpan<byte> bytes)
         {
             MemoryAddress.ThrowIfDefault(list);
+            ThrowIfGreaterThanStride(bytes.Length);
 
             int count = list->count;
             int stride = list->stride;
@@ -434,7 +453,7 @@ namespace Collections
         {
             MemoryAddress.ThrowIfDefault(list);
             ThrowIfOutOfRange(index);
-            ThrowIfSizeMismatch(removed.Length);
+            ThrowIfLessThanStride(removed.Length);
 
             int stride = list->stride;
             int newCount = list->count - 1;
@@ -442,6 +461,33 @@ namespace Collections
             destination.CopyTo(removed);
             new Span<byte>(list->items.Pointer + stride * newCount, stride).CopyTo(destination);
             list->count = newCount;
+        }
+
+        /// <summary>
+        /// Removes the element at <paramref name="index"/> by swapping with the last element,
+        /// and adds it to the end of the <paramref name="destination"/> list.
+        /// </summary>
+        public readonly void RemoveAtBySwappingAndAdd(int index, List destination)
+        {
+            MemoryAddress.ThrowIfDefault(list);
+            MemoryAddress.ThrowIfDefault(destination.list);
+            ThrowIfOutOfRange(index);
+            ThrowIfSizeMismatch(destination.list->stride);
+
+            int stride = list->stride;
+            int newSourceCount = list->count - 1;
+            int destinationCount = destination.list->count;
+            if (destinationCount == destination.list->capacity)
+            {
+                destination.list->capacity *= 2;
+                MemoryAddress.Resize(ref destination.list->items, stride * destination.list->capacity);
+            }
+
+            Span<byte> removed = new(list->items.Pointer + stride * index, stride);
+            destination.list->items.Write(destinationCount * stride, removed);
+            new Span<byte>(list->items.Pointer + stride * newSourceCount, stride).CopyTo(removed);
+            list->count = newSourceCount;
+            destination.list->count = destinationCount + 1;
         }
 
         public readonly ref T Get<T>(int index) where T : unmanaged
