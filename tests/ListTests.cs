@@ -93,6 +93,12 @@ namespace Collections.Tests
             Assert.That(list[2], Is.EqualTo(4));
             Assert.That(list.Count, Is.EqualTo(3));
             Assert.That(list.Capacity, Is.EqualTo(4));
+            list.RemoveAt(1, out int removed);
+            Assert.That(removed, Is.EqualTo(3));
+            Assert.That(list.Count, Is.EqualTo(2));
+            list.RemoveAt(1, out removed);
+            Assert.That(removed, Is.EqualTo(4));
+            Assert.That(list.Count, Is.EqualTo(1));
         }
 
         [Test]
