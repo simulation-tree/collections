@@ -492,14 +492,9 @@ namespace Collections.Generic
             MemoryAddress.ThrowIfDefault(list);
             ThrowIfOutOfRange(index);
 
+            Span<T> values = list->items.GetSpan<T>(list->count);
             int newCount = list->count - 1;
-            while (index < newCount)
-            {
-                T nextElement = list->items.ReadElement<T>(index + 1);
-                list->items.WriteElement(index, nextElement);
-                index++;
-            }
-
+            values.Slice(index + 1).CopyTo(values.Slice(index));
             list->count = newCount;
         }
 
@@ -512,15 +507,10 @@ namespace Collections.Generic
             MemoryAddress.ThrowIfDefault(list);
             ThrowIfOutOfRange(index);
 
-            removed = list->items.ReadElement<T>(index);
+            Span<T> values = list->items.GetSpan<T>(list->count);
+            removed = values[index];
             int newCount = list->count - 1;
-            while (index < newCount)
-            {
-                T nextElement = list->items.ReadElement<T>(index + 1);
-                list->items.WriteElement(index, nextElement);
-                index++;
-            }
-
+            values.Slice(index + 1).CopyTo(values.Slice(index));
             list->count = newCount;
         }
 
@@ -537,8 +527,7 @@ namespace Collections.Generic
             MemoryAddress.ThrowIfDefault(list);
             ThrowIfOutOfRange(index);
 
-            T lastElement = list->items.ReadElement<T>(--list->count);
-            list->items.WriteElement(index, lastElement);
+            list->items.WriteElement(index, list->items.ReadElement<T>(--list->count));
         }
 
         /// <summary>
