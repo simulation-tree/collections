@@ -63,6 +63,11 @@ namespace Collections.Generic
         }
 
         /// <summary>
+        /// Accesses the existing element found with the given <paramref name="value"/>.
+        /// </summary>
+        public readonly T this[T value] => GetValue(value);
+
+        /// <summary>
         /// Initializes an existing hash set from the given <paramref name="pointer"/>.
         /// </summary>
         public HashSet(HashSetPointer* pointer)
@@ -450,6 +455,39 @@ namespace Collections.Generic
 
             existingValue = default;
             return false;
+        }
+
+        /// <summary>
+        /// Retrieves an existing element found with <paramref name="value"/>.
+        /// </summary>
+        public readonly T GetValue(T value)
+        {
+            MemoryAddress.ThrowIfDefault(hashSet);
+            ThrowIfMissing(value);
+
+            int capacity = hashSet->capacity;
+            int hashCode = SharedFunctions.GetHashCode(value);
+            int index = hashCode % capacity;
+            int startIndex = index;
+            Span<bool> occupied = new(hashSet->occupied.Pointer, capacity);
+            Span<T> values = new(hashSet->values.Pointer, capacity);
+            Span<int> hashCodes = new(hashSet->hashCodes.Pointer, capacity);
+
+            while (occupied[index])
+            {
+                if (hashCodes[index] == hashCode && values[index].Equals(value))
+                {
+                    return values[index];
+                }
+
+                index = (index + 1) % capacity;
+                if (index == startIndex)
+                {
+                    break;
+                }
+            }
+
+            return default;
         }
 
         public readonly void CopyTo(T[] array, int arrayIndex)
