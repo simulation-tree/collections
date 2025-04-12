@@ -297,7 +297,8 @@ namespace Collections.Generic
         }
 
         /// <summary>
-        /// Copies the given <paramref name="source"/> to this array.
+        /// Copies the given <paramref name="source"/> to this array
+        /// assuming its length is less or equal than the array.
         /// </summary>
         public readonly void CopyFrom(ReadOnlySpan<T> source)
         {
