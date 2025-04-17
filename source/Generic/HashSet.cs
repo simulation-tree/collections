@@ -195,18 +195,18 @@ namespace Collections.Generic
             Span<bool> newOccupiedSpan = new(hashSet->occupied.Pointer, newCapacity);
             Span<int> newHashCodes = new(hashSet->hashCodes.Pointer, newCapacity);
             Span<T> newValuesSpan = new(hashSet->values.Pointer, newCapacity);
-
+            newCapacity--;
             for (int i = 0; i < oldCapacity; i++)
             {
                 if (oldOccupiedSpan[i])
                 {
                     T value = oldValuesSpan[i];
                     int hashCode = SharedFunctions.GetHashCode(value);
-                    int index = hashCode % newCapacity;
+                    int index = hashCode & newCapacity;
                     int startIndex = index;
                     while (newOccupiedSpan[index])
                     {
-                        index = (index + 1) % newCapacity;
+                        index = (index + 1) & newCapacity;
                     }
 
                     newOccupiedSpan[index] = true;
@@ -230,21 +230,21 @@ namespace Collections.Generic
             MemoryAddress.ThrowIfDefault(hashSet);
 
             int capacity = hashSet->capacity;
-            int hashCode = SharedFunctions.GetHashCode(value);
-            int index = hashCode % capacity;
-            int startIndex = index;
             Span<bool> occupied = new(hashSet->occupied.Pointer, capacity);
-            Span<T> values = new(hashSet->values.Pointer, capacity);
             Span<int> hashCodes = new(hashSet->hashCodes.Pointer, capacity);
+            capacity--;
+            int hashCode = SharedFunctions.GetHashCode(value);
+            int index = hashCode & capacity;
+            int startIndex = index;
 
             while (occupied[index])
             {
-                if (hashCodes[index] == hashCode && values[index].Equals(value))
+                if (hashCodes[index] == hashCode && hashSet->values.ReadElement<T>(index).Equals(value))
                 {
                     return true;
                 }
 
-                index = (index + 1) % capacity;
+                index = (index + 1) & capacity;
                 if (index == startIndex)
                 {
                     break;
@@ -270,30 +270,20 @@ namespace Collections.Generic
                 capacity = hashSet->capacity;
             }
 
-            int hashCode = SharedFunctions.GetHashCode(value);
-            int index = hashCode % capacity;
-            int startIndex = index;
             Span<bool> occupied = new(hashSet->occupied.Pointer, capacity);
-            Span<T> values = new(hashSet->values.Pointer, capacity);
-            Span<int> hashCodes = new(hashSet->hashCodes.Pointer, capacity);
+            capacity--;
+            int hashCode = SharedFunctions.GetHashCode(value);
+            int index = hashCode & capacity;
+            int startIndex = index;
 
             while (occupied[index])
             {
-                if (hashCodes[index] == hashCode && values[index].Equals(value))
-                {
-                    return; //already present
-                }
-
-                index = (index + 1) % capacity;
-                if (index == startIndex)
-                {
-                    throw new InvalidOperationException("Hash set is full");
-                }
+                index = (index + 1) & capacity;
             }
 
             occupied[index] = true;
-            hashCodes[index] = hashCode;
-            values[index] = value;
+            hashSet->hashCodes.WriteElement(index, hashCode);
+            hashSet->values.WriteElement(index, value);
             hashSet->count = newCount;
         }
 
@@ -312,30 +302,27 @@ namespace Collections.Generic
                 capacity = hashSet->capacity;
             }
 
-            int hashCode = SharedFunctions.GetHashCode(value);
-            int index = hashCode % capacity;
-            int startIndex = index;
             Span<bool> occupied = new(hashSet->occupied.Pointer, capacity);
-            Span<T> values = new(hashSet->values.Pointer, capacity);
+            //Span<T> values = new(hashSet->values.Pointer, capacity);
             Span<int> hashCodes = new(hashSet->hashCodes.Pointer, capacity);
+            capacity--;
+            int hashCode = SharedFunctions.GetHashCode(value);
+            int index = hashCode & capacity;
+            int startIndex = index;
 
             while (occupied[index])
             {
-                if (hashCodes[index] == hashCode && values[index].Equals(value))
+                if (hashCodes[index] == hashCode && hashSet->values.ReadElement<T>(index).Equals(value))
                 {
                     return false; //already present
                 }
 
-                index = (index + 1) % capacity;
-                if (index == startIndex)
-                {
-                    throw new InvalidOperationException("Hash set is full");
-                }
+                index = (index + 1) & capacity;
             }
 
             occupied[index] = true;
             hashCodes[index] = hashCode;
-            values[index] = value;
+            hashSet->values.WriteElement(index, value);
             hashSet->count = newCount;
             return true;
         }
@@ -348,26 +335,25 @@ namespace Collections.Generic
             MemoryAddress.ThrowIfDefault(hashSet);
             ThrowIfMissing(value);
 
+            int capacity = hashSet->capacity;
+            Span<bool> occupied = new(hashSet->occupied.Pointer, capacity);
+            Span<int> hashCodes = new(hashSet->hashCodes.Pointer, capacity);
+            capacity--;
             int hashCode = SharedFunctions.GetHashCode(value);
-            int index = hashCode % hashSet->capacity;
+            int index = hashCode & capacity;
             int startIndex = index;
-            Span<bool> occupied = new(hashSet->occupied.Pointer, hashSet->capacity);
-            Span<T> values = new(hashSet->values.Pointer, hashSet->capacity);
-            Span<int> hashCodes = new(hashSet->hashCodes.Pointer, hashSet->capacity);
 
             while (occupied[index])
             {
-                if (hashCodes[index] == hashCode && values[index].Equals(value))
+                if (hashCodes[index] == hashCode && hashSet->values.ReadElement<T>(index).Equals(value))
                 {
                     occupied[index] = false;
-                    values[index] = default;
                     hashCodes[index] = 0;
-                    hashSet->values.Clear(index * hashSet->stride, hashSet->stride);
                     hashSet->count--;
-                    return;
+                    break;
                 }
 
-                index = (index + 1) % hashSet->capacity;
+                index = (index + 1) & capacity;
                 if (index == startIndex)
                 {
                     break;
@@ -382,26 +368,26 @@ namespace Collections.Generic
         {
             MemoryAddress.ThrowIfDefault(hashSet);
 
+            int capacity = hashSet->capacity;
+            Span<bool> occupied = new(hashSet->occupied.Pointer, capacity);
+            //Span<T> values = new(hashSet->values.Pointer, capacity);
+            Span<int> hashCodes = new(hashSet->hashCodes.Pointer, capacity);
+            capacity--;
             int hashCode = SharedFunctions.GetHashCode(value);
-            int index = hashCode % hashSet->capacity;
+            int index = hashCode & capacity;
             int startIndex = index;
-            Span<bool> occupied = new(hashSet->occupied.Pointer, hashSet->capacity);
-            Span<T> values = new(hashSet->values.Pointer, hashSet->capacity);
-            Span<int> hashCodes = new(hashSet->hashCodes.Pointer, hashSet->capacity);
 
             while (occupied[index])
             {
-                if (hashCodes[index] == hashCode && values[index].Equals(value))
+                if (hashCodes[index] == hashCode && hashSet->values.ReadElement<T>(index).Equals(value))
                 {
                     occupied[index] = false;
-                    values[index] = default;
                     hashCodes[index] = 0;
-                    hashSet->values.Clear(index * hashSet->stride, hashSet->stride);
                     hashSet->count--;
                     return true;
                 }
 
-                index = (index + 1) % hashSet->capacity;
+                index = (index + 1) & capacity;
                 if (index == startIndex)
                 {
                     break;
@@ -431,22 +417,25 @@ namespace Collections.Generic
             MemoryAddress.ThrowIfDefault(hashSet);
 
             int capacity = hashSet->capacity;
-            int hashCode = SharedFunctions.GetHashCode(value);
-            int index = hashCode % capacity;
-            int startIndex = index;
             Span<bool> occupied = new(hashSet->occupied.Pointer, capacity);
-            Span<T> values = new(hashSet->values.Pointer, capacity);
             Span<int> hashCodes = new(hashSet->hashCodes.Pointer, capacity);
+            capacity--;
+            int hashCode = SharedFunctions.GetHashCode(value);
+            int index = hashCode & capacity;
+            int startIndex = index;
 
             while (occupied[index])
             {
-                if (hashCodes[index] == hashCode && values[index].Equals(value))
+                if (hashCodes[index] == hashCode)
                 {
-                    existingValue = values[index];
-                    return true;
+                    existingValue = hashSet->values.ReadElement<T>(index);
+                    if (existingValue.Equals(value))
+                    {
+                        return true;
+                    }
                 }
 
-                index = (index + 1) % capacity;
+                index = (index + 1) & capacity;
                 if (index == startIndex)
                 {
                     break;
@@ -466,21 +455,25 @@ namespace Collections.Generic
             ThrowIfMissing(value);
 
             int capacity = hashSet->capacity;
-            int hashCode = SharedFunctions.GetHashCode(value);
-            int index = hashCode % capacity;
-            int startIndex = index;
             Span<bool> occupied = new(hashSet->occupied.Pointer, capacity);
-            Span<T> values = new(hashSet->values.Pointer, capacity);
             Span<int> hashCodes = new(hashSet->hashCodes.Pointer, capacity);
+            capacity--;
+            int hashCode = SharedFunctions.GetHashCode(value);
+            int index = hashCode & capacity;
+            int startIndex = index;
 
             while (occupied[index])
             {
-                if (hashCodes[index] == hashCode && values[index].Equals(value))
+                if (hashCodes[index] == hashCode)
                 {
-                    return values[index];
+                    T existingValue = hashSet->values.ReadElement<T>(index);
+                    if (existingValue.Equals(value))
+                    {
+                        return existingValue;
+                    }
                 }
 
-                index = (index + 1) % capacity;
+                index = (index + 1) & capacity;
                 if (index == startIndex)
                 {
                     break;
