@@ -44,16 +44,6 @@ namespace Collections.Generic
 
                 return list->capacity;
             }
-            set
-            {
-                MemoryAddress.ThrowIfDefault(list);
-
-                int newCapacity = value.GetNextPowerOf2();
-                ThrowIfLessThanCount(newCapacity);
-
-                MemoryAddress.Resize(ref list->items, sizeof(T) * newCapacity);
-                list->capacity = newCapacity;
-            }
         }
 
         /// <summary>
@@ -151,7 +141,7 @@ namespace Collections.Generic
             list->stride = sizeof(T);
             list->count = 0;
             list->capacity = initialCapacity;
-            list->items = MemoryAddress.Allocate(sizeof(T) * initialCapacity);
+            list->items = MemoryAddress.AllocateZeroed(sizeof(T) * initialCapacity);
         }
 
         /// <summary>
@@ -164,7 +154,7 @@ namespace Collections.Generic
             list->stride = sizeof(T);
             list->count = span.Length;
             list->capacity = initialCapacity;
-            list->items = MemoryAddress.Allocate(sizeof(T) * initialCapacity);
+            list->items = MemoryAddress.AllocateZeroed(sizeof(T) * initialCapacity);
             span.CopyTo(list->items.GetSpan<T>(span.Length));
         }
 
@@ -177,7 +167,7 @@ namespace Collections.Generic
             list->stride = sizeof(T);
             list->count = 0;
             list->capacity = 4;
-            list->items = MemoryAddress.Allocate(sizeof(T) * 4);
+            list->items = MemoryAddress.AllocateZeroed(sizeof(T) * 4);
             foreach (T item in enumerable)
             {
                 Add(item);
@@ -194,7 +184,7 @@ namespace Collections.Generic
             list->stride = sizeof(T);
             list->count = 0;
             list->capacity = 4;
-            list->items = MemoryAddress.Allocate(sizeof(T) * 4);
+            list->items = MemoryAddress.AllocateZeroed(sizeof(T) * 4);
         }
 #endif
 
@@ -306,8 +296,8 @@ namespace Collections.Generic
             int count = list->count;
             if (count == list->capacity)
             {
+                MemoryAddress.ResizePowerOf2AndClear(ref list->items, list->capacity * sizeof(T));
                 list->capacity *= 2;
-                MemoryAddress.Resize(ref list->items, sizeof(T) * list->capacity);
             }
 
             int remaining = count - index;
@@ -329,8 +319,8 @@ namespace Collections.Generic
             int count = list->count;
             if (count == list->capacity)
             {
+                MemoryAddress.ResizePowerOf2AndClear(ref list->items, list->capacity * sizeof(T));
                 list->capacity *= 2;
-                MemoryAddress.Resize(ref list->items, sizeof(T) * list->capacity);
             }
 
             list->items.WriteElement(count, item);
@@ -348,12 +338,11 @@ namespace Collections.Generic
             int count = list->count;
             if (count == list->capacity)
             {
+                MemoryAddress.ResizePowerOf2AndClear(ref list->items, list->capacity * sizeof(T));
                 list->capacity *= 2;
-                MemoryAddress.Resize(ref list->items, sizeof(T) * list->capacity);
             }
 
             ref T added = ref list->items.ReadElement<T>(count);
-            added = default;
             list->count = count + 1;
             return ref added;
         }
@@ -368,11 +357,10 @@ namespace Collections.Generic
             int count = list->count;
             if (count == list->capacity)
             {
+                MemoryAddress.ResizePowerOf2AndClear(ref list->items, list->capacity * sizeof(T));
                 list->capacity *= 2;
-                MemoryAddress.Resize(ref list->items, sizeof(T) * list->capacity);
             }
 
-            list->items.WriteElement<T>(count, default);
             list->count = count + 1;
         }
 
@@ -386,11 +374,11 @@ namespace Collections.Generic
             int newCount = list->count + count;
             if (newCount >= list->capacity)
             {
-                list->capacity = newCount.GetNextPowerOf2();
-                MemoryAddress.Resize(ref list->items, sizeof(T) * list->capacity);
+                int newCapacity = newCount.GetNextPowerOf2();
+                MemoryAddress.ResizeAndClear(ref list->items, list->capacity * sizeof(T), newCapacity * sizeof(T));
+                list->capacity = newCapacity;
             }
 
-            list->items.Clear(list->count * sizeof(T), count * sizeof(T));
             list->count = newCount;
         }
 
@@ -404,8 +392,9 @@ namespace Collections.Generic
             int newCount = list->count + count;
             if (newCount >= list->capacity)
             {
-                list->capacity = newCount.GetNextPowerOf2();
-                MemoryAddress.Resize(ref list->items, sizeof(T) * list->capacity);
+                int newCapacity = newCount.GetNextPowerOf2();
+                MemoryAddress.ResizeAndClear(ref list->items, list->capacity * sizeof(T), newCapacity * sizeof(T));
+                list->capacity = newCapacity;
             }
 
             list->items.AsSpan<T>(list->count, count).Fill(item);
@@ -422,8 +411,9 @@ namespace Collections.Generic
             int newCount = list->count + count;
             if (newCount >= list->capacity)
             {
-                list->capacity = newCount.GetNextPowerOf2();
-                MemoryAddress.Resize(ref list->items, sizeof(T) * list->capacity);
+                int newCapacity = newCount.GetNextPowerOf2();
+                MemoryAddress.ResizeAndClear(ref list->items, list->capacity * sizeof(T), newCapacity * sizeof(T));
+                list->capacity = newCapacity;
             }
 
             Span<T> destination = list->items.AsSpan<T>(list->count, count);
@@ -471,8 +461,9 @@ namespace Collections.Generic
             int newCount = list->count + span.Length;
             if (newCount >= list->capacity)
             {
-                list->capacity = newCount.GetNextPowerOf2();
-                MemoryAddress.Resize(ref list->items, sizeof(T) * list->capacity);
+                int newCapacity = newCount.GetNextPowerOf2();
+                MemoryAddress.ResizeAndClear(ref list->items, list->capacity * sizeof(T), newCapacity * sizeof(T));
+                list->capacity = newCapacity;
             }
 
             span.CopyTo(list->items.AsSpan<T>(list->count, span.Length));
@@ -568,11 +559,11 @@ namespace Collections.Generic
                 int newCount = list->count + toAdd;
                 if (newCount >= list->capacity)
                 {
-                    list->capacity = newCount.GetNextPowerOf2();
-                    MemoryAddress.Resize(ref list->items, sizeof(T) * list->capacity);
+                    int newCapacity = newCount.GetNextPowerOf2();
+                    MemoryAddress.ResizeAndClear(ref list->items, list->capacity * sizeof(T), newCapacity * sizeof(T));
+                    list->capacity = newCapacity;
                 }
 
-                list->items.Clear(list->count * sizeof(T), toAdd * sizeof(T));
                 list->count = newCount;
             }
 
@@ -601,15 +592,16 @@ namespace Collections.Generic
         {
             MemoryAddress.ThrowIfDefault(list);
 
-            int count = source.Length;
-            if (count >= list->capacity)
+            int newCount = source.Length;
+            if (newCount >= list->capacity)
             {
-                list->capacity = count.GetNextPowerOf2();
-                MemoryAddress.Resize(ref list->items, sizeof(T) * list->capacity);
+                int newCapacity = newCount.GetNextPowerOf2();
+                MemoryAddress.ResizeAndClear(ref list->items, list->capacity * sizeof(T), newCapacity * sizeof(T));
+                list->capacity = newCapacity;
             }
 
-            source.CopyTo(list->items.GetSpan<T>(count));
-            list->count = count;
+            source.CopyTo(list->items.GetSpan<T>(newCount));
+            list->count = newCount;
         }
 
         /// <inheritdoc/>
