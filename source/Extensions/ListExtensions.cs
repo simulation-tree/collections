@@ -50,7 +50,7 @@ namespace Collections.Generic
         /// <summary>
         /// Tries to add <paramref name="value"/> to the list if it's not contained.
         /// </summary>
-        /// <returns><c>true</c> if it was added.</returns>
+        /// <returns><see langword="true"/> if it was added.</returns>
         public static bool TryAdd<T>(this List<T> list, T value) where T : unmanaged, IEquatable<T>
         {
             bool contains = list.Contains(value);
@@ -65,7 +65,7 @@ namespace Collections.Generic
         /// <summary>
         /// Tries to remove <paramref name="value"/> from the list if it's present.
         /// </summary>
-        /// <returns><c>true</c> if it was removed.</returns>
+        /// <returns><see langword="true"/> if it was removed.</returns>
         public static bool TryRemove<T>(this List<T> list, T value) where T : unmanaged, IEquatable<T>
         {
             bool contains = list.TryIndexOf(value, out int index);
@@ -81,7 +81,7 @@ namespace Collections.Generic
         /// Tries to remove <paramref name="value"/> from the list,
         /// by swapping it with the last element if it's present.
         /// </summary>
-        /// <returns><c>true</c> if it was removed.</returns>
+        /// <returns><see langword="true"/> if it was removed.</returns>
         public static bool TryRemoveBySwapping<T>(this List<T> list, T value) where T : unmanaged, IEquatable<T>
         {
             bool contains = list.TryIndexOf(value, out int index);

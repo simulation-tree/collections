@@ -473,9 +473,9 @@ namespace Collections.Generic
         }
 
         /// <summary>
-        /// Attempts to add the specified <paramref name="key"/> and <paramref name="value"/> pair to the dictionary.
+        /// Tries to add the specified <paramref name="key"/> and <paramref name="value"/> pair to the dictionary.
         /// </summary>
-        /// <returns><c>true</c> if successful.</returns>
+        /// <returns><see langword="true"/> if successful.</returns>
         public readonly bool TryAdd(K key, V value)
         {
             MemoryAddress.ThrowIfDefault(dictionary);

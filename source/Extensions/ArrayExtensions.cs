@@ -14,9 +14,6 @@ namespace Collections.Generic
 
         /// <summary>
         /// Retrieves the index for the first occurrence of <paramref name="value"/>.
-        /// <para>
-        /// Will be <see cref="uint.MaxValue"/> if not found.
-        /// </para>
         /// </summary>
         public unsafe static int IndexOf<T>(this Array<T> array, T value) where T : unmanaged, IEquatable<T>
         {
@@ -25,9 +22,6 @@ namespace Collections.Generic
 
         /// <summary>
         /// Retrieves the index for the last occurrence of <paramref name="value"/>.
-        /// <para>
-        /// Will be <see cref="uint.MaxValue"/> if not found.
-        /// </para>
         /// </summary>
         public unsafe static int LastIndexOf<T>(this Array<T> array, T value) where T : unmanaged, IEquatable<T>
         {
