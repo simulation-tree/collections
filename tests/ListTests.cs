@@ -439,55 +439,5 @@ namespace Collections.Tests
             Assert.That(b.Count, Is.EqualTo(1));
             Assert.That(b.Get<int>(0), Is.EqualTo(6));
         }
-
-#if !DEBUG
-        [Test]
-        public void BenchmarkAgainstSystem()
-        {
-            if (IsRunningRemotely())
-            {
-                return;
-            }
-
-            System.Collections.Generic.List<uint> systemList = new(9);
-            using List<uint> list = new(9);
-
-            Benchmark systemResult = new(() =>
-            {
-                for (uint i = 0; i < 1024; i++)
-                {
-                    systemList.Add(i * 8);
-                }
-
-                systemList.Clear();
-
-                for (uint i = 0; i < 256; i++)
-                {
-                    systemList.Insert(0, i);
-                }
-            });
-
-            Benchmark customResult = new(() =>
-            {
-                for (uint i = 0; i < 1024; i++)
-                {
-                    list.Add(i * 8);
-                }
-
-                list.Clear();
-
-                for (uint i = 0; i < 256; i++)
-                {
-                    list.Insert(0, i);
-                }
-            });
-
-            const uint Iterations = 30000;
-            Console.WriteLine($"System: {systemResult.Run(Iterations)}");
-            Console.WriteLine($"Unmanaged: {customResult.Run(Iterations)}");
-            Console.WriteLine($"System: {systemResult.Run(Iterations)}");
-            Console.WriteLine($"Unmanaged: {customResult.Run(Iterations)}");
-        }
-#endif
     }
 }
