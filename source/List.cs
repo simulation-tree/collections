@@ -490,6 +490,34 @@ namespace Collections
             destination.list->count = destinationCount + 1;
         }
 
+        /// <summary>
+        /// Removes the element at <paramref name="index"/> by swapping with the last element,
+        /// and adds it to the end of the <paramref name="destination"/> list.
+        /// </summary>
+        public readonly void RemoveAtBySwappingAndAdd(int index, List destination, out MemoryAddress newItem)
+        {
+            MemoryAddress.ThrowIfDefault(list);
+            MemoryAddress.ThrowIfDefault(destination.list);
+            ThrowIfOutOfRange(index);
+            ThrowIfSizeMismatch(destination.list->stride);
+
+            int stride = list->stride;
+            int newSourceCount = list->count - 1;
+            int destinationCount = destination.list->count;
+            if (destinationCount == destination.list->capacity)
+            {
+                destination.list->capacity *= 2;
+                MemoryAddress.Resize(ref destination.list->items, stride * destination.list->capacity);
+            }
+
+            Span<byte> removed = new(list->items.Pointer + stride * index, stride);
+            newItem = new(destination.list->items.Pointer + destinationCount * stride);
+            newItem.Write(removed);
+            new Span<byte>(list->items.Pointer + stride * newSourceCount, stride).CopyTo(removed);
+            list->count = newSourceCount;
+            destination.list->count = destinationCount + 1;
+        }
+
         public readonly ref T Get<T>(int index) where T : unmanaged
         {
             MemoryAddress.ThrowIfDefault(list);

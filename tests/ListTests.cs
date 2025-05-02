@@ -439,5 +439,29 @@ namespace Collections.Tests
             Assert.That(b.Count, Is.EqualTo(1));
             Assert.That(b.Get<int>(0), Is.EqualTo(6));
         }
+
+        [Test]
+        public void MoveFromOneListToAnother()
+        {
+            using List a = new(0, sizeof(int));
+            using List b = new(0, sizeof(int));
+            a.Add(1);
+            a.Add(2);
+            a.Add(3);
+            a.Add(4);
+            a.Add(5);
+            Assert.That(a.Count, Is.EqualTo(5));
+            Assert.That(b.Count, Is.EqualTo(0));
+            a.RemoveAtBySwappingAndAdd(0, b, out MemoryAddress newItem);
+            Assert.That(newItem.Read<int>(), Is.EqualTo(1));
+            Assert.That(a.Count, Is.EqualTo(4));
+            Assert.That(b.Count, Is.EqualTo(1));
+            a.RemoveAtBySwappingAndAdd(0, b, out newItem);
+            Assert.That(newItem.Read<int>(), Is.EqualTo(5));
+            Assert.That(a.Count, Is.EqualTo(3));
+            Assert.That(b.Count, Is.EqualTo(2));
+            Assert.That(a.AsSpan<int>().ToArray(), Is.EqualTo(new int[] { 4, 2, 3 }));
+            Assert.That(b.AsSpan<int>().ToArray(), Is.EqualTo(new int[] { 1, 5 }));
+        }
     }
 }
