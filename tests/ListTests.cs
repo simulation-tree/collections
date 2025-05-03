@@ -452,11 +452,11 @@ namespace Collections.Tests
             a.Add(5);
             Assert.That(a.Count, Is.EqualTo(5));
             Assert.That(b.Count, Is.EqualTo(0));
-            a.RemoveAtBySwappingAndAdd(0, b, out MemoryAddress newItem);
+            a.RemoveAtBySwappingAndAdd(0, b, out MemoryAddress newItem, out _);
             Assert.That(newItem.Read<int>(), Is.EqualTo(1));
             Assert.That(a.Count, Is.EqualTo(4));
             Assert.That(b.Count, Is.EqualTo(1));
-            a.RemoveAtBySwappingAndAdd(0, b, out newItem);
+            a.RemoveAtBySwappingAndAdd(0, b, out newItem, out _);
             Assert.That(newItem.Read<int>(), Is.EqualTo(5));
             Assert.That(a.Count, Is.EqualTo(3));
             Assert.That(b.Count, Is.EqualTo(2));

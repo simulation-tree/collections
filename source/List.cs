@@ -494,7 +494,7 @@ namespace Collections
         /// Removes the element at <paramref name="index"/> by swapping with the last element,
         /// and adds it to the end of the <paramref name="destination"/> list.
         /// </summary>
-        public readonly void RemoveAtBySwappingAndAdd(int index, List destination, out MemoryAddress newItem)
+        public readonly void RemoveAtBySwappingAndAdd(int index, List destination, out MemoryAddress newItem, out bool capacityIncreased)
         {
             MemoryAddress.ThrowIfDefault(list);
             MemoryAddress.ThrowIfDefault(destination.list);
@@ -504,7 +504,8 @@ namespace Collections
             int stride = list->stride;
             int newSourceCount = list->count - 1;
             int destinationCount = destination.list->count;
-            if (destinationCount == destination.list->capacity)
+            capacityIncreased = destinationCount == destination.list->capacity;
+            if (capacityIncreased)
             {
                 destination.list->capacity *= 2;
                 MemoryAddress.Resize(ref destination.list->items, stride * destination.list->capacity);
