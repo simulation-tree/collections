@@ -8,9 +8,10 @@ Native C# library implementing collections.
 
 Install it by cloning it, or referencing through the NuGet package through GitHub's registry ([authentication info](https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-nuget-registry#authenticating-to-github-packages)).
 
-For installing as a Unity package, use this git url to add it:
+For installing as a Unity package, use these urls to add this repo and its dependency:
 ```
 https://github.com/simulation-tree/collections.git?path=source#unity
+https://github.com/simulation-tree/unmanaged.git?path=core#unity
 ```
 
 ### Arrays
