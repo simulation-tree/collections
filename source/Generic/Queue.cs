@@ -99,7 +99,7 @@ namespace Collections.Generic
             MemoryAddress.ThrowIfDefault(queue);
 
             int length = queue->top - queue->rear;
-            return queue->items.AsSpan<T>(queue->rear, length);
+            return queue->items.AsSpan<T>(queue->rear * sizeof(T), length);
         }
 
         public readonly void Clear()
@@ -269,7 +269,7 @@ namespace Collections.Generic
                         MemoryAddress.ThrowIfDefault(queue);
 
                         int length = queue->top - queue->rear;
-                        return queue->items.AsSpan<T>(queue->rear, length)[index];
+                        return queue->items.AsSpan<T>(queue->rear * sizeof(T), length)[index];
                     }
                 }
             }

@@ -256,7 +256,7 @@ namespace Collections.Generic
             MemoryAddress.ThrowIfDefault(list);
             ThrowIfPastRange(start);
 
-            return list->items.AsSpan<T>(start, list->count - start);
+            return list->items.AsSpan<T>(start * sizeof(T), list->count - start);
         }
 
         /// <summary>
@@ -267,7 +267,7 @@ namespace Collections.Generic
             MemoryAddress.ThrowIfDefault(list);
             ThrowIfPastRange(start + length);
 
-            return list->items.AsSpan<T>(start, length);
+            return list->items.AsSpan<T>(start * sizeof(T), length);
         }
 
         /// <summary>
@@ -278,7 +278,7 @@ namespace Collections.Generic
             MemoryAddress.ThrowIfDefault(list);
             ThrowIfPastRange(range.End.Value);
 
-            return list->items.AsSpan<T>(range.Start.Value, range.End.Value - range.Start.Value);
+            return list->items.AsSpan<T>(range.Start.Value * sizeof(T), range.End.Value - range.Start.Value);
         }
 
         /// <summary>
@@ -301,11 +301,12 @@ namespace Collections.Generic
             }
 
             int remaining = count - index;
-            Span<T> destination = list->items.AsSpan<T>(index + 1, remaining);
-            Span<T> source = list->items.AsSpan<T>(index, remaining);
+            int bytePosition = index * sizeof(T);
+            Span<T> destination = list->items.AsSpan<T>(bytePosition + sizeof(T), remaining);
+            Span<T> source = list->items.AsSpan<T>(bytePosition, remaining);
             source.CopyTo(destination);
 
-            list->items.WriteElement(index, item);
+            list->items.Write(bytePosition, item);
             list->count = count + 1;
         }
 
@@ -397,7 +398,7 @@ namespace Collections.Generic
                 list->capacity = newCapacity;
             }
 
-            list->items.AsSpan<T>(list->count, count).Fill(item);
+            list->items.AsSpan<T>(list->count * sizeof(T), count).Fill(item);
             list->count = newCount;
         }
 
@@ -416,7 +417,7 @@ namespace Collections.Generic
                 list->capacity = newCapacity;
             }
 
-            Span<T> destination = list->items.AsSpan<T>(list->count, count);
+            Span<T> destination = list->items.AsSpan<T>(list->count * sizeof(T), count);
             Span<T> source = new(pointer, count);
             source.CopyTo(destination);
             list->count = newCount;
@@ -466,7 +467,7 @@ namespace Collections.Generic
                 list->capacity = newCapacity;
             }
 
-            span.CopyTo(list->items.AsSpan<T>(list->count, span.Length));
+            span.CopyTo(list->items.AsSpan<T>(list->count * sizeof(T), span.Length));
             list->count = newCount;
         }
 
@@ -512,7 +513,7 @@ namespace Collections.Generic
         /// May throw <see cref="IndexOutOfRangeException"/> if the index is outside the bounds.
         /// </para>
         /// </summary>
-        /// <exception cref="IndexOutOfRangeException"></exception>"
+        /// <exception cref="IndexOutOfRangeException"></exception>
         public readonly void RemoveAtBySwapping(int index)
         {
             MemoryAddress.ThrowIfDefault(list);

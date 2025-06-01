@@ -254,7 +254,7 @@ namespace Collections.Generic
             MemoryAddress.ThrowIfDefault(array);
             ThrowIfSizeMismatch<T>();
 
-            return array->items.AsSpan<X>(start, array->length - start);
+            return array->items.AsSpan<X>(start * sizeof(X), array->length - start);
         }
 
         /// <summary>
@@ -274,7 +274,7 @@ namespace Collections.Generic
         {
             MemoryAddress.ThrowIfDefault(array);
 
-            return array->items.AsSpan<T>(start, array->length - start);
+            return array->items.AsSpan<T>(start * sizeof(T), array->length - start);
         }
 
         /// <summary>
@@ -285,7 +285,7 @@ namespace Collections.Generic
         {
             MemoryAddress.ThrowIfDefault(array);
 
-            return array->items.AsSpan<T>(start, length);
+            return array->items.AsSpan<T>(start * sizeof(T), length);
         }
 
         /// <summary>

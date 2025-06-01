@@ -164,6 +164,7 @@ namespace Collections.Generic
         public readonly bool TryPop(out T value)
         {
             MemoryAddress.ThrowIfDefault(stack);
+
             if (stack->top > 0)
             {
                 int newTop = stack->top - 1;

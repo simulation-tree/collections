@@ -376,11 +376,12 @@ namespace Collections
             }
 
             int remaining = count - index;
-            Span<T> destination = list->items.AsSpan<T>(index + 1, remaining);
-            Span<T> source = list->items.AsSpan<T>(index, remaining);
+            int bytePosition = index * sizeof(T);
+            Span<T> destination = list->items.AsSpan<T>(bytePosition + sizeof(T), remaining);
+            Span<T> source = list->items.AsSpan<T>(bytePosition, remaining);
             source.CopyTo(destination);
 
-            list->items.WriteElement(index, item);
+            list->items.Write(bytePosition, item);
             list->count = count + 1;
         }
 
