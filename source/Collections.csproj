@@ -47,4 +47,12 @@
     <Content Include="build/Collections.targets" Pack="true" PackagePath="build/Collections.targets" Visible="false"/>
   </ItemGroup>
 
+  <ItemGroup>
+    <Content Include="bin/Debug/net9.0/Unmanaged.Collections.dll" Pack="true" PackagePath="tools/debug/Unmanaged.Collections.dll" Visible="false"/>
+    <Content Include="bin/Debug/net9.0/Unmanaged.Collections.xml" Pack="true" PackagePath="tools/debug/Unmanaged.Collections.xml" Visible="false" Condition="Exists('bin/Debug/net9.0/Unmanaged.Collections.xml')"/>
+    <Content Include="bin/Release/net9.0/Unmanaged.Collections.dll" Pack="true" PackagePath="tools/release/Unmanaged.Collections.dll" Visible="false"/>
+    <Content Include="bin/Release/net9.0/Unmanaged.Collections.xml" Pack="true" PackagePath="tools/release/Unmanaged.Collections.xml" Visible="false" Condition="Exists('bin/Release/net9.0/Unmanaged.Collections.xml')"/>
+    <Content Include="build/Unmanaged.Collections.targets" Pack="true" PackagePath="build/Unmanaged.Collections.targets" Visible="false"/>
+  </ItemGroup>
+
 </Project>

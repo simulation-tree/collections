@@ -3,14 +3,14 @@
 
     <ItemGroup Condition="'$(Configuration)' == 'Debug'">
         <Reference Include="Collections">
-            <HintPath>$(MSBuildThisFileDirectory)..\tools\debug\Collections.dll</HintPath>
+            <HintPath>$(MSBuildThisFileDirectory)..\tools\debug\Unmanaged.Collections.dll</HintPath>
             <Private>True</Private>
         </Reference>
     </ItemGroup>
 
     <ItemGroup Condition="'$(Configuration)' == 'Release'">
         <Reference Include="Collections">
-            <HintPath>$(MSBuildThisFileDirectory)..\tools\release\Collections.dll</HintPath>
+            <HintPath>$(MSBuildThisFileDirectory)..\tools\release\Unmanaged.Collections.dll</HintPath>
             <Private>True</Private>
         </Reference>
     </ItemGroup>
