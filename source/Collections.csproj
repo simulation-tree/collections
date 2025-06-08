@@ -20,7 +20,7 @@
     <NoWarn>1701;1702;CS1591</NoWarn>
     <NoStandardLib>true</NoStandardLib>
     <IncludeBuildOutput>false</IncludeBuildOutput>
-    <SuppressDependenciesWhenPacking>true</SuppressDependenciesWhenPacking>
+    <OutDir>bin/$(TargetFramework)/$(Configuration)</OutDir>
   </PropertyGroup>
 
   <ItemGroup>
@@ -40,11 +40,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Content Include="bin/Debug/net9.0/Collections.dll" Pack="true" PackagePath="tools/debug/Collections.dll" Visible="false"/>
-    <Content Include="bin/Debug/net9.0/Collections.xml" Pack="true" PackagePath="tools/debug/Collections.xml" Visible="false" Condition="Exists('bin/Debug/net9.0/Collections.xml')"/>
-    <Content Include="bin/Release/net9.0/Collections.dll" Pack="true" PackagePath="tools/release/Collections.dll" Visible="false"/>
-    <Content Include="bin/Release/net9.0/Collections.xml" Pack="true" PackagePath="tools/release/Collections.xml" Visible="false" Condition="Exists('bin/Release/net9.0/Collections.xml')"/>
-    <Content Include="build/Unmanaged.Collections.targets" Pack="true" PackagePath="build/Unmanaged.Collections.targets" Visible="false"/>
+    <Content Include="bin/**/*" Pack="true" PackagePath="lib" Visible="false"/>
+    <Content Include="buildTransitive/**/*" Pack="true" PackagePath="buildTransitive"/>
   </ItemGroup>
 
 </Project>
