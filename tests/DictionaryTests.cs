@@ -318,5 +318,14 @@ namespace Collections.Tests
             Assert.That(pairs.Contains(new(3, 8008135)), Is.True);
             Assert.That(pairs.Contains(new(4, 1337)), Is.True);
         }
+
+        [Test]
+        public void GetKeyAndContains()
+        {
+            using Dictionary<uint, uint> map = new(4);
+            map.Add(3, 100);
+            Assert.That(map.ContainsKey(3), Is.True);
+            Assert.That(map[3], Is.EqualTo(100));
+        }
     }
 }
