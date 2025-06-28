@@ -3,6 +3,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Reflection;
 using Unmanaged;
 
 namespace Collections.Generic
@@ -123,7 +124,7 @@ namespace Collections.Generic
         }
 
         [Conditional("DEBUG")]
-        private readonly void ThrowIfOutOfRange(int index)
+        private readonly void ThrowIfOutOfRange(uint index)
         {
             if (index >= hashSet->capacity)
             {
@@ -149,7 +150,7 @@ namespace Collections.Generic
             }
         }
 
-        private readonly bool TryGetValueAtIndex(int index, out T value)
+        private readonly bool TryGetValueAtIndex(uint index, out T value)
         {
             MemoryAddress.ThrowIfDefault(hashSet);
             ThrowIfOutOfRange(index);
@@ -158,7 +159,7 @@ namespace Collections.Generic
             return hashSet->occupied.ReadElement<bool>(index);
         }
 
-        private readonly T GetValueAtIndex(int index)
+        private readonly T GetValueAtIndex(uint index)
         {
             MemoryAddress.ThrowIfDefault(hashSet);
             ThrowIfOutOfRange(index);
@@ -166,7 +167,7 @@ namespace Collections.Generic
             return hashSet->values.ReadElement<T>(index);
         }
 
-        private readonly bool ContainsAtIndex(int index)
+        private readonly bool ContainsAtIndex(uint index)
         {
             MemoryAddress.ThrowIfDefault(hashSet);
             ThrowIfOutOfRange(index);
@@ -201,7 +202,7 @@ namespace Collections.Generic
                 if (oldOccupiedSpan[i])
                 {
                     T value = oldValuesSpan[i];
-                    int hashCode = SharedFunctions.GetHashCode(value);
+                    int hashCode = value.GetHashCode() & 0x7FFFFFFF;
                     int index = hashCode & newCapacity;
                     int startIndex = index;
                     while (newOccupiedSpan[index])
@@ -233,7 +234,7 @@ namespace Collections.Generic
             Span<bool> occupied = new(hashSet->occupied.Pointer, capacity);
             Span<int> hashCodes = new(hashSet->hashCodes.Pointer, capacity);
             capacity--;
-            int hashCode = SharedFunctions.GetHashCode(value);
+            int hashCode = value.GetHashCode() & 0x7FFFFFFF;
             int index = hashCode & capacity;
             int startIndex = index;
 
@@ -272,7 +273,7 @@ namespace Collections.Generic
 
             Span<bool> occupied = new(hashSet->occupied.Pointer, capacity);
             capacity--;
-            int hashCode = SharedFunctions.GetHashCode(value);
+            int hashCode = value.GetHashCode() & 0x7FFFFFFF;
             int index = hashCode & capacity;
             int startIndex = index;
 
@@ -288,8 +289,11 @@ namespace Collections.Generic
         }
 
         /// <summary>
-        /// Tries to add the given <paramref name="value"/> to the hash set and returns true if it was added successfully.
+        /// Tries to add the given <paramref name="value"/> to the hash set.
         /// </summary>
+        /// <returns>
+        /// <see langword="true"/> if it was successful, <see langword="false"/> if it's already present.
+        /// </returns>
         public readonly bool TryAdd(T value)
         {
             MemoryAddress.ThrowIfDefault(hashSet);
@@ -303,10 +307,9 @@ namespace Collections.Generic
             }
 
             Span<bool> occupied = new(hashSet->occupied.Pointer, capacity);
-            //Span<T> values = new(hashSet->values.Pointer, capacity);
             Span<int> hashCodes = new(hashSet->hashCodes.Pointer, capacity);
             capacity--;
-            int hashCode = SharedFunctions.GetHashCode(value);
+            int hashCode = value.GetHashCode() & 0x7FFFFFFF;
             int index = hashCode & capacity;
             int startIndex = index;
 
@@ -339,7 +342,7 @@ namespace Collections.Generic
             Span<bool> occupied = new(hashSet->occupied.Pointer, capacity);
             Span<int> hashCodes = new(hashSet->hashCodes.Pointer, capacity);
             capacity--;
-            int hashCode = SharedFunctions.GetHashCode(value);
+            int hashCode = value.GetHashCode() & 0x7FFFFFFF;
             int index = hashCode & capacity;
             int startIndex = index;
 
@@ -370,10 +373,9 @@ namespace Collections.Generic
 
             int capacity = hashSet->capacity;
             Span<bool> occupied = new(hashSet->occupied.Pointer, capacity);
-            //Span<T> values = new(hashSet->values.Pointer, capacity);
             Span<int> hashCodes = new(hashSet->hashCodes.Pointer, capacity);
             capacity--;
-            int hashCode = SharedFunctions.GetHashCode(value);
+            int hashCode = value.GetHashCode() & 0x7FFFFFFF;
             int index = hashCode & capacity;
             int startIndex = index;
 
@@ -420,7 +422,7 @@ namespace Collections.Generic
             Span<bool> occupied = new(hashSet->occupied.Pointer, capacity);
             Span<int> hashCodes = new(hashSet->hashCodes.Pointer, capacity);
             capacity--;
-            int hashCode = SharedFunctions.GetHashCode(value);
+            int hashCode = value.GetHashCode() & 0x7FFFFFFF;
             int index = hashCode & capacity;
             int startIndex = index;
 
@@ -458,7 +460,7 @@ namespace Collections.Generic
             Span<bool> occupied = new(hashSet->occupied.Pointer, capacity);
             Span<int> hashCodes = new(hashSet->hashCodes.Pointer, capacity);
             capacity--;
-            int hashCode = SharedFunctions.GetHashCode(value);
+            int hashCode = value.GetHashCode() & 0x7FFFFFFF;
             int index = hashCode & capacity;
             int startIndex = index;
 
@@ -485,6 +487,8 @@ namespace Collections.Generic
 
         public readonly void CopyTo(T[] array, int arrayIndex)
         {
+            MemoryAddress.ThrowIfDefault(hashSet);
+
             if (array is null)
             {
                 throw new ArgumentNullException(nameof(array));
@@ -500,12 +504,14 @@ namespace Collections.Generic
                 throw new ArgumentException("The number of elements in the hash set is greater than the available space from the index to the end of the destination array");
             }
 
-            int count = Capacity;
-            for (int i = 0; i < count; i++)
+            int capacity = hashSet->capacity;
+            Span<T> values = hashSet->values.GetSpan<T>(capacity);
+            Span<bool> occupied = hashSet->occupied.GetSpan<bool>(capacity);
+            for (int i = 0; i < capacity; i++)
             {
-                if (TryGetValueAtIndex(i, out T value))
+                if (occupied[i])
                 {
-                    array[arrayIndex++] = value;
+                    array[arrayIndex++] = values[i];
                 }
             }
         }
@@ -572,13 +578,7 @@ namespace Collections.Generic
             private readonly int capacity;
             private int index;
 
-            public readonly T Current
-            {
-                get
-                {
-                    return hashSet.GetValueAtIndex(index);
-                }
-            }
+            public readonly T Current => hashSet.GetValueAtIndex((uint)index);
 
             readonly object IEnumerator.Current => Current;
 
@@ -593,7 +593,7 @@ namespace Collections.Generic
             {
                 while (++index < capacity)
                 {
-                    if (hashSet.ContainsAtIndex(index))
+                    if (hashSet.ContainsAtIndex((uint)index))
                     {
                         return true;
                     }

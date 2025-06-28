@@ -519,7 +519,8 @@ namespace Collections.Generic
             MemoryAddress.ThrowIfDefault(list);
             ThrowIfOutOfRange(index);
 
-            list->items.WriteElement(index, list->items.ReadElement<T>(--list->count));
+            Span<T> items = list->items.GetSpan<T>(list->count);
+            items[index] = items[--list->count];
         }
 
         /// <summary>
@@ -532,9 +533,10 @@ namespace Collections.Generic
             MemoryAddress.ThrowIfDefault(list);
             ThrowIfOutOfRange(index);
 
-            ref T reference = ref list->items.ReadElement<T>(index);
+            Span<T> items = list->items.GetSpan<T>(list->count);
+            ref T reference = ref items[index];
             removed = reference;
-            reference = list->items.ReadElement<T>(--list->count);
+            reference = items[--list->count];
         }
 
         /// <summary>
@@ -564,8 +566,6 @@ namespace Collections.Generic
                     MemoryAddress.ResizeAndClear(ref list->items, list->capacity * sizeof(T), newCapacity * sizeof(T));
                     list->capacity = newCapacity;
                 }
-
-                list->count = newCount;
             }
 
             list->count = 0;
