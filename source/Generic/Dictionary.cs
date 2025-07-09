@@ -61,7 +61,7 @@ namespace Collections.Generic
                 ThrowIfKeyIsMissing(key);
 
                 int capacity = dictionary->capacity;
-                Span<bool> occupied = new(dictionary->occupied.Pointer, capacity);
+                Span<SlotState> slotStates = new(dictionary->slotStates.Pointer, capacity);
                 Span<K> keys = new(dictionary->keys.Pointer, capacity);
                 Span<int> keyHashCodes = new(dictionary->hashCodes.Pointer, capacity);
                 capacity--;
@@ -69,9 +69,9 @@ namespace Collections.Generic
                 int index = hashCode & capacity;
                 int startIndex = index;
 
-                while (occupied[index])
+                while (slotStates[index] != SlotState.Empty)
                 {
-                    if (keyHashCodes[index] == hashCode && keys[index].Equals(key))
+                    if (slotStates[index] == SlotState.Occupied && keyHashCodes[index] == hashCode && keys[index].Equals(key))
                     {
                         return ref dictionary->values.ReadElement<V>(index);
                     }
@@ -202,7 +202,7 @@ namespace Collections.Generic
             dictionary->keys = MemoryAddress.Allocate(initialCapacity * sizeof(K));
             dictionary->hashCodes = MemoryAddress.Allocate(initialCapacity * sizeof(int));
             dictionary->values = MemoryAddress.Allocate(initialCapacity * sizeof(V));
-            dictionary->occupied = MemoryAddress.AllocateZeroed(initialCapacity);
+            dictionary->slotStates = MemoryAddress.AllocateZeroed(initialCapacity);
             dictionary->capacity = initialCapacity;
             dictionary->count = 0;
             dictionary->keyStride = sizeof(K);
@@ -219,7 +219,7 @@ namespace Collections.Generic
             dictionary->keys = MemoryAddress.Allocate(4 * sizeof(K));
             dictionary->hashCodes = MemoryAddress.Allocate(4 * sizeof(int));
             dictionary->values = MemoryAddress.Allocate(4 * sizeof(V));
-            dictionary->occupied = MemoryAddress.AllocateZeroed(4);
+            dictionary->slotStates = MemoryAddress.AllocateZeroed(4);
             dictionary->capacity = 4;
             dictionary->count = 0;
             dictionary->keyStride = sizeof(K);
@@ -240,7 +240,7 @@ namespace Collections.Generic
             dictionary->keys.Dispose();
             dictionary->hashCodes.Dispose();
             dictionary->values.Dispose();
-            dictionary->occupied.Dispose();
+            dictionary->slotStates.Dispose();
             MemoryAddress.Free(ref dictionary);
         }
 
@@ -280,35 +280,35 @@ namespace Collections.Generic
             int count = 0;
             MemoryAddress oldKeys = dictionary->keys;
             MemoryAddress oldValues = dictionary->values;
-            MemoryAddress oldOccupied = dictionary->occupied;
+            MemoryAddress oldSlotStates = dictionary->slotStates;
             MemoryAddress oldKeyHashCodes = dictionary->hashCodes;
             dictionary->keys = MemoryAddress.Allocate(newCapacity * sizeof(K));
             dictionary->values = MemoryAddress.Allocate(newCapacity * sizeof(V));
             dictionary->hashCodes = MemoryAddress.Allocate(newCapacity * sizeof(int));
-            dictionary->occupied = MemoryAddress.AllocateZeroed(newCapacity);
+            dictionary->slotStates = MemoryAddress.AllocateZeroed(newCapacity);
             Span<K> oldKeysSpan = new(oldKeys.Pointer, oldCapacity);
             Span<V> oldValuesSpan = new(oldValues.Pointer, oldCapacity);
-            Span<bool> oldOccupiedSpan = new(oldOccupied.Pointer, oldCapacity);
-            Span<bool> newOccupiedSpan = new(dictionary->occupied.Pointer, newCapacity);
+            Span<SlotState> oldSlotStatesSpan = new(oldSlotStates.Pointer, oldCapacity);
+            Span<SlotState> newSlotStatesSpan = new(dictionary->slotStates.Pointer, newCapacity);
             Span<int> newKeyHashCodesSpan = new(dictionary->hashCodes.Pointer, newCapacity);
             Span<K> newKeysSpan = new(dictionary->keys.Pointer, newCapacity);
             Span<V> newValuesSpan = new(dictionary->values.Pointer, newCapacity);
             newCapacity--;
             for (int i = 0; i < oldCapacity; i++)
             {
-                if (oldOccupiedSpan[i])
+                if (oldSlotStatesSpan[i] == SlotState.Occupied)
                 {
                     K key = oldKeysSpan[i];
                     V value = oldValuesSpan[i];
                     int hashCode = key.GetHashCode() & 0x7FFFFFFF;
                     int index = hashCode & newCapacity;
                     int startIndex = index;
-                    while (newOccupiedSpan[index])
+                    while (newSlotStatesSpan[index] == SlotState.Occupied)
                     {
                         index = (index + 1) & newCapacity;
                     }
 
-                    newOccupiedSpan[index] = true;
+                    newSlotStatesSpan[index] = SlotState.Occupied;
                     newKeysSpan[index] = key;
                     newValuesSpan[index] = value;
                     newKeyHashCodesSpan[index] = hashCode;
@@ -319,7 +319,7 @@ namespace Collections.Generic
             dictionary->count = count;
             oldKeys.Dispose();
             oldValues.Dispose();
-            oldOccupied.Dispose();
+            oldSlotStates.Dispose();
             oldKeyHashCodes.Dispose();
         }
 
@@ -330,7 +330,7 @@ namespace Collections.Generic
 
             key = dictionary->keys.ReadElement<K>(index);
             value = dictionary->values.ReadElement<V>(index);
-            return dictionary->occupied.ReadElement<bool>(index);
+            return dictionary->slotStates.ReadElement<SlotState>(index) == SlotState.Occupied;
         }
 
         private readonly (K key, V value) GetPairAtIndex(uint index)
@@ -346,7 +346,7 @@ namespace Collections.Generic
             MemoryAddress.ThrowIfDefault(dictionary);
             ThrowIfOutOfRange(index);
 
-            return dictionary->occupied.ReadElement<bool>(index);
+            return dictionary->slotStates.ReadElement<SlotState>(index) == SlotState.Occupied;
         }
 
         private readonly bool TryGetKeyAtIndex(uint index, out K key)
@@ -355,7 +355,7 @@ namespace Collections.Generic
             ThrowIfOutOfRange(index);
 
             key = dictionary->keys.ReadElement<K>(index);
-            return dictionary->occupied.ReadElement<bool>(index);
+            return dictionary->slotStates.ReadElement<SlotState>(index) == SlotState.Occupied;
         }
 
         private readonly bool TryGetValueAtIndex(uint index, out V value)
@@ -364,7 +364,7 @@ namespace Collections.Generic
             ThrowIfOutOfRange(index);
 
             value = dictionary->values.ReadElement<V>(index);
-            return dictionary->occupied.ReadElement<bool>(index);
+            return dictionary->slotStates.ReadElement<SlotState>(index) == SlotState.Occupied;
         }
 
         /// <summary>
@@ -375,7 +375,7 @@ namespace Collections.Generic
             MemoryAddress.ThrowIfDefault(dictionary);
 
             int capacity = dictionary->capacity;
-            Span<bool> occupied = new(dictionary->occupied.Pointer, capacity);
+            Span<SlotState> slotStates = new(dictionary->slotStates.Pointer, capacity);
             Span<K> keys = new(dictionary->keys.Pointer, capacity);
             Span<int> keyHashCodes = new(dictionary->hashCodes.Pointer, capacity);
             capacity--;
@@ -383,9 +383,9 @@ namespace Collections.Generic
             int index = hashCode & capacity;
             int startIndex = index;
 
-            while (occupied[index])
+            while (slotStates[index] != SlotState.Empty)
             {
-                if (keyHashCodes[index] == hashCode && keys[index].Equals(key))
+                if (slotStates[index] == SlotState.Occupied && keyHashCodes[index] == hashCode && keys[index].Equals(key))
                 {
                     return true;
                 }
@@ -409,7 +409,7 @@ namespace Collections.Generic
             MemoryAddress.ThrowIfDefault(dictionary);
 
             int capacity = dictionary->capacity;
-            Span<bool> occupied = new(dictionary->occupied.Pointer, capacity);
+            Span<SlotState> slotStates = new(dictionary->slotStates.Pointer, capacity);
             Span<K> keys = new(dictionary->keys.Pointer, capacity);
             Span<int> keyHashCodes = new(dictionary->hashCodes.Pointer, capacity);
             capacity--;
@@ -417,9 +417,9 @@ namespace Collections.Generic
             int index = hashCode & capacity;
             int startIndex = index;
 
-            while (occupied[index])
+            while (slotStates[index] != SlotState.Empty)
             {
-                if (keyHashCodes[index] == hashCode && keys[index].Equals(key))
+                if (slotStates[index] == SlotState.Occupied && keyHashCodes[index] == hashCode && keys[index].Equals(key))
                 {
                     value = dictionary->values.ReadElement<V>(index);
                     return true;
@@ -445,7 +445,7 @@ namespace Collections.Generic
             MemoryAddress.ThrowIfDefault(dictionary);
 
             int capacity = dictionary->capacity;
-            Span<bool> occupied = new(dictionary->occupied.Pointer, capacity);
+            Span<SlotState> slotStates = new(dictionary->slotStates.Pointer, capacity);
             Span<K> keys = new(dictionary->keys.Pointer, capacity);
             Span<int> keyHashCodes = new(dictionary->hashCodes.Pointer, capacity);
             capacity--;
@@ -453,9 +453,9 @@ namespace Collections.Generic
             int index = hashCode & capacity;
             int startIndex = index;
 
-            while (occupied[index])
+            while (slotStates[index] != SlotState.Empty)
             {
-                if (keyHashCodes[index] == hashCode && keys[index].Equals(key))
+                if (slotStates[index] == SlotState.Occupied && keyHashCodes[index] == hashCode && keys[index].Equals(key))
                 {
                     contains = true;
                     return ref dictionary->values.ReadElement<V>(index);
@@ -487,7 +487,7 @@ namespace Collections.Generic
                 Resize(capacity);
             }
 
-            Span<bool> occupied = new(dictionary->occupied.Pointer, capacity);
+            Span<SlotState> slotStates = new(dictionary->slotStates.Pointer, capacity);
             Span<int> keyHashCodes = new(dictionary->hashCodes.Pointer, capacity);
             Span<K> keys = new(dictionary->keys.Pointer, capacity);
             capacity--;
@@ -495,9 +495,9 @@ namespace Collections.Generic
             int index = hashCode & capacity;
             int startIndex = index;
 
-            while (occupied[index])
+            while (slotStates[index] != SlotState.Empty)
             {
-                if (keyHashCodes[index] == hashCode && keys[index].Equals(key))
+                if (slotStates[index] == SlotState.Occupied && keyHashCodes[index] == hashCode && keys[index].Equals(key))
                 {
                     return false;
                 }
@@ -509,7 +509,7 @@ namespace Collections.Generic
                 }
             }
 
-            occupied[index] = true;
+            slotStates[index] = SlotState.Occupied;
             keys[index] = key;
             keyHashCodes[index] = hashCode;
             dictionary->values.WriteElement(index, value);
@@ -536,17 +536,17 @@ namespace Collections.Generic
                 Resize(capacity);
             }
 
-            Span<bool> occupied = new(dictionary->occupied.Pointer, capacity);
+            Span<SlotState> slotStates = new(dictionary->slotStates.Pointer, capacity);
             capacity--;
             int hashCode = key.GetHashCode() & 0x7FFFFFFF;
             int index = hashCode & capacity;
             int startIndex = index;
-            while (occupied[index])
+            while (slotStates[index] == SlotState.Occupied)
             {
                 index = (index + 1) & capacity;
             }
 
-            occupied[index] = true;
+            slotStates[index] = SlotState.Occupied;
             dictionary->keys.WriteElement(index, key);
             dictionary->values.WriteElement(index, value);
             dictionary->hashCodes.WriteElement(index, hashCode);
@@ -572,17 +572,17 @@ namespace Collections.Generic
                 Resize(capacity);
             }
 
-            Span<bool> occupied = new(dictionary->occupied.Pointer, capacity);
+            Span<SlotState> slotStates = new(dictionary->slotStates.Pointer, capacity);
             capacity--;
             int hashCode = key.GetHashCode() & 0x7FFFFFFF;
             int index = hashCode & capacity;
             int startIndex = index;
-            while (occupied[index])
+            while (slotStates[index] == SlotState.Occupied)
             {
                 index = (index + 1) & capacity;
             }
 
-            occupied[index] = true;
+            slotStates[index] = SlotState.Occupied;
             dictionary->keys.WriteElement(index, key);
             dictionary->values.WriteElement(index, value);
             dictionary->hashCodes.WriteElement(index, hashCode);
@@ -604,7 +604,7 @@ namespace Collections.Generic
             ThrowIfKeyIsMissing(key);
 
             int capacity = dictionary->capacity;
-            Span<bool> occupied = new(dictionary->occupied.Pointer, capacity);
+            Span<SlotState> slotStates = new(dictionary->slotStates.Pointer, capacity);
             Span<K> keys = new(dictionary->keys.Pointer, capacity);
             Span<int> keyHashCodes = new(dictionary->hashCodes.Pointer, capacity);
             capacity--;
@@ -612,9 +612,9 @@ namespace Collections.Generic
             int index = hashCode & capacity;
             int startIndex = index;
 
-            while (occupied[index])
+            while (slotStates[index] != SlotState.Empty)
             {
-                if (keyHashCodes[index] == hashCode && keys[index].Equals(key))
+                if (slotStates[index] == SlotState.Occupied && keyHashCodes[index] == hashCode && keys[index].Equals(key))
                 {
                     dictionary->values.WriteElement(index, value);
                     return;
@@ -662,17 +662,17 @@ namespace Collections.Generic
                 Resize(capacity);
             }
 
-            Span<bool> occupied = new(dictionary->occupied.Pointer, capacity);
+            Span<SlotState> slotStates = new(dictionary->slotStates.Pointer, capacity);
             capacity--;
             int hashCode = key.GetHashCode() & 0x7FFFFFFF;
             int index = hashCode & capacity;
             int startIndex = index;
-            while (occupied[index])
+            while (slotStates[index] == SlotState.Occupied)
             {
                 index = (index + 1) & capacity;
             }
 
-            occupied[index] = true;
+            slotStates[index] = SlotState.Occupied;
             dictionary->keys.WriteElement(index, key);
             dictionary->values.WriteElement<V>(index, default);
             dictionary->hashCodes.WriteElement(index, hashCode);
@@ -693,7 +693,7 @@ namespace Collections.Generic
             ThrowIfKeyIsMissing(key);
 
             int capacity = dictionary->capacity;
-            Span<bool> occupied = new(dictionary->occupied.Pointer, capacity);
+            Span<SlotState> slotStates = new(dictionary->slotStates.Pointer, capacity);
             Span<K> keys = new(dictionary->keys.Pointer, capacity);
             Span<int> keyHashCodes = new(dictionary->hashCodes.Pointer, capacity);
             capacity--;
@@ -701,11 +701,11 @@ namespace Collections.Generic
             int index = hashCode & capacity;
             int startIndex = index;
 
-            while (occupied[index])
+            while (slotStates[index] != SlotState.Empty)
             {
-                if (keyHashCodes[index] == hashCode && keys[index].Equals(key))
+                if (slotStates[index] == SlotState.Occupied && keyHashCodes[index] == hashCode && keys[index].Equals(key))
                 {
-                    occupied[index] = false;
+                    slotStates[index] = SlotState.Deleted;
                     keys[index] = default;
                     keyHashCodes[index] = 0;
                     dictionary->values.Clear(index * dictionary->valueStride, dictionary->valueStride);
@@ -734,22 +734,23 @@ namespace Collections.Generic
             ThrowIfKeyIsMissing(key);
 
             int capacity = dictionary->capacity;
-            Span<bool> occupied = new(dictionary->occupied.Pointer, capacity);
+            Span<SlotState> slotStates = new(dictionary->slotStates.Pointer, capacity);
             Span<K> keys = new(dictionary->keys.Pointer, capacity);
             Span<int> keyHashCodes = new(dictionary->hashCodes.Pointer, capacity);
+            Span<V> values = new(dictionary->values.Pointer, capacity);
             capacity--;
             int hashCode = key.GetHashCode() & 0x7FFFFFFF;
             int index = hashCode & capacity;
             int startIndex = index;
 
-            while (occupied[index])
+            while (slotStates[index] != SlotState.Empty)
             {
-                if (keyHashCodes[index] == hashCode && keys[index].Equals(key))
+                if (slotStates[index] == SlotState.Occupied && keyHashCodes[index] == hashCode && keys[index].Equals(key))
                 {
-                    occupied[index] = false;
+                    slotStates[index] = SlotState.Deleted;
                     keys[index] = default;
-                    removed = dictionary->values.ReadElement<V>(index);
-                    dictionary->values.WriteElement<V>(index, default);
+                    removed = values[index];
+                    values[index] = default;
                     dictionary->count--;
                     return;
                 }
@@ -773,23 +774,24 @@ namespace Collections.Generic
             MemoryAddress.ThrowIfDefault(dictionary);
 
             int capacity = dictionary->capacity;
-            Span<bool> occupied = new(dictionary->occupied.Pointer, capacity);
+            Span<SlotState> slotStates = new(dictionary->slotStates.Pointer, capacity);
             Span<K> keys = new(dictionary->keys.Pointer, capacity);
             Span<int> keyHashCodes = new(dictionary->hashCodes.Pointer, capacity);
+            Span<V> values = new(dictionary->values.Pointer, capacity);
             capacity--;
             int hashCode = key.GetHashCode() & 0x7FFFFFFF;
             int index = hashCode & capacity;
             int startIndex = index;
 
-            while (occupied[index])
+            while (slotStates[index] != SlotState.Empty)
             {
-                if (keyHashCodes[index] == hashCode && keys[index].Equals(key))
+                if (slotStates[index] == SlotState.Occupied && keyHashCodes[index] == hashCode && keys[index].Equals(key))
                 {
-                    occupied[index] = false;
+                    slotStates[index] = SlotState.Deleted;
                     keys[index] = default;
                     keyHashCodes[index] = 0;
-                    removed = dictionary->values.ReadElement<V>(index);
-                    dictionary->values.WriteElement<V>(index, default);
+                    removed = values[index];
+                    values[index] = default;
                     dictionary->count--;
                     return true;
                 }
@@ -814,7 +816,7 @@ namespace Collections.Generic
             MemoryAddress.ThrowIfDefault(dictionary);
 
             int capacity = dictionary->capacity;
-            Span<bool> occupied = new(dictionary->occupied.Pointer, capacity);
+            Span<SlotState> slotStates = new(dictionary->slotStates.Pointer, capacity);
             Span<K> keys = new(dictionary->keys.Pointer, capacity);
             Span<int> keyHashCodes = new(dictionary->hashCodes.Pointer, capacity);
             capacity--;
@@ -822,11 +824,11 @@ namespace Collections.Generic
             int index = hashCode & capacity;
             int startIndex = index;
 
-            while (occupied[index])
+            while (slotStates[index] != SlotState.Empty)
             {
-                if (keyHashCodes[index] == hashCode && keys[index].Equals(key))
+                if (slotStates[index] == SlotState.Occupied && keyHashCodes[index] == hashCode && keys[index].Equals(key))
                 {
-                    occupied[index] = false;
+                    slotStates[index] = SlotState.Deleted;
                     keys[index] = default;
                     keyHashCodes[index] = 0;
                     dictionary->values.WriteElement<V>(index, default);
@@ -851,7 +853,7 @@ namespace Collections.Generic
         {
             MemoryAddress.ThrowIfDefault(dictionary);
 
-            dictionary->occupied.Clear(dictionary->capacity);
+            dictionary->slotStates.Clear(dictionary->capacity);
             dictionary->count = 0;
         }
 

@@ -1,5 +1,6 @@
 ﻿using Collections.Generic;
 using System;
+using Unmanaged;
 using Unmanaged.Tests;
 
 namespace Collections.Tests
@@ -326,6 +327,89 @@ namespace Collections.Tests
             map.Add(3, 100);
             Assert.That(map.ContainsKey(3), Is.True);
             Assert.That(map[3], Is.EqualTo(100));
+        }
+
+        [Test]
+        public void FindValueFromTupleKey()
+        {
+            using RandomGenerator rng = new(1337);
+            for (int i = 0; i < 2048; i++)
+            {
+                using Dictionary<ChunkPosition, int> map = new();
+                map.Add(new(-1, 0, -1), 186);
+
+                Assert.That(map.ContainsKey(new(-1, 0, -1)), Is.True);
+
+                map.Add(new(0, 0, -2), 186);
+
+                Assert.That(map.ContainsKey(new(0, 0, -2)), Is.True);
+
+                map.Add(new(0, 0, -1), 188);
+
+                Assert.That(map.ContainsKey(new(0, 0, -1)), Is.True);
+
+                map.Add(new(0, 0, 0), 188);
+
+                Assert.That(map.ContainsKey(new(0, 0, 0)), Is.True);
+
+                map.Add(new(1, 0, -1), 190);
+
+                Assert.That(map.ContainsKey(new(1, 0, -1)), Is.True);
+                Assert.That(map.ContainsKey(new(0, 0, -2)), Is.True);
+
+                map.Remove(new(0, 0, -2));
+
+                Assert.That(map.ContainsKey(new(0, 0, -2)), Is.False);
+                Assert.That(map.ContainsKey(new(0, 0, 0)), Is.True);
+
+                map.Remove(new(0, 0, 0));
+
+                Assert.That(map.ContainsKey(new(0, 0, 0)), Is.False);
+                Assert.That(map.ContainsKey(new(1, 0, -1)), Is.True);
+
+                map.Remove(new(1, 0, -1));
+
+                Assert.That(map.ContainsKey(new(1, 0, -1)), Is.False);
+
+                int length = rng.NextInt(32, 64);
+                using MemoryAddress randomAllocation = MemoryAddress.Allocate(length);
+                Span<byte> bytes = randomAllocation.GetSpan<byte>(length);
+                rng.NextBytes(bytes);
+            }
+        }
+
+        public struct ChunkPosition : IEquatable<ChunkPosition>
+        {
+            public int x;
+            public int y;
+            public int z;
+
+            public ChunkPosition(int x, int y, int z)
+            {
+                this.x = x;
+                this.y = y;
+                this.z = z;
+            }
+
+            public readonly override string ToString()
+            {
+                return $"{nameof(ChunkPosition)}({x}, {y}, {z})";
+            }
+
+            public readonly override bool Equals(object? obj)
+            {
+                return obj is ChunkPosition position && Equals(position);
+            }
+
+            public readonly bool Equals(ChunkPosition other)
+            {
+                return x == other.x && y == other.y && z == other.z;
+            }
+
+            public readonly override int GetHashCode()
+            {
+                return HashCode.Combine(x, y, z);
+            }
         }
     }
 }

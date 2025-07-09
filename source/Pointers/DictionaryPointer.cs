@@ -11,6 +11,6 @@ namespace Collections.Pointers
         public MemoryAddress keys;
         public MemoryAddress hashCodes;
         public MemoryAddress values;
-        public MemoryAddress occupied;
+        public MemoryAddress slotStates;
     }
 }
