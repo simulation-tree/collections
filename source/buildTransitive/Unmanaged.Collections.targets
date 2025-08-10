@@ -3,7 +3,7 @@
 
     <ItemGroup>
         <Reference Include="Collections">
-            <HintPath>$(MSBuildThisFileDirectory)..\lib\net9.0\$(Configuration)\Collections.dll</HintPath>
+            <HintPath>$(MSBuildThisFileDirectory)..\lib\$(TargetFramework)\$(Configuration)\Collections.dll</HintPath>
         </Reference>
     </ItemGroup>
 
