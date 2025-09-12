@@ -140,6 +140,30 @@ namespace Collections.Tests
         }
 
         [Test]
+        public void InsertRangeIntoList()
+        {
+            using List<int> list = new();
+            list.InsertRange(0, [1, 2, 3, 4]);
+
+            Assert.That(list.Count, Is.EqualTo(4));
+            Assert.That(list[0], Is.EqualTo(1));
+            Assert.That(list[1], Is.EqualTo(2));
+            Assert.That(list[2], Is.EqualTo(3));
+            Assert.That(list[3], Is.EqualTo(4));
+
+            list.InsertRange(1, [3, 3, 7]);
+
+            Assert.That(list.Count, Is.EqualTo(7));
+            Assert.That(list[0], Is.EqualTo(1));
+            Assert.That(list[1], Is.EqualTo(3));
+            Assert.That(list[2], Is.EqualTo(3));
+            Assert.That(list[3], Is.EqualTo(7));
+            Assert.That(list[4], Is.EqualTo(2));
+            Assert.That(list[5], Is.EqualTo(3));
+            Assert.That(list[6], Is.EqualTo(4));
+        }
+
+        [Test]
         public void AddRange()
         {
             using List<uint> list = new();
@@ -179,7 +203,11 @@ namespace Collections.Tests
         public void AddDefaults()
         {
             using List<byte> list = new(4);
-            list.AddDefault(5);
+            list.AddDefault();
+            list.AddDefault();
+            list.AddDefault();
+            list.AddDefault();
+            list.AddDefault();
 
             Assert.That(list.Count, Is.EqualTo(5));
             Assert.That(list.Capacity, Is.EqualTo(8));
@@ -188,6 +216,15 @@ namespace Collections.Tests
             Assert.That(list[2], Is.EqualTo(default(byte)));
             Assert.That(list[3], Is.EqualTo(default(byte)));
             Assert.That(list[4], Is.EqualTo(default(byte)));
+
+            list.AddDefault(4);
+
+            Assert.That(list.Count, Is.EqualTo(9));
+            Assert.That(list.Capacity, Is.EqualTo(16));
+            Assert.That(list[5], Is.EqualTo(default(byte)));
+            Assert.That(list[6], Is.EqualTo(default(byte)));
+            Assert.That(list[7], Is.EqualTo(default(byte)));
+            Assert.That(list[8], Is.EqualTo(default(byte)));
         }
 
         [Test]
