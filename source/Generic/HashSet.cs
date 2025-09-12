@@ -191,11 +191,11 @@ namespace Collections.Generic
             hashSet->values = MemoryAddress.Allocate(newCapacity * sizeof(T));
             hashSet->hashCodes = MemoryAddress.Allocate(newCapacity * sizeof(int));
             hashSet->occupied = MemoryAddress.AllocateZeroed(newCapacity);
-            Span<T> oldValuesSpan = new(oldValues.Pointer, oldCapacity);
-            Span<bool> oldOccupiedSpan = new(oldOccupied.Pointer, oldCapacity);
-            Span<bool> newOccupiedSpan = new(hashSet->occupied.Pointer, newCapacity);
-            Span<int> newHashCodes = new(hashSet->hashCodes.Pointer, newCapacity);
-            Span<T> newValuesSpan = new(hashSet->values.Pointer, newCapacity);
+            Span<T> oldValuesSpan = new(oldValues.pointer, oldCapacity);
+            Span<bool> oldOccupiedSpan = new(oldOccupied.pointer, oldCapacity);
+            Span<bool> newOccupiedSpan = new(hashSet->occupied.pointer, newCapacity);
+            Span<int> newHashCodes = new(hashSet->hashCodes.pointer, newCapacity);
+            Span<T> newValuesSpan = new(hashSet->values.pointer, newCapacity);
             newCapacity--;
             for (int i = 0; i < oldCapacity; i++)
             {
@@ -231,8 +231,8 @@ namespace Collections.Generic
             MemoryAddress.ThrowIfDefault(hashSet);
 
             int capacity = hashSet->capacity;
-            Span<bool> occupied = new(hashSet->occupied.Pointer, capacity);
-            Span<int> hashCodes = new(hashSet->hashCodes.Pointer, capacity);
+            Span<bool> occupied = new(hashSet->occupied.pointer, capacity);
+            Span<int> hashCodes = new(hashSet->hashCodes.pointer, capacity);
             capacity--;
             int hashCode = value.GetHashCode() & 0x7FFFFFFF;
             int index = hashCode & capacity;
@@ -271,7 +271,7 @@ namespace Collections.Generic
                 capacity = hashSet->capacity;
             }
 
-            Span<bool> occupied = new(hashSet->occupied.Pointer, capacity);
+            Span<bool> occupied = new(hashSet->occupied.pointer, capacity);
             capacity--;
             int hashCode = value.GetHashCode() & 0x7FFFFFFF;
             int index = hashCode & capacity;
@@ -306,8 +306,8 @@ namespace Collections.Generic
                 capacity = hashSet->capacity;
             }
 
-            Span<bool> occupied = new(hashSet->occupied.Pointer, capacity);
-            Span<int> hashCodes = new(hashSet->hashCodes.Pointer, capacity);
+            Span<bool> occupied = new(hashSet->occupied.pointer, capacity);
+            Span<int> hashCodes = new(hashSet->hashCodes.pointer, capacity);
             capacity--;
             int hashCode = value.GetHashCode() & 0x7FFFFFFF;
             int index = hashCode & capacity;
@@ -339,8 +339,8 @@ namespace Collections.Generic
             ThrowIfMissing(value);
 
             int capacity = hashSet->capacity;
-            Span<bool> occupied = new(hashSet->occupied.Pointer, capacity);
-            Span<int> hashCodes = new(hashSet->hashCodes.Pointer, capacity);
+            Span<bool> occupied = new(hashSet->occupied.pointer, capacity);
+            Span<int> hashCodes = new(hashSet->hashCodes.pointer, capacity);
             capacity--;
             int hashCode = value.GetHashCode() & 0x7FFFFFFF;
             int index = hashCode & capacity;
@@ -372,8 +372,8 @@ namespace Collections.Generic
             MemoryAddress.ThrowIfDefault(hashSet);
 
             int capacity = hashSet->capacity;
-            Span<bool> occupied = new(hashSet->occupied.Pointer, capacity);
-            Span<int> hashCodes = new(hashSet->hashCodes.Pointer, capacity);
+            Span<bool> occupied = new(hashSet->occupied.pointer, capacity);
+            Span<int> hashCodes = new(hashSet->hashCodes.pointer, capacity);
             capacity--;
             int hashCode = value.GetHashCode() & 0x7FFFFFFF;
             int index = hashCode & capacity;
@@ -419,8 +419,8 @@ namespace Collections.Generic
             MemoryAddress.ThrowIfDefault(hashSet);
 
             int capacity = hashSet->capacity;
-            Span<bool> occupied = new(hashSet->occupied.Pointer, capacity);
-            Span<int> hashCodes = new(hashSet->hashCodes.Pointer, capacity);
+            Span<bool> occupied = new(hashSet->occupied.pointer, capacity);
+            Span<int> hashCodes = new(hashSet->hashCodes.pointer, capacity);
             capacity--;
             int hashCode = value.GetHashCode() & 0x7FFFFFFF;
             int index = hashCode & capacity;
@@ -457,8 +457,8 @@ namespace Collections.Generic
             ThrowIfMissing(value);
 
             int capacity = hashSet->capacity;
-            Span<bool> occupied = new(hashSet->occupied.Pointer, capacity);
-            Span<int> hashCodes = new(hashSet->hashCodes.Pointer, capacity);
+            Span<bool> occupied = new(hashSet->occupied.pointer, capacity);
+            Span<int> hashCodes = new(hashSet->hashCodes.pointer, capacity);
             capacity--;
             int hashCode = value.GetHashCode() & 0x7FFFFFFF;
             int index = hashCode & capacity;

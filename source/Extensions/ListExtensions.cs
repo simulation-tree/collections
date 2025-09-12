@@ -10,7 +10,7 @@ namespace Collections.Generic
         /// </summary>
         public unsafe static bool Contains<T>(this List<T> list, T value) where T : unmanaged, IEquatable<T>
         {
-            return new Span<T>(list.Items.Pointer, list.Count).Contains(value);
+            return new Span<T>(list.Items.pointer, list.Count).Contains(value);
         }
 
         /// <summary>
@@ -18,7 +18,7 @@ namespace Collections.Generic
         /// </summary>
         public unsafe static int IndexOf<T>(this List<T> list, T value) where T : unmanaged, IEquatable<T>
         {
-            return new Span<T>(list.Items.Pointer, list.Count).IndexOf(value);
+            return new Span<T>(list.Items.pointer, list.Count).IndexOf(value);
         }
 
         /// <summary>
@@ -26,7 +26,7 @@ namespace Collections.Generic
         /// </summary>
         public unsafe static int LastIndexOf<T>(this List<T> list, T value) where T : unmanaged, IEquatable<T>
         {
-            return new Span<T>(list.Items.Pointer, list.Count).LastIndexOf(value);
+            return new Span<T>(list.Items.pointer, list.Count).LastIndexOf(value);
         }
 
         /// <summary>
@@ -34,7 +34,7 @@ namespace Collections.Generic
         /// </summary>
         public unsafe static bool TryIndexOf<T>(this List<T> list, T value, out int index) where T : unmanaged, IEquatable<T>
         {
-            index = new Span<T>(list.Items.Pointer, list.Count).IndexOf(value);
+            index = new Span<T>(list.Items.pointer, list.Count).IndexOf(value);
             return index != -1;
         }
 
@@ -43,7 +43,7 @@ namespace Collections.Generic
         /// </summary>
         public unsafe static bool TryLastIndexOf<T>(this List<T> list, T value, out int index) where T : unmanaged, IEquatable<T>
         {
-            index = new Span<T>(list.Items.Pointer, list.Count).LastIndexOf(value);
+            index = new Span<T>(list.Items.pointer, list.Count).LastIndexOf(value);
             return index != -1;
         }
 

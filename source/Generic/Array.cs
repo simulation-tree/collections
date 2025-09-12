@@ -200,7 +200,7 @@ namespace Collections.Generic
         {
             MemoryAddress.ThrowIfDefault(array);
 
-            new Span<T>(array->items.Pointer, array->length).Clear();
+            new Span<T>(array->items.pointer, array->length).Clear();
         }
 
         /// <summary>
@@ -221,7 +221,7 @@ namespace Collections.Generic
         {
             MemoryAddress.ThrowIfDefault(array);
 
-            new Span<T>(array->items.Pointer, array->length).Fill(value);
+            new Span<T>(array->items.pointer, array->length).Fill(value);
         }
 
         /// <summary>
@@ -231,7 +231,7 @@ namespace Collections.Generic
         {
             MemoryAddress.ThrowIfDefault(array);
 
-            return new(array->items.Pointer, array->length);
+            return new(array->items.pointer, array->length);
         }
 
         /// <summary>
@@ -242,7 +242,7 @@ namespace Collections.Generic
             MemoryAddress.ThrowIfDefault(array);
             ThrowIfSizeMismatch<T>();
 
-            return new(array->items.Pointer, array->length);
+            return new(array->items.pointer, array->length);
         }
 
         /// <summary>
@@ -264,7 +264,7 @@ namespace Collections.Generic
         {
             MemoryAddress.ThrowIfDefault(array);
 
-            return new(array->items.Pointer, length);
+            return new(array->items.pointer, length);
         }
 
         /// <summary>
@@ -293,7 +293,7 @@ namespace Collections.Generic
         /// </summary>
         public readonly void CopyTo(Span<T> destination)
         {
-            new Span<T>(array->items.Pointer, array->length).CopyTo(destination);
+            new Span<T>(array->items.pointer, array->length).CopyTo(destination);
         }
 
         /// <summary>
@@ -302,13 +302,13 @@ namespace Collections.Generic
         /// </summary>
         public readonly void CopyFrom(ReadOnlySpan<T> source)
         {
-            source.CopyTo(new(array->items.Pointer, array->length));
+            source.CopyTo(new(array->items.pointer, array->length));
         }
 
         /// <inheritdoc/>
         public readonly Span<T>.Enumerator GetEnumerator()
         {
-            return new Span<T>(array->items.Pointer, array->length).GetEnumerator();
+            return new Span<T>(array->items.pointer, array->length).GetEnumerator();
         }
 
         readonly IEnumerator<T> IEnumerable<T>.GetEnumerator()

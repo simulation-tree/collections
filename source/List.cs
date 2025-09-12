@@ -100,7 +100,7 @@ namespace Collections
                 MemoryAddress.ThrowIfDefault(list);
                 ThrowIfOutOfRange(index);
 
-                return new(list->items.Pointer + list->stride * index);
+                return new(list->items.pointer + list->stride * index);
             }
         }
 
@@ -219,7 +219,7 @@ namespace Collections
             MemoryAddress.ThrowIfDefault(list);
             ThrowIfSizeMismatch<T>();
 
-            return new(list->items.Pointer, list->count);
+            return new(list->items.pointer, list->count);
         }
 
         /// <summary>
@@ -256,7 +256,7 @@ namespace Collections
                 MemoryAddress.Resize(ref list->items, stride * list->capacity);
             }
 
-            item.CopyTo(list->items.Pointer + count * stride, stride);
+            item.CopyTo(list->items.pointer + count * stride, stride);
             list->count = count + 1;
         }
 
@@ -297,7 +297,7 @@ namespace Collections
             int bytePosition = list->count * stride;
             list->items.Clear(bytePosition, stride);
             list->count = newCount;
-            newElement = new(list->items.Pointer + bytePosition);
+            newElement = new(list->items.pointer + bytePosition);
         }
 
         /// <summary>
@@ -317,7 +317,7 @@ namespace Collections
 
             int bytePosition = list->count * stride;
             list->count = newCount;
-            newElement = new(list->items.Pointer + bytePosition);
+            newElement = new(list->items.pointer + bytePosition);
         }
 
         /// <summary>
@@ -402,7 +402,7 @@ namespace Collections
             Span<byte> destination = list->items.AsSpan((index + 1) * stride, remaining * stride);
             Span<byte> source = list->items.AsSpan(index * stride, remaining * stride);
             source.CopyTo(destination);
-            item.CopyTo(list->items.Pointer + index * stride, stride);
+            item.CopyTo(list->items.pointer + index * stride, stride);
             list->count = count + 1;
         }
 
@@ -439,7 +439,7 @@ namespace Collections
 
             int stride = list->stride;
             int newCount = list->count - 1;
-            new Span<byte>(list->items.Pointer + stride * newCount, stride).CopyTo(new(list->items.Pointer + stride * index, stride));
+            new Span<byte>(list->items.pointer + stride * newCount, stride).CopyTo(new(list->items.pointer + stride * index, stride));
             list->count = newCount;
         }
 
@@ -458,9 +458,9 @@ namespace Collections
 
             int stride = list->stride;
             int newCount = list->count - 1;
-            Span<byte> destination = new(list->items.Pointer + stride * index, stride);
+            Span<byte> destination = new(list->items.pointer + stride * index, stride);
             destination.CopyTo(removed);
-            new Span<byte>(list->items.Pointer + stride * newCount, stride).CopyTo(destination);
+            new Span<byte>(list->items.pointer + stride * newCount, stride).CopyTo(destination);
             list->count = newCount;
         }
 
@@ -484,9 +484,9 @@ namespace Collections
                 MemoryAddress.Resize(ref destination.list->items, stride * destination.list->capacity);
             }
 
-            Span<byte> removed = new(list->items.Pointer + stride * index, stride);
+            Span<byte> removed = new(list->items.pointer + stride * index, stride);
             destination.list->items.Write(destinationCount * stride, removed);
-            new Span<byte>(list->items.Pointer + stride * newSourceCount, stride).CopyTo(removed);
+            new Span<byte>(list->items.pointer + stride * newSourceCount, stride).CopyTo(removed);
             list->count = newSourceCount;
             destination.list->count = destinationCount + 1;
         }
@@ -512,10 +512,10 @@ namespace Collections
                 MemoryAddress.Resize(ref destination.list->items, stride * destination.list->capacity);
             }
 
-            Span<byte> removed = new(list->items.Pointer + stride * index, stride);
-            newItem = new(destination.list->items.Pointer + destinationCount * stride);
+            Span<byte> removed = new(list->items.pointer + stride * index, stride);
+            newItem = new(destination.list->items.pointer + destinationCount * stride);
             newItem.Write(removed);
-            new Span<byte>(list->items.Pointer + stride * newSourceCount, stride).CopyTo(removed);
+            new Span<byte>(list->items.pointer + stride * newSourceCount, stride).CopyTo(removed);
             list->count = newSourceCount;
             destination.list->count = destinationCount + 1;
         }

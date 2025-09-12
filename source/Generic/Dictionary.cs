@@ -61,9 +61,9 @@ namespace Collections.Generic
                 ThrowIfKeyIsMissing(key);
 
                 int capacity = dictionary->capacity;
-                Span<SlotState> slotStates = new(dictionary->slotStates.Pointer, capacity);
-                Span<K> keys = new(dictionary->keys.Pointer, capacity);
-                Span<int> keyHashCodes = new(dictionary->hashCodes.Pointer, capacity);
+                Span<SlotState> slotStates = new(dictionary->slotStates.pointer, capacity);
+                Span<K> keys = new(dictionary->keys.pointer, capacity);
+                Span<int> keyHashCodes = new(dictionary->hashCodes.pointer, capacity);
                 capacity--;
                 int hashCode = key.GetHashCode() & 0x7FFFFFFF;
                 int index = hashCode & capacity;
@@ -286,13 +286,13 @@ namespace Collections.Generic
             dictionary->values = MemoryAddress.Allocate(newCapacity * sizeof(V));
             dictionary->hashCodes = MemoryAddress.Allocate(newCapacity * sizeof(int));
             dictionary->slotStates = MemoryAddress.AllocateZeroed(newCapacity);
-            Span<K> oldKeysSpan = new(oldKeys.Pointer, oldCapacity);
-            Span<V> oldValuesSpan = new(oldValues.Pointer, oldCapacity);
-            Span<SlotState> oldSlotStatesSpan = new(oldSlotStates.Pointer, oldCapacity);
-            Span<SlotState> newSlotStatesSpan = new(dictionary->slotStates.Pointer, newCapacity);
-            Span<int> newKeyHashCodesSpan = new(dictionary->hashCodes.Pointer, newCapacity);
-            Span<K> newKeysSpan = new(dictionary->keys.Pointer, newCapacity);
-            Span<V> newValuesSpan = new(dictionary->values.Pointer, newCapacity);
+            Span<K> oldKeysSpan = new(oldKeys.pointer, oldCapacity);
+            Span<V> oldValuesSpan = new(oldValues.pointer, oldCapacity);
+            Span<SlotState> oldSlotStatesSpan = new(oldSlotStates.pointer, oldCapacity);
+            Span<SlotState> newSlotStatesSpan = new(dictionary->slotStates.pointer, newCapacity);
+            Span<int> newKeyHashCodesSpan = new(dictionary->hashCodes.pointer, newCapacity);
+            Span<K> newKeysSpan = new(dictionary->keys.pointer, newCapacity);
+            Span<V> newValuesSpan = new(dictionary->values.pointer, newCapacity);
             newCapacity--;
             for (int i = 0; i < oldCapacity; i++)
             {
@@ -375,9 +375,9 @@ namespace Collections.Generic
             MemoryAddress.ThrowIfDefault(dictionary);
 
             int capacity = dictionary->capacity;
-            Span<SlotState> slotStates = new(dictionary->slotStates.Pointer, capacity);
-            Span<K> keys = new(dictionary->keys.Pointer, capacity);
-            Span<int> keyHashCodes = new(dictionary->hashCodes.Pointer, capacity);
+            Span<SlotState> slotStates = new(dictionary->slotStates.pointer, capacity);
+            Span<K> keys = new(dictionary->keys.pointer, capacity);
+            Span<int> keyHashCodes = new(dictionary->hashCodes.pointer, capacity);
             capacity--;
             int hashCode = key.GetHashCode() & 0x7FFFFFFF;
             int index = hashCode & capacity;
@@ -409,9 +409,9 @@ namespace Collections.Generic
             MemoryAddress.ThrowIfDefault(dictionary);
 
             int capacity = dictionary->capacity;
-            Span<SlotState> slotStates = new(dictionary->slotStates.Pointer, capacity);
-            Span<K> keys = new(dictionary->keys.Pointer, capacity);
-            Span<int> keyHashCodes = new(dictionary->hashCodes.Pointer, capacity);
+            Span<SlotState> slotStates = new(dictionary->slotStates.pointer, capacity);
+            Span<K> keys = new(dictionary->keys.pointer, capacity);
+            Span<int> keyHashCodes = new(dictionary->hashCodes.pointer, capacity);
             capacity--;
             int hashCode = key.GetHashCode() & 0x7FFFFFFF;
             int index = hashCode & capacity;
@@ -445,9 +445,9 @@ namespace Collections.Generic
             MemoryAddress.ThrowIfDefault(dictionary);
 
             int capacity = dictionary->capacity;
-            Span<SlotState> slotStates = new(dictionary->slotStates.Pointer, capacity);
-            Span<K> keys = new(dictionary->keys.Pointer, capacity);
-            Span<int> keyHashCodes = new(dictionary->hashCodes.Pointer, capacity);
+            Span<SlotState> slotStates = new(dictionary->slotStates.pointer, capacity);
+            Span<K> keys = new(dictionary->keys.pointer, capacity);
+            Span<int> keyHashCodes = new(dictionary->hashCodes.pointer, capacity);
             capacity--;
             int hashCode = key.GetHashCode() & 0x7FFFFFFF;
             int index = hashCode & capacity;
@@ -487,9 +487,9 @@ namespace Collections.Generic
                 Resize(capacity);
             }
 
-            Span<SlotState> slotStates = new(dictionary->slotStates.Pointer, capacity);
-            Span<int> keyHashCodes = new(dictionary->hashCodes.Pointer, capacity);
-            Span<K> keys = new(dictionary->keys.Pointer, capacity);
+            Span<SlotState> slotStates = new(dictionary->slotStates.pointer, capacity);
+            Span<int> keyHashCodes = new(dictionary->hashCodes.pointer, capacity);
+            Span<K> keys = new(dictionary->keys.pointer, capacity);
             capacity--;
             int hashCode = key.GetHashCode() & 0x7FFFFFFF;
             int index = hashCode & capacity;
@@ -536,7 +536,7 @@ namespace Collections.Generic
                 Resize(capacity);
             }
 
-            Span<SlotState> slotStates = new(dictionary->slotStates.Pointer, capacity);
+            Span<SlotState> slotStates = new(dictionary->slotStates.pointer, capacity);
             capacity--;
             int hashCode = key.GetHashCode() & 0x7FFFFFFF;
             int index = hashCode & capacity;
@@ -572,7 +572,7 @@ namespace Collections.Generic
                 Resize(capacity);
             }
 
-            Span<SlotState> slotStates = new(dictionary->slotStates.Pointer, capacity);
+            Span<SlotState> slotStates = new(dictionary->slotStates.pointer, capacity);
             capacity--;
             int hashCode = key.GetHashCode() & 0x7FFFFFFF;
             int index = hashCode & capacity;
@@ -604,9 +604,9 @@ namespace Collections.Generic
             ThrowIfKeyIsMissing(key);
 
             int capacity = dictionary->capacity;
-            Span<SlotState> slotStates = new(dictionary->slotStates.Pointer, capacity);
-            Span<K> keys = new(dictionary->keys.Pointer, capacity);
-            Span<int> keyHashCodes = new(dictionary->hashCodes.Pointer, capacity);
+            Span<SlotState> slotStates = new(dictionary->slotStates.pointer, capacity);
+            Span<K> keys = new(dictionary->keys.pointer, capacity);
+            Span<int> keyHashCodes = new(dictionary->hashCodes.pointer, capacity);
             capacity--;
             int hashCode = key.GetHashCode() & 0x7FFFFFFF;
             int index = hashCode & capacity;
@@ -662,7 +662,7 @@ namespace Collections.Generic
                 Resize(capacity);
             }
 
-            Span<SlotState> slotStates = new(dictionary->slotStates.Pointer, capacity);
+            Span<SlotState> slotStates = new(dictionary->slotStates.pointer, capacity);
             capacity--;
             int hashCode = key.GetHashCode() & 0x7FFFFFFF;
             int index = hashCode & capacity;
@@ -693,9 +693,9 @@ namespace Collections.Generic
             ThrowIfKeyIsMissing(key);
 
             int capacity = dictionary->capacity;
-            Span<SlotState> slotStates = new(dictionary->slotStates.Pointer, capacity);
-            Span<K> keys = new(dictionary->keys.Pointer, capacity);
-            Span<int> keyHashCodes = new(dictionary->hashCodes.Pointer, capacity);
+            Span<SlotState> slotStates = new(dictionary->slotStates.pointer, capacity);
+            Span<K> keys = new(dictionary->keys.pointer, capacity);
+            Span<int> keyHashCodes = new(dictionary->hashCodes.pointer, capacity);
             capacity--;
             int hashCode = key.GetHashCode() & 0x7FFFFFFF;
             int index = hashCode & capacity;
@@ -734,10 +734,10 @@ namespace Collections.Generic
             ThrowIfKeyIsMissing(key);
 
             int capacity = dictionary->capacity;
-            Span<SlotState> slotStates = new(dictionary->slotStates.Pointer, capacity);
-            Span<K> keys = new(dictionary->keys.Pointer, capacity);
-            Span<int> keyHashCodes = new(dictionary->hashCodes.Pointer, capacity);
-            Span<V> values = new(dictionary->values.Pointer, capacity);
+            Span<SlotState> slotStates = new(dictionary->slotStates.pointer, capacity);
+            Span<K> keys = new(dictionary->keys.pointer, capacity);
+            Span<int> keyHashCodes = new(dictionary->hashCodes.pointer, capacity);
+            Span<V> values = new(dictionary->values.pointer, capacity);
             capacity--;
             int hashCode = key.GetHashCode() & 0x7FFFFFFF;
             int index = hashCode & capacity;
@@ -774,10 +774,10 @@ namespace Collections.Generic
             MemoryAddress.ThrowIfDefault(dictionary);
 
             int capacity = dictionary->capacity;
-            Span<SlotState> slotStates = new(dictionary->slotStates.Pointer, capacity);
-            Span<K> keys = new(dictionary->keys.Pointer, capacity);
-            Span<int> keyHashCodes = new(dictionary->hashCodes.Pointer, capacity);
-            Span<V> values = new(dictionary->values.Pointer, capacity);
+            Span<SlotState> slotStates = new(dictionary->slotStates.pointer, capacity);
+            Span<K> keys = new(dictionary->keys.pointer, capacity);
+            Span<int> keyHashCodes = new(dictionary->hashCodes.pointer, capacity);
+            Span<V> values = new(dictionary->values.pointer, capacity);
             capacity--;
             int hashCode = key.GetHashCode() & 0x7FFFFFFF;
             int index = hashCode & capacity;
@@ -816,9 +816,9 @@ namespace Collections.Generic
             MemoryAddress.ThrowIfDefault(dictionary);
 
             int capacity = dictionary->capacity;
-            Span<SlotState> slotStates = new(dictionary->slotStates.Pointer, capacity);
-            Span<K> keys = new(dictionary->keys.Pointer, capacity);
-            Span<int> keyHashCodes = new(dictionary->hashCodes.Pointer, capacity);
+            Span<SlotState> slotStates = new(dictionary->slotStates.pointer, capacity);
+            Span<K> keys = new(dictionary->keys.pointer, capacity);
+            Span<int> keyHashCodes = new(dictionary->hashCodes.pointer, capacity);
             capacity--;
             int hashCode = key.GetHashCode() & 0x7FFFFFFF;
             int index = hashCode & capacity;

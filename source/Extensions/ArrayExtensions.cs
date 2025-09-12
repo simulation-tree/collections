@@ -9,7 +9,7 @@ namespace Collections.Generic
         /// </summary>
         public unsafe static bool Contains<T>(this Array<T> array, T value) where T : unmanaged, IEquatable<T>
         {
-            return new Span<T>(array.Items.Pointer, array.Length).Contains(value);
+            return new Span<T>(array.Items.pointer, array.Length).Contains(value);
         }
 
         /// <summary>
@@ -17,7 +17,7 @@ namespace Collections.Generic
         /// </summary>
         public unsafe static int IndexOf<T>(this Array<T> array, T value) where T : unmanaged, IEquatable<T>
         {
-            return new Span<T>(array.Items.Pointer, array.Length).IndexOf(value);
+            return new Span<T>(array.Items.pointer, array.Length).IndexOf(value);
         }
 
         /// <summary>
@@ -25,7 +25,7 @@ namespace Collections.Generic
         /// </summary>
         public unsafe static int LastIndexOf<T>(this Array<T> array, T value) where T : unmanaged, IEquatable<T>
         {
-            return new Span<T>(array.Items.Pointer, array.Length).LastIndexOf(value);
+            return new Span<T>(array.Items.pointer, array.Length).LastIndexOf(value);
         }
 
         /// <summary>
@@ -33,7 +33,7 @@ namespace Collections.Generic
         /// </summary>
         public unsafe static bool TryIndexOf<T>(this Array<T> array, T value, out int index) where T : unmanaged, IEquatable<T>
         {
-            index = new Span<T>(array.Items.Pointer, array.Length).IndexOf(value);
+            index = new Span<T>(array.Items.pointer, array.Length).IndexOf(value);
             return index != -1;
         }
 
@@ -42,7 +42,7 @@ namespace Collections.Generic
         /// </summary>
         public unsafe static bool TryLastIndexOf<T>(this Array<T> array, T value, out int index) where T : unmanaged, IEquatable<T>
         {
-            index = new Span<T>(array.Items.Pointer, array.Length).LastIndexOf(value);
+            index = new Span<T>(array.Items.pointer, array.Length).LastIndexOf(value);
             return index != -1;
         }
     }

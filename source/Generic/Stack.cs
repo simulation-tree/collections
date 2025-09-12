@@ -99,7 +99,7 @@ namespace Collections.Generic
         {
             MemoryAddress.ThrowIfDefault(stack);
 
-            return new(stack->items.Pointer, stack->top);
+            return new(stack->items.pointer, stack->top);
         }
 
         public readonly void Clear()
@@ -297,7 +297,7 @@ namespace Collections.Generic
                 {
                     MemoryAddress.ThrowIfDefault(stack);
 
-                    return new Span<T>(stack->items.Pointer, stack->top)[index];
+                    return new Span<T>(stack->items.pointer, stack->top)[index];
                 }
             }
 

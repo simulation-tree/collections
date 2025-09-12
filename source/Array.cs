@@ -80,7 +80,7 @@ namespace Collections
                 MemoryAddress.ThrowIfDefault(array);
                 ThrowIfOutOfRange(index);
 
-                return new(array->items.Pointer + array->stride * index);
+                return new(array->items.pointer + array->stride * index);
             }
         }
 
@@ -174,7 +174,7 @@ namespace Collections
             MemoryAddress.ThrowIfDefault(array);
             ThrowIfSizeMismatch<T>();
 
-            return new(array->items.Pointer, array->length);
+            return new(array->items.pointer, array->length);
         }
 
         /// <summary>
@@ -184,7 +184,7 @@ namespace Collections
         {
             MemoryAddress.ThrowIfDefault(array);
 
-            return new(array->items.Pointer, array->length * array->stride);
+            return new(array->items.pointer, array->length * array->stride);
         }
 
         /// <summary>
@@ -194,7 +194,7 @@ namespace Collections
         {
             MemoryAddress.ThrowIfDefault(array);
 
-            return new(array->items.Pointer + byteStart, (array->length * array->stride) - byteStart);
+            return new(array->items.pointer + byteStart, (array->length * array->stride) - byteStart);
         }
 
         /// <summary>

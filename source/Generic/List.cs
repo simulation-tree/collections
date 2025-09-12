@@ -245,7 +245,7 @@ namespace Collections.Generic
         {
             MemoryAddress.ThrowIfDefault(list);
 
-            return new(list->items.Pointer, list->count);
+            return new(list->items.pointer, list->count);
         }
 
         /// <summary>
