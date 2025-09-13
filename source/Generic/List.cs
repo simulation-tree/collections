@@ -3,6 +3,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using Unmanaged;
 
 namespace Collections.Generic
@@ -25,6 +26,7 @@ namespace Collections.Generic
         /// </summary>
         public readonly int Count
         {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get
             {
                 MemoryAddress.ThrowIfDefault(list);
@@ -38,6 +40,7 @@ namespace Collections.Generic
         /// </summary>
         public readonly int Capacity
         {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get
             {
                 MemoryAddress.ThrowIfDefault(list);
@@ -61,6 +64,7 @@ namespace Collections.Generic
         /// </summary>
         public readonly MemoryAddress Items
         {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get
             {
                 MemoryAddress.ThrowIfDefault(list);
@@ -74,6 +78,7 @@ namespace Collections.Generic
         /// </summary>
         public readonly ref T this[int index]
         {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get
             {
                 MemoryAddress.ThrowIfDefault(list);

@@ -1,6 +1,7 @@
 ﻿using Collections.Pointers;
 using System;
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using Unmanaged;
 
 namespace Collections
@@ -20,6 +21,7 @@ namespace Collections
         /// </summary>
         public readonly int Count
         {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get
             {
                 MemoryAddress.ThrowIfDefault(list);
@@ -33,6 +35,7 @@ namespace Collections
         /// </summary>
         public readonly int Stride
         {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get
             {
                 MemoryAddress.ThrowIfDefault(list);
@@ -46,6 +49,7 @@ namespace Collections
         /// </summary>
         public readonly MemoryAddress Items
         {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get
             {
                 MemoryAddress.ThrowIfDefault(list);
@@ -64,6 +68,7 @@ namespace Collections
         /// </summary>
         public readonly int Capacity
         {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get
             {
                 MemoryAddress.ThrowIfDefault(list);
@@ -95,6 +100,7 @@ namespace Collections
         /// </summary>
         public readonly MemoryAddress this[int index]
         {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get
             {
                 MemoryAddress.ThrowIfDefault(list);
@@ -128,10 +134,7 @@ namespace Collections
 
 #if NET
         [Obsolete("Default constructor not supported", true)]
-        public List()
-        {
-            throw new NotSupportedException();
-        }
+        public List() { }
 #endif
 
         /// <summary>
