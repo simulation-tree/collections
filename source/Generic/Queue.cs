@@ -264,13 +264,10 @@ namespace Collections.Generic
             {
                 get
                 {
-                    unchecked
-                    {
-                        MemoryAddress.ThrowIfDefault(queue);
+                    MemoryAddress.ThrowIfDefault(queue);
 
-                        int length = queue->top - queue->rear;
-                        return queue->items.AsSpan<T>(queue->rear * sizeof(T), length)[index];
-                    }
+                    int length = queue->top - queue->rear;
+                    return queue->items.AsSpan<T>(queue->rear * sizeof(T), length)[index];
                 }
             }
 

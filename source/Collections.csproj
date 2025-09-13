@@ -6,6 +6,7 @@
     <Nullable>enable</Nullable>
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
     <PackageId>Unmanaged.Collections</PackageId>
+    <CheckForOverflowUnderflow>false</CheckForOverflowUnderflow>
     <Title>Collections</Title>
     <Authors>popcron</Authors>
     <Company>simulation-tree</Company>
