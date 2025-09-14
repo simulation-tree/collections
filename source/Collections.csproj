@@ -5,7 +5,7 @@
     <ImplicitUsings>disable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
-    <PackageId>Simulationeeee.Collections</PackageId>
+    <PackageId>SimulationTree.Collections</PackageId>
     <CheckForOverflowUnderflow>false</CheckForOverflowUnderflow>
     <Title>Collections</Title>
     <Authors>popcron</Authors>
