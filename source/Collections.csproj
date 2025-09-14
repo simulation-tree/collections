@@ -5,11 +5,11 @@
     <ImplicitUsings>disable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
-    <PackageId>Unmanaged.Collections</PackageId>
+    <PackageId>Simulationeeee.Collections</PackageId>
     <CheckForOverflowUnderflow>false</CheckForOverflowUnderflow>
     <Title>Collections</Title>
     <Authors>popcron</Authors>
-    <Company>simulation-tree</Company>
+    <Company>Simulation Tree</Company>
     <RepositoryUrl>https://github.com/simulation-tree/collections</RepositoryUrl>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <Description>Native C# library implementing collections</Description>
