@@ -17,6 +17,7 @@ namespace Collections.Tests
             Assert.That(map.Capacity, Is.EqualTo(4));
             Assert.That(map.TryGetValue(1, out int value), Is.True);
             Assert.That(value, Is.EqualTo(1337));
+            Assert.That(map[1], Is.EqualTo(1337));
         }
 
         [Test]
