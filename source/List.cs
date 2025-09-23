@@ -409,6 +409,9 @@ namespace Collections
             list->count = count + 1;
         }
 
+        /// <summary>
+        /// Clears the list.
+        /// </summary>
         public readonly void Clear()
         {
             MemoryAddress.ThrowIfDefault(list);
@@ -416,20 +419,27 @@ namespace Collections
             list->count = 0;
         }
 
+        /// <summary>
+        /// Removes the element at the given <paramref name="index"/>.
+        /// </summary>
         public readonly void RemoveAt(int index)
         {
             MemoryAddress.ThrowIfDefault(list);
             ThrowIfOutOfRange(index);
 
-            int newCount = list->count - 1;
             int stride = list->stride;
-            while (index < newCount)
+            int elementsToMove = list->count - index - 1;
+            if (elementsToMove > 0)
             {
-                list->items.CopyTo(list->items, stride * (index + 1), stride * index, stride);
-                index++;
+                int sourceOffset = (index + 1) * stride;
+                int destOffset = index * stride;
+                int bytesToMove = elementsToMove * stride;
+                Span<byte> source = list->items.AsSpan(sourceOffset, bytesToMove);
+                Span<byte> destination = list->items.AsSpan(destOffset, bytesToMove);
+                source.CopyTo(destination);
             }
 
-            list->count = newCount;
+            list->count--;
         }
 
         /// <summary>

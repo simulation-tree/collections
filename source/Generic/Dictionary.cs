@@ -3,6 +3,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using Unmanaged;
 
 namespace Collections.Generic
@@ -20,6 +21,7 @@ namespace Collections.Generic
         /// </summary>
         public readonly int Count
         {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get
             {
                 MemoryAddress.ThrowIfDefault(dictionary);
@@ -33,6 +35,7 @@ namespace Collections.Generic
         /// </summary>
         public readonly int Capacity
         {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get
             {
                 MemoryAddress.ThrowIfDefault(dictionary);
@@ -283,17 +286,17 @@ namespace Collections.Generic
             MemoryAddress oldValues = dictionary->values;
             MemoryAddress oldSlotStates = dictionary->slotStates;
             MemoryAddress oldKeyHashCodes = dictionary->hashCodes;
+            K* oldKeysSpan = (K*)dictionary->keys.pointer;
+            V* oldValuesSpan = (V*)dictionary->values.pointer;
+            SlotState* oldSlotStatesSpan = (SlotState*)dictionary->slotStates.pointer;
             dictionary->keys = MemoryAddress.Allocate(newCapacity * sizeof(K));
             dictionary->values = MemoryAddress.Allocate(newCapacity * sizeof(V));
             dictionary->hashCodes = MemoryAddress.Allocate(newCapacity * sizeof(int));
             dictionary->slotStates = MemoryAddress.AllocateZeroed(newCapacity);
-            Span<K> oldKeysSpan = new(oldKeys.pointer, oldCapacity);
-            Span<V> oldValuesSpan = new(oldValues.pointer, oldCapacity);
-            Span<SlotState> oldSlotStatesSpan = new(oldSlotStates.pointer, oldCapacity);
-            Span<SlotState> newSlotStatesSpan = new(dictionary->slotStates.pointer, newCapacity);
-            Span<int> newKeyHashCodesSpan = new(dictionary->hashCodes.pointer, newCapacity);
-            Span<K> newKeysSpan = new(dictionary->keys.pointer, newCapacity);
-            Span<V> newValuesSpan = new(dictionary->values.pointer, newCapacity);
+            SlotState* newSlotStatesSpan = (SlotState*)dictionary->slotStates.pointer;
+            int* newKeyHashCodesSpan = (int*)dictionary->hashCodes.pointer;
+            K* newKeysSpan = (K*)dictionary->keys.pointer;
+            V* newValuesSpan = (V*)dictionary->values.pointer;
             newCapacity--;
             for (int i = 0; i < oldCapacity; i++)
             {
@@ -324,46 +327,36 @@ namespace Collections.Generic
             oldKeyHashCodes.Dispose();
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private readonly bool TryGetPairAtIndex(uint index, out K key, out V value)
         {
-            MemoryAddress.ThrowIfDefault(dictionary);
-            ThrowIfOutOfRange(index);
-
             key = dictionary->keys.ReadElement<K>(index);
             value = dictionary->values.ReadElement<V>(index);
             return dictionary->slotStates.ReadElement<SlotState>(index) == SlotState.Occupied;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private readonly (K key, V value) GetPairAtIndex(uint index)
         {
-            MemoryAddress.ThrowIfDefault(dictionary);
-            ThrowIfOutOfRange(index);
-
             return (dictionary->keys.ReadElement<K>(index), dictionary->values.ReadElement<V>(index));
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private readonly bool ContainsAtIndex(uint index)
         {
-            MemoryAddress.ThrowIfDefault(dictionary);
-            ThrowIfOutOfRange(index);
-
             return dictionary->slotStates.ReadElement<SlotState>(index) == SlotState.Occupied;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private readonly bool TryGetKeyAtIndex(uint index, out K key)
         {
-            MemoryAddress.ThrowIfDefault(dictionary);
-            ThrowIfOutOfRange(index);
-
             key = dictionary->keys.ReadElement<K>(index);
             return dictionary->slotStates.ReadElement<SlotState>(index) == SlotState.Occupied;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private readonly bool TryGetValueAtIndex(uint index, out V value)
         {
-            MemoryAddress.ThrowIfDefault(dictionary);
-            ThrowIfOutOfRange(index);
-
             value = dictionary->values.ReadElement<V>(index);
             return dictionary->slotStates.ReadElement<SlotState>(index) == SlotState.Occupied;
         }
@@ -851,6 +844,7 @@ namespace Collections.Generic
         /// <summary>
         /// Clears the dictionary.
         /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public readonly void Clear()
         {
             MemoryAddress.ThrowIfDefault(dictionary);

@@ -3,6 +3,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using Unmanaged;
 
 namespace Collections.Generic
@@ -28,6 +29,7 @@ namespace Collections.Generic
         /// </summary>
         public readonly int Length
         {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get
             {
                 MemoryAddress.ThrowIfDefault(array);
@@ -51,6 +53,7 @@ namespace Collections.Generic
         /// </summary>
         public readonly MemoryAddress Items
         {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get
             {
                 MemoryAddress.ThrowIfDefault(array);
@@ -64,6 +67,7 @@ namespace Collections.Generic
         /// </summary>
         public readonly ref T this[int index]
         {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get
             {
                 MemoryAddress.ThrowIfDefault(array);
@@ -78,6 +82,7 @@ namespace Collections.Generic
         /// </summary>
         public readonly ref T this[uint index]
         {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get
             {
                 MemoryAddress.ThrowIfDefault(array);
@@ -124,6 +129,26 @@ namespace Collections.Generic
         {
             array = MemoryAddress.AllocatePointer<ArrayPointer>();
             array->items = MemoryAddress.AllocateZeroed(sizeof(T) * length);
+            array->length = length;
+            array->stride = sizeof(T);
+        }
+
+        /// <summary>
+        /// Creates a new array with the given <paramref name="length"/>, with the
+        /// memory optionally zeroed based on <paramref name="defaultMemory"/>.
+        /// </summary>
+        public Array(int length, bool defaultMemory)
+        {
+            array = MemoryAddress.AllocatePointer<ArrayPointer>();
+            if (defaultMemory)
+            {
+                array->items = MemoryAddress.AllocateZeroed(sizeof(T) * length);
+            }
+            else
+            {
+                array->items = MemoryAddress.Allocate(sizeof(T) * length);
+            }
+
             array->length = length;
             array->stride = sizeof(T);
         }
@@ -196,6 +221,7 @@ namespace Collections.Generic
         /// <summary>
         /// Resets all elements in the array to <see langword="default"/> state.
         /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public readonly void Clear()
         {
             MemoryAddress.ThrowIfDefault(array);
@@ -207,6 +233,7 @@ namespace Collections.Generic
         /// Clears <paramref name="length"/> amount of elements from this array
         /// starting at <paramref name="start"/> index.
         /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public readonly void Clear(int start, int length)
         {
             MemoryAddress.ThrowIfDefault(array);
@@ -217,6 +244,7 @@ namespace Collections.Generic
         /// <summary>
         /// Fills the array with the given <paramref name="value"/>.
         /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public readonly void Fill(T value)
         {
             MemoryAddress.ThrowIfDefault(array);
@@ -227,6 +255,7 @@ namespace Collections.Generic
         /// <summary>
         /// Returns the array as a span.
         /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public readonly Span<T> AsSpan()
         {
             MemoryAddress.ThrowIfDefault(array);
@@ -237,6 +266,7 @@ namespace Collections.Generic
         /// <summary>
         /// Returns the array as a span of a different type <typeparamref name="X"/>.
         /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public readonly Span<X> AsSpan<X>() where X : unmanaged
         {
             MemoryAddress.ThrowIfDefault(array);
@@ -249,6 +279,7 @@ namespace Collections.Generic
         /// Returns the remainder of the array from <paramref name="start"/>,
         /// as a span of a different type <typeparamref name="X"/>.
         /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public readonly Span<X> AsSpan<X>(int start) where X : unmanaged
         {
             MemoryAddress.ThrowIfDefault(array);
@@ -260,6 +291,7 @@ namespace Collections.Generic
         /// <summary>
         /// Returns the array as a span with the given <paramref name="length"/>.
         /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public readonly Span<T> GetSpan(int length)
         {
             MemoryAddress.ThrowIfDefault(array);
@@ -270,6 +302,7 @@ namespace Collections.Generic
         /// <summary>
         /// Returns the remainder of the array from <paramref name="start"/> as a span.
         /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public readonly Span<T> AsSpan(int start)
         {
             MemoryAddress.ThrowIfDefault(array);
@@ -281,6 +314,7 @@ namespace Collections.Generic
         /// Returns the array as a span starting at <paramref name="start"/> index
         /// with the given <paramref name="length"/>.
         /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public readonly Span<T> AsSpan(int start, int length)
         {
             MemoryAddress.ThrowIfDefault(array);
@@ -291,6 +325,7 @@ namespace Collections.Generic
         /// <summary>
         /// Copies the array to the given <paramref name="destination"/>.
         /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public readonly void CopyTo(Span<T> destination)
         {
             new Span<T>(array->items.pointer, array->length).CopyTo(destination);
@@ -300,6 +335,7 @@ namespace Collections.Generic
         /// Copies the given <paramref name="source"/> to this array
         /// assuming its length is less or equal than the array.
         /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public readonly void CopyFrom(ReadOnlySpan<T> source)
         {
             source.CopyTo(new(array->items.pointer, array->length));

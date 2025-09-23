@@ -93,6 +93,7 @@ namespace Collections.Generic
         /// </summary>
         public readonly ref T this[uint index]
         {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get
             {
                 MemoryAddress.ThrowIfDefault(list);
@@ -141,7 +142,7 @@ namespace Collections.Generic
         /// </summary>
         public List(int initialCapacity)
         {
-            initialCapacity = Math.Max(1, initialCapacity).GetNextPowerOf2();
+            initialCapacity = Math.Max(4, initialCapacity).GetNextPowerOf2();
             list = MemoryAddress.AllocatePointer<ListPointer>();
             list->stride = sizeof(T);
             list->count = 0;
@@ -154,7 +155,7 @@ namespace Collections.Generic
         /// </summary>
         public List(ReadOnlySpan<T> span)
         {
-            int initialCapacity = Math.Max(1, span.Length).GetNextPowerOf2();
+            int initialCapacity = Math.Max(4, span.Length).GetNextPowerOf2();
             list = MemoryAddress.AllocatePointer<ListPointer>();
             list->stride = sizeof(T);
             list->count = span.Length;
@@ -246,6 +247,7 @@ namespace Collections.Generic
         /// <summary>
         /// Returns a span containing elements in the list.
         /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public readonly Span<T> AsSpan()
         {
             MemoryAddress.ThrowIfDefault(list);
@@ -256,6 +258,7 @@ namespace Collections.Generic
         /// <summary>
         /// Returns the remaining span starting from <paramref name="start"/>.
         /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public readonly Span<T> AsSpan(int start)
         {
             MemoryAddress.ThrowIfDefault(list);
@@ -267,6 +270,7 @@ namespace Collections.Generic
         /// <summary>
         /// Returns a span of specified <paramref name="length"/> starting from <paramref name="start"/>.
         /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public readonly Span<T> AsSpan(int start, int length)
         {
             MemoryAddress.ThrowIfDefault(list);
@@ -278,6 +282,7 @@ namespace Collections.Generic
         /// <summary>
         /// Returns a span of the specified <paramref name="range"/>.
         /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public readonly Span<T> AsSpan(Range range)
         {
             MemoryAddress.ThrowIfDefault(list);
@@ -379,14 +384,15 @@ namespace Collections.Generic
         {
             MemoryAddress.ThrowIfDefault(list);
 
-            int newCount = list->count + count;
+            int currentCount = list->count;
+            int newCount = currentCount + count;
             if (newCount >= list->capacity)
             {
                 list->capacity = newCount.GetNextPowerOf2();
                 MemoryAddress.Resize(ref list->items, list->capacity * sizeof(T));
             }
 
-            Span<byte> span = list->items.AsSpan<byte>(list->count * sizeof(T), count * sizeof(T));
+            Span<byte> span = list->items.AsSpan<byte>(currentCount * sizeof(T), count * sizeof(T));
             span.Clear();
             list->count = newCount;
         }
@@ -441,22 +447,23 @@ namespace Collections.Generic
             MemoryAddress.ThrowIfDefault(list);
             ThrowIfPastRange(index);
 
-            int newCount = list->count + span.Length;
+            int currentCount = list->count;
+            int newCount = currentCount + span.Length;
             if (newCount >= list->capacity)
             {
                 list->capacity = newCount.GetNextPowerOf2();
                 MemoryAddress.Resize(ref list->items, list->capacity * sizeof(T));
             }
 
-            if (index == list->count)
+            if (index == currentCount)
             {
                 // add to end
-                span.CopyTo(list->items.AsSpan<T>(list->count * sizeof(T), span.Length));
+                span.CopyTo(list->items.AsSpan<T>(currentCount * sizeof(T), span.Length));
             }
             else
             {
                 // shift elements starting from index to the right
-                int remaining = list->count - index;
+                int remaining = currentCount - index;
                 int bytePosition = index * sizeof(T);
                 Span<T> destination = list->items.AsSpan<T>(bytePosition + span.Length * sizeof(T), remaining);
                 Span<T> source = list->items.AsSpan<T>(bytePosition, remaining);
@@ -494,7 +501,7 @@ namespace Collections.Generic
         /// </para>
         /// </summary>
         /// <returns>The removed element.</returns>
-        /// <exception cref="IndexOutOfRangeException"></exception>"
+        /// <exception cref="IndexOutOfRangeException"></exception>
         public readonly void RemoveAt(int index)
         {
             MemoryAddress.ThrowIfDefault(list);
@@ -530,13 +537,13 @@ namespace Collections.Generic
         /// </para>
         /// </summary>
         /// <exception cref="IndexOutOfRangeException"></exception>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public readonly void RemoveAtBySwapping(int index)
         {
             MemoryAddress.ThrowIfDefault(list);
             ThrowIfOutOfRange(index);
 
-            Span<T> items = list->items.GetSpan<T>(list->count);
-            items[index] = items[--list->count];
+            list->items.WriteElement(index, list->items.ReadElement<T>(--list->count));
         }
 
         /// <summary>
@@ -544,20 +551,20 @@ namespace Collections.Generic
         /// swapping it with the last element, and provides access to the 
         /// <paramref name="removed"/> value.
         /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public readonly void RemoveAtBySwapping(int index, out T removed)
         {
             MemoryAddress.ThrowIfDefault(list);
             ThrowIfOutOfRange(index);
 
-            Span<T> items = list->items.GetSpan<T>(list->count);
-            ref T reference = ref items[index];
-            removed = reference;
-            reference = items[--list->count];
+            removed = list->items.ReadElement<T>(index);
+            list->items.WriteElement(index, list->items.ReadElement<T>(--list->count));
         }
 
         /// <summary>
         /// Clears the list so that it's count becomes 0.
         /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public readonly void Clear()
         {
             MemoryAddress.ThrowIfDefault(list);

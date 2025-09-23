@@ -3,6 +3,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using Unmanaged;
 
 namespace Collections.Generic
@@ -25,6 +26,7 @@ namespace Collections.Generic
         /// </summary>
         public readonly int Count
         {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get
             {
                 MemoryAddress.ThrowIfDefault(stack);
@@ -38,6 +40,7 @@ namespace Collections.Generic
         /// </summary>
         public readonly bool IsEmpty
         {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get
             {
                 MemoryAddress.ThrowIfDefault(stack);
@@ -71,7 +74,7 @@ namespace Collections.Generic
         /// </summary>
         public Stack(int initialCapacity)
         {
-            initialCapacity = Math.Max(1, initialCapacity).GetNextPowerOf2();
+            initialCapacity = Math.Max(4, initialCapacity).GetNextPowerOf2();
             stack = MemoryAddress.AllocatePointer<StackPointer>();
             stack->items = MemoryAddress.Allocate(sizeof(T) * initialCapacity);
             stack->capacity = initialCapacity;
@@ -95,6 +98,7 @@ namespace Collections.Generic
             MemoryAddress.Free(ref stack);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public readonly Span<T> AsSpan()
         {
             MemoryAddress.ThrowIfDefault(stack);
@@ -102,6 +106,7 @@ namespace Collections.Generic
             return new(stack->items.pointer, stack->top);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public readonly void Clear()
         {
             MemoryAddress.ThrowIfDefault(stack);
@@ -151,6 +156,7 @@ namespace Collections.Generic
             stack->top += items.Length;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public readonly T Pop()
         {
             MemoryAddress.ThrowIfDefault(stack);
@@ -179,6 +185,7 @@ namespace Collections.Generic
             }
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public readonly T Peek()
         {
             MemoryAddress.ThrowIfDefault(stack);

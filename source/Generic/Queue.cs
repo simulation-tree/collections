@@ -3,6 +3,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using Unmanaged;
 
 namespace Collections.Generic
@@ -22,6 +23,7 @@ namespace Collections.Generic
         /// </summary>
         public readonly int Count
         {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get
             {
                 MemoryAddress.ThrowIfDefault(queue);
@@ -35,6 +37,7 @@ namespace Collections.Generic
         /// </summary>
         public readonly bool IsEmpty
         {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get
             {
                 MemoryAddress.ThrowIfDefault(queue);
@@ -69,7 +72,7 @@ namespace Collections.Generic
         /// </summary>
         public Queue(int initialCapacity)
         {
-            initialCapacity = Math.Max(1, initialCapacity).GetNextPowerOf2();
+            initialCapacity = Math.Max(4, initialCapacity).GetNextPowerOf2();
             queue = MemoryAddress.AllocatePointer<QueuePointer>();
             queue->items = MemoryAddress.Allocate(initialCapacity * sizeof(T));
             queue->capacity = initialCapacity;
@@ -94,14 +97,15 @@ namespace Collections.Generic
             MemoryAddress.Free(ref queue);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public readonly Span<T> AsSpan()
         {
             MemoryAddress.ThrowIfDefault(queue);
 
-            int length = queue->top - queue->rear;
-            return queue->items.AsSpan<T>(queue->rear * sizeof(T), length);
+            return queue->items.AsSpan<T>(queue->rear * sizeof(T), queue->top - queue->rear);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public readonly void Clear()
         {
             MemoryAddress.ThrowIfDefault(queue);
@@ -154,6 +158,7 @@ namespace Collections.Generic
             queue->top = newTop;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public readonly T Dequeue()
         {
             MemoryAddress.ThrowIfDefault(queue);
@@ -167,6 +172,7 @@ namespace Collections.Generic
         public readonly bool TryDequeue(out T value)
         {
             MemoryAddress.ThrowIfDefault(queue);
+
             if (queue->top != queue->rear)
             {
                 int rear = queue->rear;

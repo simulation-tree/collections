@@ -3,7 +3,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Reflection;
+using System.Runtime.CompilerServices;
 using Unmanaged;
 
 namespace Collections.Generic
@@ -18,6 +18,7 @@ namespace Collections.Generic
         /// </summary>
         public readonly int Count
         {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get
             {
                 MemoryAddress.ThrowIfDefault(hashSet);
@@ -31,6 +32,7 @@ namespace Collections.Generic
         /// </summary>
         public readonly int Capacity
         {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get
             {
                 MemoryAddress.ThrowIfDefault(hashSet);
@@ -66,7 +68,16 @@ namespace Collections.Generic
         /// <summary>
         /// Accesses the existing element found with the given <paramref name="value"/>.
         /// </summary>
-        public readonly T this[T value] => GetValue(value);
+        public readonly T this[T value]
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                MemoryAddress.ThrowIfDefault(hashSet);
+
+                return GetValue(value);
+            }
+        }
 
         /// <summary>
         /// Initializes an existing hash set from the given <paramref name="pointer"/>.
@@ -152,26 +163,17 @@ namespace Collections.Generic
 
         private readonly bool TryGetValueAtIndex(uint index, out T value)
         {
-            MemoryAddress.ThrowIfDefault(hashSet);
-            ThrowIfOutOfRange(index);
-
             value = hashSet->values.ReadElement<T>(index);
             return hashSet->occupied.ReadElement<bool>(index);
         }
 
         private readonly T GetValueAtIndex(uint index)
         {
-            MemoryAddress.ThrowIfDefault(hashSet);
-            ThrowIfOutOfRange(index);
-
             return hashSet->values.ReadElement<T>(index);
         }
 
         private readonly bool ContainsAtIndex(uint index)
         {
-            MemoryAddress.ThrowIfDefault(hashSet);
-            ThrowIfOutOfRange(index);
-
             return hashSet->occupied.ReadElement<bool>(index);
         }
 
@@ -191,11 +193,11 @@ namespace Collections.Generic
             hashSet->values = MemoryAddress.Allocate(newCapacity * sizeof(T));
             hashSet->hashCodes = MemoryAddress.Allocate(newCapacity * sizeof(int));
             hashSet->occupied = MemoryAddress.AllocateZeroed(newCapacity);
-            Span<T> oldValuesSpan = new(oldValues.pointer, oldCapacity);
-            Span<bool> oldOccupiedSpan = new(oldOccupied.pointer, oldCapacity);
-            Span<bool> newOccupiedSpan = new(hashSet->occupied.pointer, newCapacity);
-            Span<int> newHashCodes = new(hashSet->hashCodes.pointer, newCapacity);
-            Span<T> newValuesSpan = new(hashSet->values.pointer, newCapacity);
+            T* oldValuesSpan = (T*)oldValues.pointer;
+            bool* oldOccupiedSpan = (bool*)oldOccupied.pointer;
+            bool* newOccupiedSpan = (bool*)hashSet->occupied.pointer;
+            int* newHashCodes = (int*)hashSet->hashCodes.pointer;
+            T* newValuesSpan = (T*)hashSet->values.pointer;
             newCapacity--;
             for (int i = 0; i < oldCapacity; i++)
             {
@@ -230,12 +232,11 @@ namespace Collections.Generic
         {
             MemoryAddress.ThrowIfDefault(hashSet);
 
-            int capacity = hashSet->capacity;
-            Span<bool> occupied = new(hashSet->occupied.pointer, capacity);
-            Span<int> hashCodes = new(hashSet->hashCodes.pointer, capacity);
-            capacity--;
+            int capacityMask = hashSet->capacity - 1;
+            bool* occupied = (bool*)hashSet->occupied.pointer;
+            int* hashCodes = (int*)hashSet->hashCodes.pointer;
             int hashCode = value.GetHashCode() & 0x7FFFFFFF;
-            int index = hashCode & capacity;
+            int index = hashCode & capacityMask;
             int startIndex = index;
 
             while (occupied[index])
@@ -245,7 +246,7 @@ namespace Collections.Generic
                     return true;
                 }
 
-                index = (index + 1) & capacity;
+                index = (index + 1) & capacityMask;
                 if (index == startIndex)
                 {
                     break;
@@ -271,15 +272,15 @@ namespace Collections.Generic
                 capacity = hashSet->capacity;
             }
 
-            Span<bool> occupied = new(hashSet->occupied.pointer, capacity);
-            capacity--;
+            bool* occupied = (bool*)hashSet->occupied.pointer;
+            int capacityMask = capacity - 1;
             int hashCode = value.GetHashCode() & 0x7FFFFFFF;
-            int index = hashCode & capacity;
+            int index = hashCode & capacityMask;
             int startIndex = index;
 
             while (occupied[index])
             {
-                index = (index + 1) & capacity;
+                index = (index + 1) & capacityMask;
             }
 
             occupied[index] = true;
@@ -306,21 +307,21 @@ namespace Collections.Generic
                 capacity = hashSet->capacity;
             }
 
-            Span<bool> occupied = new(hashSet->occupied.pointer, capacity);
-            Span<int> hashCodes = new(hashSet->hashCodes.pointer, capacity);
-            capacity--;
+            bool* occupied = (bool*)hashSet->occupied.pointer;
+            int* hashCodes = (int*)hashSet->hashCodes.pointer;
+            int capacityMask = capacity - 1;
             int hashCode = value.GetHashCode() & 0x7FFFFFFF;
-            int index = hashCode & capacity;
+            int index = hashCode & capacityMask;
             int startIndex = index;
 
             while (occupied[index])
             {
                 if (hashCodes[index] == hashCode && hashSet->values.ReadElement<T>(index).Equals(value))
                 {
-                    return false; //already present
+                    return false; // already present
                 }
 
-                index = (index + 1) & capacity;
+                index = (index + 1) & capacityMask;
             }
 
             occupied[index] = true;
@@ -338,12 +339,11 @@ namespace Collections.Generic
             MemoryAddress.ThrowIfDefault(hashSet);
             ThrowIfMissing(value);
 
-            int capacity = hashSet->capacity;
-            Span<bool> occupied = new(hashSet->occupied.pointer, capacity);
-            Span<int> hashCodes = new(hashSet->hashCodes.pointer, capacity);
-            capacity--;
+            bool* occupied = (bool*)hashSet->occupied.pointer;
+            int* hashCodes = (int*)hashSet->hashCodes.pointer;
+            int capacityMask = hashSet->capacity - 1;
             int hashCode = value.GetHashCode() & 0x7FFFFFFF;
-            int index = hashCode & capacity;
+            int index = hashCode & capacityMask;
             int startIndex = index;
 
             while (occupied[index])
@@ -356,7 +356,7 @@ namespace Collections.Generic
                     break;
                 }
 
-                index = (index + 1) & capacity;
+                index = (index + 1) & capacityMask;
                 if (index == startIndex)
                 {
                     break;
@@ -371,12 +371,11 @@ namespace Collections.Generic
         {
             MemoryAddress.ThrowIfDefault(hashSet);
 
-            int capacity = hashSet->capacity;
-            Span<bool> occupied = new(hashSet->occupied.pointer, capacity);
-            Span<int> hashCodes = new(hashSet->hashCodes.pointer, capacity);
-            capacity--;
+            int capacityMask = hashSet->capacity - 1;
+            bool* occupied = (bool*)hashSet->occupied.pointer;
+            int* hashCodes = (int*)hashSet->hashCodes.pointer;
             int hashCode = value.GetHashCode() & 0x7FFFFFFF;
-            int index = hashCode & capacity;
+            int index = hashCode & capacityMask;
             int startIndex = index;
 
             while (occupied[index])
@@ -389,7 +388,7 @@ namespace Collections.Generic
                     return true;
                 }
 
-                index = (index + 1) & capacity;
+                index = (index + 1) & capacityMask;
                 if (index == startIndex)
                 {
                     break;
@@ -402,6 +401,7 @@ namespace Collections.Generic
         /// <summary>
         /// Clears the hash set.
         /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public readonly void Clear()
         {
             MemoryAddress.ThrowIfDefault(hashSet);
@@ -418,12 +418,11 @@ namespace Collections.Generic
         {
             MemoryAddress.ThrowIfDefault(hashSet);
 
-            int capacity = hashSet->capacity;
-            Span<bool> occupied = new(hashSet->occupied.pointer, capacity);
-            Span<int> hashCodes = new(hashSet->hashCodes.pointer, capacity);
-            capacity--;
+            int capacityMask = hashSet->capacity - 1;
+            bool* occupied = (bool*)hashSet->occupied.pointer;
+            int* hashCodes = (int*)hashSet->hashCodes.pointer;
             int hashCode = value.GetHashCode() & 0x7FFFFFFF;
-            int index = hashCode & capacity;
+            int index = hashCode & capacityMask;
             int startIndex = index;
 
             while (occupied[index])
@@ -437,7 +436,7 @@ namespace Collections.Generic
                     }
                 }
 
-                index = (index + 1) & capacity;
+                index = (index + 1) & capacityMask;
                 if (index == startIndex)
                 {
                     break;
@@ -456,12 +455,11 @@ namespace Collections.Generic
             MemoryAddress.ThrowIfDefault(hashSet);
             ThrowIfMissing(value);
 
-            int capacity = hashSet->capacity;
-            Span<bool> occupied = new(hashSet->occupied.pointer, capacity);
-            Span<int> hashCodes = new(hashSet->hashCodes.pointer, capacity);
-            capacity--;
+            int capacityMask = hashSet->capacity - 1;
+            bool* occupied = (bool*)hashSet->occupied.pointer;
+            int* hashCodes = (int*)hashSet->hashCodes.pointer;
             int hashCode = value.GetHashCode() & 0x7FFFFFFF;
-            int index = hashCode & capacity;
+            int index = hashCode & capacityMask;
             int startIndex = index;
 
             while (occupied[index])
@@ -475,7 +473,7 @@ namespace Collections.Generic
                     }
                 }
 
-                index = (index + 1) & capacity;
+                index = (index + 1) & capacityMask;
                 if (index == startIndex)
                 {
                     break;

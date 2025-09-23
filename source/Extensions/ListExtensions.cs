@@ -3,12 +3,12 @@ using System.Diagnostics;
 
 namespace Collections.Generic
 {
-    public static class ListExtensions
+    public unsafe static class ListExtensions
     {
         /// <summary>
         /// Checks if the list contains <paramref name="value"/>.
         /// </summary>
-        public unsafe static bool Contains<T>(this List<T> list, T value) where T : unmanaged, IEquatable<T>
+        public static bool Contains<T>(this List<T> list, T value) where T : unmanaged, IEquatable<T>
         {
             return new Span<T>(list.Items.pointer, list.Count).Contains(value);
         }
@@ -16,7 +16,7 @@ namespace Collections.Generic
         /// <summary>
         /// Retrieves the index for the first occurrence of <paramref name="value"/>.
         /// </summary>
-        public unsafe static int IndexOf<T>(this List<T> list, T value) where T : unmanaged, IEquatable<T>
+        public static int IndexOf<T>(this List<T> list, T value) where T : unmanaged, IEquatable<T>
         {
             return new Span<T>(list.Items.pointer, list.Count).IndexOf(value);
         }
@@ -24,7 +24,7 @@ namespace Collections.Generic
         /// <summary>
         /// Retrieves the index for the last occurrence of <paramref name="value"/>.
         /// </summary>
-        public unsafe static int LastIndexOf<T>(this List<T> list, T value) where T : unmanaged, IEquatable<T>
+        public static int LastIndexOf<T>(this List<T> list, T value) where T : unmanaged, IEquatable<T>
         {
             return new Span<T>(list.Items.pointer, list.Count).LastIndexOf(value);
         }
@@ -32,7 +32,7 @@ namespace Collections.Generic
         /// <summary>
         /// Tries to retrieve the index for the first occurrence of <paramref name="value"/>.
         /// </summary>
-        public unsafe static bool TryIndexOf<T>(this List<T> list, T value, out int index) where T : unmanaged, IEquatable<T>
+        public static bool TryIndexOf<T>(this List<T> list, T value, out int index) where T : unmanaged, IEquatable<T>
         {
             index = new Span<T>(list.Items.pointer, list.Count).IndexOf(value);
             return index != -1;
@@ -41,7 +41,7 @@ namespace Collections.Generic
         /// <summary>
         /// Tries to retrieve the index for the last occurrence of <paramref name="value"/>.
         /// </summary>
-        public unsafe static bool TryLastIndexOf<T>(this List<T> list, T value, out int index) where T : unmanaged, IEquatable<T>
+        public static bool TryLastIndexOf<T>(this List<T> list, T value, out int index) where T : unmanaged, IEquatable<T>
         {
             index = new Span<T>(list.Items.pointer, list.Count).LastIndexOf(value);
             return index != -1;
@@ -97,26 +97,24 @@ namespace Collections.Generic
         /// Removes the given <paramref name="value"/>.
         /// </summary>
         /// <returns>The index of the removed element.</returns>
-        public static int Remove<T>(this List<T> list, T value) where T : unmanaged, IEquatable<T>
+        public static void Remove<T>(this List<T> list, T value) where T : unmanaged, IEquatable<T>
         {
             int index = list.IndexOf(value);
             ThrowIfNotFound(index, value);
 
             list.RemoveAt(index);
-            return index;
         }
 
         /// <summary>
         /// Removes the given <paramref name="value"/> by swapping it with the last item.
         /// </summary>
         /// <returns>The index of the removed element.</returns>
-        public static int RemoveBySwapping<T>(this List<T> list, T value) where T : unmanaged, IEquatable<T>
+        public static void RemoveBySwapping<T>(this List<T> list, T value) where T : unmanaged, IEquatable<T>
         {
             int index = list.IndexOf(value);
             ThrowIfNotFound(index, value);
 
             list.RemoveAtBySwapping(index);
-            return index;
         }
 
         [Conditional("DEBUG")]
@@ -124,7 +122,7 @@ namespace Collections.Generic
         {
             if (index == -1)
             {
-                throw new ArgumentException($"Value {value} not found in list.");
+                throw new ArgumentException($"Value {value} not found in list");
             }
         }
     }
